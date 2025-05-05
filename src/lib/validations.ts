@@ -9,6 +9,24 @@ export interface ValidationResult {
 }
 
 /**
+ * Validate a required field
+ */
+export const validateRequired = (value: string): ValidationResult => {
+  if (!value || value.trim() === "") {
+    return {
+      isValid: false,
+      message: "This field is required",
+      error: "Required field"
+    };
+  }
+
+  return {
+    isValid: true,
+    message: ""
+  };
+};
+
+/**
  * Validate an email address
  */
 export const validateEmail = (email: string): ValidationResult => {
@@ -64,7 +82,7 @@ export const validatePassword = (password: string): ValidationResult => {
 /**
  * Validate password confirmation
  */
-export const validatePasswordConfirmation = (password: string, confirmation: string): ValidationResult => {
+export const validatePasswordMatch = (password: string, confirmation: string): ValidationResult => {
   if (!confirmation) {
     return {
       isValid: false,
@@ -78,6 +96,32 @@ export const validatePasswordConfirmation = (password: string, confirmation: str
       isValid: false,
       message: "Passwords do not match",
       error: "Passwords don't match"
+    };
+  }
+
+  return {
+    isValid: true,
+    message: ""
+  };
+};
+
+/**
+ * Validate a phone number
+ */
+export const validatePhoneNumber = (phone: string, isPhoneValid: boolean = true): ValidationResult => {
+  if (!phone) {
+    return {
+      isValid: false,
+      message: "Phone number is required",
+      error: "Phone number required"
+    };
+  }
+
+  if (!isPhoneValid) {
+    return {
+      isValid: false,
+      message: "Please enter a valid phone number",
+      error: "Invalid phone number"
     };
   }
 
