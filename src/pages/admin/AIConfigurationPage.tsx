@@ -1,140 +1,51 @@
-import { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Save, RefreshCw } from "lucide-react";
-import AIConfigSidebar from "../../components/admin/AIConfigSidebar";
-import AIModelManager from "../../components/admin/ai-configuration/AIModelManager";
-import KnowledgeBaseManager from "../../components/admin/ai-configuration/KnowledgeBaseManager";
-import PromptTemplateManager from "../../components/admin/ai-configuration/PromptTemplateManager";
-import ResponseFormatterManager from "../../components/admin/ai-configuration/ResponseFormatterManager";
-import BrandingEngineManager from "../../components/admin/ai-configuration/BrandingEngineManager";
-import FollowUpManager from "../../components/admin/ai-configuration/FollowUpManager";
+
+import React from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AIModelManager, BrandingEngineManager, FollowUpManager, KnowledgeBaseManager, RoutingRules, PromptTemplateManager } from "../../components/admin/ai-configuration";
+import { ResponseFormatterManager } from "../../components/admin/ai-configuration/response-formats";
 
 const AIConfigurationPage = () => {
-  const [activeModule, setActiveModule] = useState("models");
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleModuleChange = useCallback(
-    (module: string) => {
-      // Prompt user if there are unsaved changes
-      if (hasChanges) {
-        const confirmChange = window.confirm(
-          "You have unsaved changes. Are you sure you want to navigate away?",
-        );
-        if (!confirmChange) return;
-      }
-      setActiveModule(module);
-    },
-    [hasChanges],
-  );
-
-  const handleSaveChanges = () => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-      setHasChanges(false);
-    }, 1000);
-  };
-
-  // This would be called by child components when they make changes
-  const notifyChanges = useCallback(() => {
-    setHasChanges(true);
-  }, []);
-
-  const renderActiveModule = () => {
-    switch (activeModule) {
-      case "models":
-        return <AIModelManager onSave={() => setHasChanges(false)} />;
-      case "knowledge-base":
-        return <KnowledgeBaseManager standalone={true} />;
-      case "prompts":
-        return <PromptTemplateManager standalone={true} />;
-      case "formatting":
-        return <ResponseFormatterManager standalone={true} />;
-      case "branding":
-        return <BrandingEngineManager standalone={true} />;
-      case "follow-up":
-        return <FollowUpManager standalone={true} />;
-      default:
-        return <AIModelManager onSave={() => setHasChanges(false)} />;
-    }
-  };
-
-  const getModuleTitle = () => {
-    switch (activeModule) {
-      case "models":
-        return "AI Models";
-      case "knowledge-base":
-        return "Knowledge Base";
-      case "prompts":
-        return "Prompt Templates";
-      case "formatting":
-        return "Response Formatting";
-      case "branding":
-        return "Branding Engine";
-      case "follow-up":
-        return "Follow-Up Engine";
-      default:
-        return "AI Models";
-    }
-  };
-
-  const getModuleDescription = () => {
-    switch (activeModule) {
-      case "models":
-        return "Configure AI models and providers";
-      case "knowledge-base":
-        return "Connect your AI to knowledge sources";
-      case "prompts":
-        return "Create and manage prompt templates";
-      case "formatting":
-        return "Configure how AI responses are structured";
-      case "branding":
-        return "Apply brand voice and styling to responses";
-      case "follow-up":
-        return "Configure follow-up suggestions";
-      default:
-        return "Configure AI models and providers";
-    }
-  };
-
   return (
-    <div className="flex h-full">
-      <AIConfigSidebar
-        activeModule={activeModule}
-        onModuleChange={handleModuleChange}
-      />
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">{getModuleTitle()}</h1>
-            <p className="text-muted-foreground">{getModuleDescription()}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-            </Button>
-            <Button
-              onClick={handleSaveChanges}
-              disabled={!hasChanges || isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" /> Save Changes
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {renderActiveModule()}
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">AI Configuration</h2>
+        <p className="text-muted-foreground">
+          Configure your AI assistant's core settings and behavior.
+        </p>
       </div>
+
+      <Tabs defaultValue="models" className="space-y-4">
+        <TabsList className="bg-background">
+          <TabsTrigger value="models">AI Models</TabsTrigger>
+          <TabsTrigger value="prompts">Prompt Templates</TabsTrigger>
+          <TabsTrigger value="formatter">Response Formatter</TabsTrigger>
+          <TabsTrigger value="branding">Branding Engine</TabsTrigger>
+          <TabsTrigger value="followup">Follow-Up Suggestions</TabsTrigger>
+          <TabsTrigger value="routing">Routing Rules</TabsTrigger>
+          <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+        </TabsList>
+        <TabsContent value="models" className="space-y-4">
+          <AIModelManager />
+        </TabsContent>
+        <TabsContent value="prompts" className="space-y-4">
+          <PromptTemplateManager />
+        </TabsContent>
+        <TabsContent value="formatter" className="space-y-4">
+          <ResponseFormatterManager />
+        </TabsContent>
+        <TabsContent value="branding" className="space-y-4">
+          <BrandingEngineManager />
+        </TabsContent>
+        <TabsContent value="followup" className="space-y-4">
+          <FollowUpManager />
+        </TabsContent>
+        <TabsContent value="routing" className="space-y-4">
+          <RoutingRules />
+        </TabsContent>
+        <TabsContent value="knowledge" className="space-y-4">
+          <KnowledgeBaseManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
