@@ -147,4 +147,12 @@ export interface ResponseFormat {
   isDefault?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // Additional properties used in ResponseFormatterManager
+  length?: string;
+  tone?: string;
+  options?: Array<{
+    id: string;
+    name: string;
+    value: string;
+  }>;
 }

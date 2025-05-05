@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import {
   FormControl,
   FormDescription,
-  FormField,
+  FormField as HookFormField,
   FormItem,
   FormLabel,
   FormMessage,
@@ -52,10 +52,8 @@ export const CustomFormField = ({
   };
 
   return (
-    <FormField
+    <HookFormField
       name={name}
-      rules={{ required: required ? "This field is required" : false }}
-      validate={handleValidation}
       render={({ field }) => (
         <FormItem className="space-y-1">
           {label && (
@@ -89,5 +87,51 @@ export const CustomFormField = ({
         </FormItem>
       )}
     />
+  );
+};
+
+// Simple form field component for ComponentShowcasePage
+interface FormFieldProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  icon?: React.ReactNode;
+}
+
+export const FormField = ({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  icon,
+}: FormFieldProps) => {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <div className="relative">
+        {icon && (
+          <div className="absolute left-2 top-2.5 text-muted-foreground">
+            {icon}
+          </div>
+        )}
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${
+            icon ? "pl-8" : ""
+          }`}
+        />
+      </div>
+    </div>
   );
 };
