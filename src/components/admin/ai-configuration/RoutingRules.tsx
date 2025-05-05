@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Card,
@@ -18,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { AIModel, RoutingRule } from "@/types/ai-configuration";
 import { EditRuleDialog } from "./EditRuleDialog";
+import { RuleItem } from "./components/RuleItem";
+import { EmptyRulesState } from "./components/EmptyRulesState";
 
 interface RoutingRulesProps {
   models: AIModel[];
@@ -65,7 +68,8 @@ export const RoutingRules = ({
       priority: rules.length + 1,
     };
 
-    setCurrentRule(onAddRule(newRule) as RoutingRule);
+    const createdRule = onAddRule(newRule);
+    setCurrentRule(createdRule as RoutingRule);
     setShowEditDialog(true);
   };
 
@@ -99,44 +103,13 @@ export const RoutingRules = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Default Model</Label>
-                <Select
-                  value={defaultModel}
-                  onValueChange={handleDefaultModelChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select default model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name} {model.version ? `(${model.version})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Fallback Model</Label>
-                <Select
-                  value={fallbackModel}
-                  onValueChange={handleFallbackModelChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select fallback model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name} {model.version ? `(${model.version})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <ModelSelectionSection
+              models={models}
+              defaultModel={defaultModel}
+              fallbackModel={fallbackModel}
+              onDefaultModelChange={handleDefaultModelChange}
+              onFallbackModelChange={handleFallbackModelChange}
+            />
 
             <Separator />
 
@@ -145,39 +118,15 @@ export const RoutingRules = ({
               <div className="border rounded-md">
                 {rules.length > 0 ? (
                   rules.map((rule) => (
-                    <div
+                    <RuleItem
                       key={rule.id}
-                      className="p-4 border-b flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="font-medium">{rule.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {rule.description}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditRule(rule)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => handleDeleteRule(rule.id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                      rule={rule}
+                      onEdit={handleEditRule}
+                      onDelete={handleDeleteRule}
+                    />
                   ))
                 ) : (
-                  <div className="p-8 text-center text-muted-foreground">
-                    No routing rules defined yet. Add a rule to get started.
-                  </div>
+                  <EmptyRulesState />
                 )}
                 <div className="p-4 flex items-center justify-center">
                   <Button variant="outline" onClick={handleAddRule}>
@@ -200,5 +149,62 @@ export const RoutingRules = ({
         />
       )}
     </>
+  );
+};
+
+interface ModelSelectionSectionProps {
+  models: AIModel[];
+  defaultModel: string;
+  fallbackModel: string;
+  onDefaultModelChange: (value: string) => void;
+  onFallbackModelChange: (value: string) => void;
+}
+
+const ModelSelectionSection: React.FC<ModelSelectionSectionProps> = ({
+  models,
+  defaultModel,
+  fallbackModel,
+  onDefaultModelChange,
+  onFallbackModelChange,
+}) => {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-2">
+        <Label>Default Model</Label>
+        <Select
+          value={defaultModel}
+          onValueChange={onDefaultModelChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select default model" />
+          </SelectTrigger>
+          <SelectContent>
+            {models.map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                {model.name} {model.version ? `(${model.version})` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Fallback Model</Label>
+        <Select
+          value={fallbackModel}
+          onValueChange={onFallbackModelChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select fallback model" />
+          </SelectTrigger>
+          <SelectContent>
+            {models.map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                {model.name} {model.version ? `(${model.version})` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
 };
