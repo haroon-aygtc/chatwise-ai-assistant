@@ -1,127 +1,132 @@
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { ValidationResult } from "@/lib/validations";
-import intlTelInput from "intl-tel-input";
-import "intl-tel-input/build/css/intlTelInput.css";
 
 interface SimplePhoneInputProps {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string, isValid: boolean, countryCode: string) => void;
-  onBlur?: () => void;
-  validate?: (isValid: boolean) => ValidationResult;
+  value?: string;
+  onChange?: (value: string, isValid: boolean) => void;
+  label?: string;
+  placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
   className?: string;
+  validation?: (value: string, isValid: boolean) => ValidationResult;
 }
 
-export function SimplePhoneInput({
-  id,
-  label,
-  value,
+export const SimplePhoneInput = ({
+  value = "",
   onChange,
-  onBlur,
-  validate,
+  label,
+  placeholder = "Phone number",
   required = false,
-  className = "",
-}: SimplePhoneInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const itiRef = useRef<any>(null);
-  const [touched, setTouched] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult>({ isValid: true, error: null });
+  disabled = false,
+  className,
+  validation,
+}: SimplePhoneInputProps) => {
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isValid, setIsValid] = useState(true);
+  const [validationResult, setValidationResult] = useState<ValidationResult>({
+    isValid: true,
+    message: "",
+    error: ""
+  });
 
-  // Initialize intl-tel-input
+  // Format incoming value if different from internal state
   useEffect(() => {
-    if (inputRef.current) {
-      // Initialize the plugin with minimal options
-      itiRef.current = intlTelInput(inputRef.current, {
-        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
-        separateDialCode: true,
-        preferredCountries: ["us", "gb", "ca", "au"],
-        initialCountry: "auto",
-        geoIpLookup: (callback) => {
-          fetch("https://ipapi.co/json")
-            .then((res) => res.json())
-            .then((data) => callback(data.country_code))
-            .catch(() => callback("us")); // Default to US if lookup fails
-        },
-      });
-
-      // Set initial value if provided
-      if (value) {
-        inputRef.current.value = value;
+    if (value && value !== phoneNumber) {
+      // Clean up any non-digit characters
+      const digits = value.replace(/\D/g, "");
+      
+      // Format the phone number
+      let formatted = "";
+      if (digits.length > 0) {
+        // For US format (XXX) XXX-XXXX
+        if (digits.length <= 3) {
+          formatted = digits;
+        } else if (digits.length <= 6) {
+          formatted = `(${digits.substring(0, 3)}) ${digits.substring(3)}`;
+        } else {
+          formatted = `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 10)}`;
+        }
       }
+      
+      setPhoneNumber(formatted);
     }
+  }, [value, phoneNumber]);
 
-    // Cleanup
-    return () => {
-      if (itiRef.current) {
-        itiRef.current.destroy();
-      }
-    };
-  }, []);
+  const validatePhoneNumber = useCallback(
+    (phone: string) => {
+      // US phone format validation - we want 10 digits total
+      const digitsOnly = phone.replace(/\D/g, "");
+      const newIsValid = digitsOnly.length === 10;
+      setIsValid(newIsValid);
 
-  // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (itiRef.current) {
-      // Only allow digits
-      const inputValue = e.target.value;
-      const sanitizedValue = inputValue.replace(/[^\d]/g, '');
-      
-      if (sanitizedValue !== inputValue) {
-        e.target.value = sanitizedValue;
+      if (validation) {
+        const result = validation(phone, newIsValid);
+        setValidationResult(result);
       }
-      
-      const phoneNumber = itiRef.current.getNumber();
-      const isValid = itiRef.current.isValidNumber();
-      const countryData = itiRef.current.getSelectedCountryData();
-      
-      onChange(phoneNumber || "", isValid, countryData.iso2);
-      
-      if (touched && validate) {
-        setValidationResult(validate(isValid));
-      }
+
+      return newIsValid;
+    },
+    [validation]
+  );
+  
+  useEffect(() => {
+    if (phoneNumber) {
+      validatePhoneNumber(phoneNumber);
+    }
+  }, [phoneNumber, validatePhoneNumber]);
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    const digitsOnly = input.replace(/\D/g, "");
+    
+    // Format the phone number as the user types
+    let formatted = "";
+    if (digitsOnly.length <= 3) {
+      formatted = digitsOnly;
+    } else if (digitsOnly.length <= 6) {
+      formatted = `(${digitsOnly.substring(0, 3)}) ${digitsOnly.substring(3)}`;
+    } else {
+      formatted = `(${digitsOnly.substring(0, 3)}) ${digitsOnly.substring(3, 6)}-${digitsOnly.substring(6, 10)}`;
+    }
+    
+    setPhoneNumber(formatted);
+    
+    if (onChange) {
+      const newIsValid = validatePhoneNumber(formatted);
+      onChange(formatted, newIsValid);
     }
   };
-
-  // Handle blur
-  const handleBlur = () => {
-    setTouched(true);
-    if (validate && itiRef.current) {
-      const isValid = itiRef.current.isValidNumber();
-      setValidationResult(validate(isValid));
-    }
-    if (onBlur) onBlur();
-  };
-
-  const hasError = touched && !validationResult.isValid;
 
   return (
-    <div className="space-y-2">
-      <Label
-        htmlFor={id}
-        className={`text-foreground ${required ? "after:content-['*'] after:ml-0.5 after:text-destructive" : ""}`}
-      >
-        {label}
-      </Label>
-      <div className="relative">
-        <input
-          ref={inputRef}
-          id={id}
-          type="tel"
-          inputMode="numeric"
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          className={`h-12 w-full rounded-md border bg-background px-3 py-1 text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-            hasError
-              ? "border-destructive focus:border-destructive"
-              : "border-input focus:border-primary"
-          } ${className}`}
-        />
-      </div>
-      {hasError && (
-        <p className="text-destructive text-xs mt-1">{validationResult.error}</p>
+    <div className={cn("space-y-2", className)}>
+      {label && (
+        <Label 
+          className={required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ""}
+        >
+          {label}
+        </Label>
+      )}
+      
+      <Input
+        type="tel"
+        value={phoneNumber}
+        onChange={handlePhoneChange}
+        placeholder={placeholder}
+        className={cn(
+          !isValid && "border-destructive focus-visible:ring-destructive"
+        )}
+        disabled={disabled}
+        required={required}
+      />
+      
+      {(!isValid || !validationResult.isValid) && validationResult.message && (
+        <p className="text-sm text-destructive">{validationResult.message || validationResult.error}</p>
       )}
     </div>
   );
-}
+};

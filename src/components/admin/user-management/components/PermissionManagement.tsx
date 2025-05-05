@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { PermissionCategory } from "@/types/ai-configuration";
 import { PermissionGroup } from "./PermissionGroup";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ export function PermissionManagement({
   const toggleAllPermissions = () => {
     // If all permissions are already selected, deselect all
     const allPermissions = permissionCategories.flatMap(
-      (category) => category.permissions.map((permission) => permission.name)
+      (category) => category.permissions.map((permission) => permission.id)
     );
 
     const allSelected = allPermissions.every((permission) =>
@@ -141,7 +141,8 @@ export function PermissionManagement({
             {filteredCategories.map((category) => (
               <PermissionGroup
                 key={category.id}
-                category={category}
+                name={category.name}
+                permissions={category.permissions}
                 selectedPermissions={selectedPermissions}
                 onChange={onChange}
               />
@@ -154,7 +155,8 @@ export function PermissionManagement({
             {filteredCategories.map((category, index) => (
               <React.Fragment key={category.id}>
                 <PermissionGroup
-                  category={category}
+                  name={category.name}
+                  permissions={category.permissions}
                   selectedPermissions={selectedPermissions}
                   onChange={onChange}
                 />

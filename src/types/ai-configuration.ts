@@ -10,6 +10,7 @@ export interface AIModel {
   description?: string;
   configuration: Record<string, any>;
   context?: Record<string, any>;
+  apiKey?: string;
 }
 
 export interface RoutingRule {
@@ -19,6 +20,7 @@ export interface RoutingRule {
   conditions: RuleCondition[];
   priority: number;
   isActive?: boolean;
+  description?: string;
 }
 
 export interface RuleCondition {
@@ -39,6 +41,7 @@ export interface PromptTemplate {
   usageCount?: number;
   createdAt?: string;
   updatedAt?: string;
+  isActive?: boolean;
 }
 
 export interface PromptVariable {
@@ -134,4 +137,14 @@ export interface EditedRole {
   name?: string;
   description?: string;
   permissions?: string[];
+}
+
+export interface ResponseFormat {
+  id: string;
+  name: string;
+  description?: string;
+  format: string;
+  isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
