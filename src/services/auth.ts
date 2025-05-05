@@ -1,5 +1,5 @@
 
-import { apiRequest } from "./api/base";
+import ApiService from './api/base';
 import { User } from "@/types/user";
 
 interface LoginResponse {
@@ -20,10 +20,10 @@ export const login = async (
   email: string,
   password: string
 ): Promise<LoginResponse> => {
-  return apiRequest<LoginResponse>({
-    method: "POST",
+  return ApiService.post<LoginResponse>({
     url: "/auth/login",
     data: { email, password },
+    withAuth: false
   });
 };
 
@@ -33,8 +33,7 @@ export const signup = async (
   password: string,
   passwordConfirmation: string
 ): Promise<SignupResponse> => {
-  return apiRequest<SignupResponse>({
-    method: "POST",
+  return ApiService.post<SignupResponse>({
     url: "/auth/register",
     data: {
       name,
@@ -42,13 +41,14 @@ export const signup = async (
       password,
       password_confirmation: passwordConfirmation,
     },
+    withAuth: false
   });
 };
 
 export const logout = async (): Promise<void> => {
-  await apiRequest<void>({
-    method: "POST",
+  await ApiService.post<void>({
     url: "/auth/logout",
+    withAuth: true
   });
   
   // Clear token from localStorage
@@ -56,10 +56,10 @@ export const logout = async (): Promise<void> => {
 };
 
 export const forgotPassword = async (email: string): Promise<{ message: string }> => {
-  return apiRequest<{ message: string }>({
-    method: "POST",
+  return ApiService.post<{ message: string }>({
     url: "/auth/forgot-password",
     data: { email },
+    withAuth: false
   });
 };
 
@@ -69,8 +69,7 @@ export const resetPassword = async (
   password: string,
   passwordConfirmation: string
 ): Promise<ResetPasswordResponse> => {
-  return apiRequest<ResetPasswordResponse>({
-    method: "POST",
+  return ApiService.post<ResetPasswordResponse>({
     url: "/auth/reset-password",
     data: {
       token,
@@ -78,12 +77,13 @@ export const resetPassword = async (
       password,
       password_confirmation: passwordConfirmation,
     },
+    withAuth: false
   });
 };
 
 export const checkAuth = async (): Promise<User> => {
-  return apiRequest<User>({
-    method: "GET",
+  return ApiService.get<User>({
     url: "/auth/me",
+    withAuth: true
   });
 };
