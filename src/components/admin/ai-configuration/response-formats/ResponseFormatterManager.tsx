@@ -11,18 +11,44 @@ import { responseFormatService } from '@/services/response-format';
 import { ResponseFormat } from '@/types/ai-configuration';
 import { useToast } from '@/components/ui/use-toast';
 
-const ResponseFormatterManager = () => {
+export const ResponseFormatterManager = () => {
   const { toast } = useToast();
   const [formatList, setFormatList] = useState<ResponseFormat[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<ResponseFormat | null>(null);
-  const [testInput, setTestInput] = useState('');
+  const [testPrompt, setTestPrompt] = useState('');
   const [formattedOutput, setFormattedOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSettingDefault, setIsSettingDefault] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('settings');
+  
+  // Format settings state for the currently selected format
+  const [formatSettings, setFormatSettings] = useState<ResponseFormat>({
+    id: '',
+    name: 'New Format',
+    description: '',
+    format: 'conversational',
+    length: 'medium',
+    tone: 'professional',
+    options: {
+      useHeadings: false,
+      useBulletPoints: false,
+      includeLinks: false,
+      formatCodeBlocks: false
+    }
+  });
 
   useEffect(() => {
     fetchFormats();
   }, []);
+
+  useEffect(() => {
+    if (selectedFormat) {
+      setFormatSettings(selectedFormat);
+    }
+  }, [selectedFormat]);
 
   const fetchFormats = async () => {
     setIsLoading(true);
@@ -49,11 +75,12 @@ const ResponseFormatterManager = () => {
     }
   };
 
-  const handleFormatSelect = (format: ResponseFormat) => {
+  const handleSelectFormat = (format: ResponseFormat) => {
     setSelectedFormat(format);
   };
 
   const handleFormatChange = async (updatedFormat: ResponseFormat) => {
+    setIsSaving(true);
     try {
       await responseFormatService.updateResponseFormat(updatedFormat.id, updatedFormat);
       setFormatList(prev => 
@@ -71,11 +98,15 @@ const ResponseFormatterManager = () => {
         description: 'Failed to update response format',
         variant: 'destructive',
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleCreateFormat = async (newFormat: Omit<ResponseFormat, 'id'>) => {
+  const handleCreateFormat = async () => {
+    setIsSaving(true);
     try {
+      const { id, ...newFormat } = formatSettings;
       const createdFormat = await responseFormatService.createResponseFormat(newFormat);
       setFormatList(prev => [...prev, createdFormat]);
       setSelectedFormat(createdFormat);
@@ -90,10 +121,13 @@ const ResponseFormatterManager = () => {
         description: 'Failed to create response format',
         variant: 'destructive',
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteFormat = async (id: string) => {
+    setIsDeleting(true);
     try {
       await responseFormatService.deleteResponseFormat(id);
       const updatedFormats = formatList.filter(format => format.id !== id);
@@ -114,10 +148,13 @@ const ResponseFormatterManager = () => {
         description: 'Failed to delete response format',
         variant: 'destructive',
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleSetDefault = async (id: string) => {
+    setIsSettingDefault(true);
     try {
       await responseFormatService.setDefaultResponseFormat(id);
       setFormatList(prev => 
@@ -137,17 +174,19 @@ const ResponseFormatterManager = () => {
         description: 'Failed to set default response format',
         variant: 'destructive',
       });
+    } finally {
+      setIsSettingDefault(false);
     }
   };
 
-  const handleTestFormat = async () => {
-    if (!selectedFormat || !testInput) return;
+  const handleTest = async () => {
+    if (!selectedFormat || !testPrompt) return;
     
-    setIsLoading(true);
+    setIsTesting(true);
     try {
       const result = await responseFormatService.testResponseFormat(
         selectedFormat.id,
-        testInput
+        testPrompt
       );
       
       // Use the formatted response from the API
@@ -161,8 +200,20 @@ const ResponseFormatterManager = () => {
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setIsTesting(false);
     }
+  };
+
+  const handleSave = async () => {
+    if (formatSettings.id) {
+      await handleFormatChange(formatSettings);
+    } else {
+      await handleCreateFormat();
+    }
+  };
+
+  const handleGoToSettings = () => {
+    setActiveTab('settings');
   };
 
   return (
@@ -178,12 +229,9 @@ const ResponseFormatterManager = () => {
         <div className="md:col-span-1">
           <SavedFormatsCard 
             formats={formatList}
-            selectedFormat={selectedFormat}
-            onFormatSelect={handleFormatSelect}
-            onCreateFormat={handleCreateFormat}
-            onDeleteFormat={handleDeleteFormat}
+            onSelectFormat={handleSelectFormat}
             onSetDefault={handleSetDefault}
-            isLoading={isLoading}
+            isSettingDefault={isSettingDefault}
           />
         </div>
 
@@ -197,25 +245,28 @@ const ResponseFormatterManager = () => {
               
               <TabsContent value="settings" className="p-6 space-y-6">
                 <FormatSettingsCard 
-                  selectedFormat={selectedFormat}
-                  onFormatChange={handleFormatChange}
-                  isLoading={isLoading}
+                  formatSettings={formatSettings}
+                  setFormatSettings={setFormatSettings}
+                  handleSave={handleSave}
+                  onDelete={() => selectedFormat && handleDeleteFormat(selectedFormat.id)}
+                  isDeleting={isDeleting}
+                  isSaving={isSaving}
                 />
                 
                 <TestPromptCard 
-                  testInput={testInput}
-                  onInputChange={setTestInput}
-                  onTestFormat={handleTestFormat}
-                  isLoading={isLoading}
-                  disabled={!selectedFormat}
+                  testPrompt={testPrompt}
+                  setTestPrompt={setTestPrompt}
+                  handleTest={handleTest}
+                  isTesting={isTesting}
                 />
               </TabsContent>
               
               <TabsContent value="preview" className="p-6">
                 <FormatPreviewTab
-                  originalInput={testInput}
-                  formattedOutput={formattedOutput}
-                  formatName={selectedFormat?.name || 'No format selected'}
+                  testPrompt={testPrompt}
+                  testResponse={formattedOutput}
+                  formatSettings={formatSettings}
+                  onGoToSettings={handleGoToSettings}
                 />
               </TabsContent>
             </Tabs>
@@ -225,5 +276,3 @@ const ResponseFormatterManager = () => {
     </div>
   );
 };
-
-export { ResponseFormatterManager };

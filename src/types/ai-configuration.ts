@@ -1,4 +1,3 @@
-
 export interface AIModel {
   id: string;
   name: string;
@@ -158,6 +157,6 @@ export interface ResponseFormat {
 }
 
 export interface DateRange {
-  from: Date;
-  to: Date;
+  from: Date | undefined;
+  to: Date | undefined;
 }
