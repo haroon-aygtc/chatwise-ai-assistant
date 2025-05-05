@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { AIModelManager } from "./admin/ai-configuration/AIModelManager";
+import { KnowledgeBaseManager } from "./admin/ai-configuration/KnowledgeBaseManager";
 import ChatWidget from "./chat/ChatWidget";
 import AdminLayout from "./admin/AdminLayout";
 import Dashboard from "./admin/Dashboard";
@@ -9,8 +12,6 @@ import KnowledgeBase from "./admin/KnowledgeBase";
 import UserManagement from "./admin/user-management";
 import ThemeBuilder from "./admin/ThemeBuilder";
 import ApiTester from "./api-tester/ApiTester";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
