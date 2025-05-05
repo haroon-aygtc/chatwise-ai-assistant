@@ -1,6 +1,7 @@
-export * from "./AddUserDialog";
-export * from "./EditUserDialog";
-export * from "./DeleteUserDialog";
-export * from "./CreateRoleDialog";
-export * from "./EditRoleDialog";
-export * from "./DeleteRoleDialog";
+
+export { AddUserDialog } from "./AddUserDialog";
+export { EditUserDialog } from "./EditUserDialog";
+export { DeleteUserDialog } from "./DeleteUserDialog";
+export { CreateRoleDialog } from "./CreateRoleDialog";
+export { EditRoleDialog } from "./EditRoleDialog";
+export { DeleteRoleDialog } from "./DeleteRoleDialog";
