@@ -1,159 +1,137 @@
 
-/**
- * Types for AI configuration
- */
-
 export interface AIModel {
   id: string;
   name: string;
   provider: string;
   version: string;
-  description?: string;
+  maxTokens: number;
+  temperature: number;
   isActive: boolean;
-  apiKey?: string;
-  configuration: {
-    temperature: number;
-    maxTokens: number;
-    topP: number;
-    frequencyPenalty: number;
-    presencePenalty: number;
-    [key: string]: any;
-  };
+  description?: string;
+  configuration: Record<string, any>;
+  context?: Record<string, any>;
 }
 
 export interface RoutingRule {
   id: string;
   name: string;
-  description?: string;
   modelId: string;
   conditions: RuleCondition[];
   priority: number;
+  isActive?: boolean;
 }
 
 export interface RuleCondition {
   field: string;
-  operator: "equals" | "contains" | "startsWith" | "endsWith" | "regex";
+  operator: string;
   value: string;
 }
 
 export interface PromptTemplate {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   template: string;
   variables: PromptVariable[];
-  category?: string;
-  isActive: boolean;
+  content?: string;
   isDefault?: boolean;
-  content?: string; // Added for compatibility with existing code
+  category?: string;
+  usageCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PromptVariable {
   name: string;
   description?: string;
+  type?: string;
   defaultValue?: string;
-  required: boolean;
-}
-
-export interface KnowledgeSource {
-  id: string;
-  name: string;
-  description?: string;
-  type: "document" | "website" | "api" | "database";
-  url?: string;
-  content?: string;
-  metadata?: Record<string, any>;
-  lastUpdated?: string;
-  isActive: boolean;
-}
-
-export interface ResponseFormat {
-  id: string;
-  name: string;
-  format: "conversational" | "structured" | "bullet-points" | "step-by-step";
-  length: "concise" | "medium" | "detailed";
-  tone: "professional" | "friendly" | "casual" | "technical";
-  options: {
-    useHeadings: boolean;
-    useBulletPoints: boolean;
-    includeLinks: boolean;
-    formatCodeBlocks: boolean;
-  };
-}
-
-export interface BrandingConfig {
-  id: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  voiceStyle: "formal" | "casual" | "friendly" | "technical" | "enthusiastic";
-  brandPersonality: string[];
-  keyPhrases: string[];
-  avoidPhrases: string[];
-  positioning: "start" | "end" | "inline";
+  required?: boolean;
 }
 
 export interface FollowUpSuggestion {
   id: string;
   text: string;
-  category?: string;
-  context?: string[];
-  isActive: boolean;
-  priority?: number;
-  description?: string; // Added for compatibility with existing code
-  order?: number; // Added for compatibility with existing code
+  category: string;
+  description?: string;
+  order?: number;
+  triggerConditions?: string[];
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// Added these types for compatibility with KnowledgeBaseManager
+export interface BrandVoice {
+  id: string;
+  name: string;
+  description: string;
+  tone: string[];
+  positioning: string;
+  brandName: string;
+  signature: string;
+  examples: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface DocumentCategory {
   id: string;
   name: string;
   description?: string;
-  documentCount?: number; // Added for compatibility
+  parentId?: string;
+  documentCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface KnowledgeDocument {
   id: string;
   title: string;
+  description: string;
   content: string;
   categoryId: string;
+  fileType: string;
+  fileSize: number;
   tags: string[];
-  url?: string;
+  uploadedAt: string;
   lastUpdated: string;
-  description?: string; // Added for compatibility
-  fileType?: string; // Added for compatibility
-  fileSize?: number; // Added for compatibility
-  status?: string; // Added for compatibility
-  uploadedAt?: string; // Added for compatibility
-}
-
-// Added for BrandingEngineManager
-export interface BrandVoice {
-  id: string;
-  name: string;
-  description: string;
-  tone: string;
-  examples: string[];
-  brandName?: string; // Added for compatibility
-  positioning?: string; // Added for compatibility
-  signature?: string; // Added for compatibility
-}
-
-// Added for Permission Management components
-export interface Permission {
-  id: string;
-  name: string;
-  description?: string;
-  module?: string;
+  status: string;
 }
 
 export interface PermissionCategory {
+  id: string;
   name: string;
+  description?: string;
   permissions: Permission[];
 }
 
-export interface PermissionManagementProps {
-  selectedPermissions: string[];
-  onChange: React.Dispatch<React.SetStateAction<string[]>>;
-  permissionCategories: PermissionCategory[];
+export interface Permission {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  categoryId?: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: string[];
+  userCount?: number;
+  isSystem?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface NewRole {
+  name: string;
+  description?: string;
+  permissions: string[];
+}
+
+export interface EditedRole {
+  name?: string;
+  description?: string;
+  permissions?: string[];
 }

@@ -1,6 +1,9 @@
 
 import { apiRequest } from "./base";
 
+// Define base URL for API requests
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+
 interface ServerInfo {
   appName: string;
   version: string;

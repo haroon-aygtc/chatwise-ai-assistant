@@ -1,9 +1,10 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -12,121 +13,176 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { PermissionManagement } from "../components/PermissionManagement";
+import { Role, PermissionCategory } from "@/types/ai-configuration";
 
-import { Role, EditedRole, PermissionCategory } from "../../../../types";
-import PermissionGroup from "../components/PermissionGroup";
+// Form schema
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Role name must be at least 2 characters",
+  }),
+  description: z.string().optional(),
+});
 
 interface EditRoleDialogProps {
+  role: Role;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  role: Role;
-  availablePermissions: PermissionCategory[];
+  onUpdateRole: (
+    id: string,
+    name: string,
+    description: string,
+    permissions: string[]
+  ) => Promise<void>;
+  permissionCategories: PermissionCategory[];
 }
 
 export function EditRoleDialog({
+  role,
   open,
   onOpenChange,
-  role,
-  availablePermissions,
+  onUpdateRole,
+  permissionCategories,
 }: EditRoleDialogProps) {
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editedRole, setEditedRole] = useState<EditedRole>({
-    id: role.id,
-    name: role.name,
-    description: role.description || "",
-    permissions: Array.isArray(role.permissions) ? [...role.permissions] : [],
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: role.name,
+      description: role.description || "",
+    },
   });
 
-  const handleEditRole = () => {
+  // Set initial values when role changes or dialog opens
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: role.name,
+        description: role.description || "",
+      });
+      setSelectedPermissions(role.permissions || []);
+    }
+  }, [open, role, form]);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      // In a real implementation, this would update the role in the database
+    try {
+      await onUpdateRole(
+        role.id,
+        values.name,
+        values.description || "",
+        selectedPermissions
+      );
+      toast({
+        title: "Role updated",
+        description: `Role "${values.name}" has been updated successfully.`,
+      });
       onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to update role:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update role. Please try again.",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
+
+  const isSystemRole = role.isSystem;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Role</DialogTitle>
           <DialogDescription>
-            Modify role details and permissions.
+            Edit role details and assigned permissions
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-hidden">
-          <div className="space-y-4 py-4 overflow-hidden flex flex-col h-full">
-            <div className="space-y-2">
-              <Label htmlFor="edit-role-name">Role Name</Label>
-              <Input
-                id="edit-role-name"
-                placeholder="e.g., Content Manager"
-                value={editedRole.name}
-                onChange={(e) =>
-                  setEditedRole({ ...editedRole, name: e.target.value })
-                }
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter role name"
+                      {...field}
+                      disabled={isSystemRole}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Describe the purpose of this role"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="py-4">
+              <FormLabel className="block mb-2">Permissions</FormLabel>
+              <PermissionManagement
+                permissionCategories={permissionCategories}
+                selectedPermissions={selectedPermissions}
+                onChange={setSelectedPermissions}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-role-description">Description</Label>
-              <Textarea
-                id="edit-role-description"
-                placeholder="Describe the purpose and responsibilities of this role"
-                value={editedRole.description}
-                onChange={(e) =>
-                  setEditedRole({
-                    ...editedRole,
-                    description: e.target.value,
-                  })
-                }
-                className="resize-none"
-              />
-            </div>
-            <div className="space-y-2 flex-1 overflow-hidden">
-              <Label>Permissions</Label>
-              <div className="border rounded-md overflow-hidden flex-1">
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="p-4 space-y-6">
-                    {availablePermissions.map((category) => (
-                      <PermissionGroup
-                        key={category.category}
-                        category={category}
-                        selectedPermissions={editedRole.permissions}
-                        setStateFunction={setEditedRole}
-                        currentState={editedRole}
-                        idPrefix={`edit-${role.id}`}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleEditRole}
-            disabled={isSubmitting || !editedRole.name.trim()}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="h-4 w-4 mr-2 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
-        </DialogFooter>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

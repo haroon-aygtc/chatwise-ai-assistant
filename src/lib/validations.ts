@@ -1,83 +1,61 @@
 
-export type ValidationError = string | null;
-
+// Validation result interface
 export interface ValidationResult {
   isValid: boolean;
-  error: ValidationError;
+  message: string;
 }
 
-export const validateRequired = (value: string): ValidationResult => {
-  if (!value || value.trim() === '') {
-    return { isValid: false, error: "This field is required" };
-  }
-  return { isValid: true, error: null };
+/**
+ * Validates that a value is not empty
+ */
+export const validateRequired = (value: any): ValidationResult => {
+  const isValid = value !== undefined && value !== null && value !== '';
+  return {
+    isValid,
+    message: isValid ? '' : 'This field is required'
+  };
 };
 
+/**
+ * Validates that a value is a valid email
+ */
 export const validateEmail = (email: string): ValidationResult => {
-  const required = validateRequired(email);
-  if (!required.isValid) return required;
-
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return { isValid: false, error: "Please enter a valid email address" };
-  }
-  return { isValid: true, error: null };
+  const isValid = emailRegex.test(email);
+  return {
+    isValid,
+    message: isValid ? '' : 'Please enter a valid email address'
+  };
 };
 
+/**
+ * Validates that a password meets minimum requirements
+ */
 export const validatePassword = (password: string): ValidationResult => {
-  const required = validateRequired(password);
-  if (!required.isValid) return required;
-
-  if (password.length < 6) {
-    return { isValid: false, error: "Password must be at least 6 characters" };
-  }
-
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-  const strength = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length;
-
-  if (strength < 3) {
-    return { 
-      isValid: false, 
-      error: "Password must contain at least 3 of: uppercase letters, lowercase letters, numbers, and special characters" 
-    };
-  }
-
-  return { isValid: true, error: null };
+  const isValid = password.length >= 8;
+  return {
+    isValid,
+    message: isValid ? '' : 'Password must be at least 8 characters long'
+  };
 };
 
+/**
+ * Validates that passwords match
+ */
 export const validatePasswordMatch = (password: string, confirmPassword: string): ValidationResult => {
-  const required = validateRequired(confirmPassword);
-  if (!required.isValid) return required;
-
-  if (password !== confirmPassword) {
-    return { isValid: false, error: "Passwords do not match" };
-  }
-  return { isValid: true, error: null };
+  const isValid = password === confirmPassword;
+  return {
+    isValid,
+    message: isValid ? '' : 'Passwords do not match'
+  };
 };
 
-export const validatePhoneNumber = (phoneNumber: string, isValid?: boolean): ValidationResult => {
-  const required = validateRequired(phoneNumber);
-  if (!required.isValid) return required;
-
-  // If isValid is provided (from intl-tel-input validation), use that
-  if (isValid !== undefined) {
-    return isValid 
-      ? { isValid: true, error: null }
-      : { isValid: false, error: "Please enter a valid phone number" };
-  }
-
-  // Fallback validation if isValid is not provided
-  // Remove non-digit characters for validation
-  const digitsOnly = phoneNumber.replace(/\D/g, '');
-  
-  // Check if the phone number has a reasonable length (typically 8-15 digits including country code)
-  if (digitsOnly.length < 8 || digitsOnly.length > 15) {
-    return { isValid: false, error: "Please enter a valid phone number" };
-  }
-  
-  return { isValid: true, error: null };
+/**
+ * Validates a phone number
+ */
+export const validatePhoneNumber = (phone: string, isValid: boolean): ValidationResult => {
+  return {
+    isValid: isValid && phone.length > 0,
+    message: (isValid && phone.length > 0) ? '' : 'Please enter a valid phone number'
+  };
 };
