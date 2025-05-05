@@ -1,10 +1,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, User, Lock, ArrowRight, Github } from "lucide-react";
+import { Mail, User, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { FormField } from "@/components/ui/form-field";
 import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
@@ -21,7 +19,7 @@ export function SignupForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SignupFormData>({
     name: "",
     email: "",
     phone: "",
@@ -31,6 +29,8 @@ export function SignupForm() {
     confirmPassword: "",
     agreeTerms: false,
   });
+
+  const { touchedFields, setTouchedFields, validateForm } = useSignupValidation(formData);
 
   const updateFormField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -89,7 +89,7 @@ export function SignupForm() {
       navigate("/admin/chat-sessions");
     } catch (error) {
       toast({
-        title: "Registration error",
+        title: "Registration Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
