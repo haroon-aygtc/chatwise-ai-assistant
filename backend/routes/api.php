@@ -1,6 +1,7 @@
 
 <?php
 
+use App\Http\Controllers\API\ActivityLogController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\RoleController;
@@ -48,5 +49,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware(['can:manage permissions'])->group(function () {
         Route::get('/permissions', [PermissionController::class, 'index']);
         Route::get('/permissions/categories', [PermissionController::class, 'getByCategory']);
+    });
+    
+    // Activity log routes
+    Route::middleware(['can:view activity log'])->group(function () {
+        Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+        Route::get('/activity-logs/types', [ActivityLogController::class, 'getActionTypes']);
+        Route::get('/activity-logs/export', [ActivityLogController::class, 'export']);
     });
 });

@@ -1,89 +1,131 @@
 
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { tokenService } from '../auth/tokenService';
 
-// Define API error class
-export class ApiError extends Error {
-  statusCode: number;
-  data: any;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-  constructor(message: string, statusCode: number, data?: any) {
-    super(message);
-    this.name = "ApiError";
-    this.statusCode = statusCode;
-    this.data = data;
+interface ApiConfig {
+  baseURL?: string;
+  timeout?: number;
+  withCredentials?: boolean;
+}
+
+interface RequestOptions {
+  withAuth?: boolean;
+}
+
+class ApiService {
+  private static instance = axios.create({
+    baseURL: API_URL,
+    timeout: 30000,
+    withCredentials: true,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+  });
+
+  /**
+   * Initialize API service
+   */
+  static init(config: ApiConfig = {}) {
+    this.instance = axios.create({
+      baseURL: config.baseURL || API_URL,
+      timeout: config.timeout || 30000,
+      withCredentials: config.withCredentials !== undefined ? config.withCredentials : true,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
+
+    // Add request interceptor to include auth token
+    this.instance.interceptors.request.use(
+      (config) => {
+        const token = tokenService.getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Add response interceptor to handle common errors
+    this.instance.interceptors.response.use(
+      (response) => response.data,
+      (error) => {
+        if (error.response) {
+          // Handle unauthorized errors (401)
+          if (error.response.status === 401) {
+            tokenService.clearToken();
+            // Redirect to login page or dispatch logout action
+            window.location.href = '/login';
+          }
+          
+          // Return the error data from the API
+          return Promise.reject(error.response.data);
+        }
+        
+        // Network errors or other issues
+        return Promise.reject({
+          message: error.message || 'Network error occurred',
+        });
+      }
+    );
+  }
+
+  /**
+   * GET request
+   */
+  static async get<T>(endpoint: string, params: Record<string, any> = {}, options: RequestOptions = { withAuth: true }): Promise<T> {
+    const config: AxiosRequestConfig = {
+      params,
+    };
+    
+    return this.instance.get<any, T>(endpoint, config);
+  }
+
+  /**
+   * GET request that returns a Blob (for file downloads)
+   */
+  static async getBlob(endpoint: string, params: Record<string, any> = {}, options: RequestOptions = { withAuth: true }): Promise<Blob> {
+    const config: AxiosRequestConfig = {
+      params,
+      responseType: 'blob',
+    };
+    
+    const response = await this.instance.get(endpoint, config);
+    return response as unknown as Blob;
+  }
+
+  /**
+   * POST request
+   */
+  static async post<T>(endpoint: string, data: any, options: RequestOptions = { withAuth: true }): Promise<T> {
+    return this.instance.post<any, T>(endpoint, data);
+  }
+
+  /**
+   * PUT request
+   */
+  static async put<T>(endpoint: string, data: any, options: RequestOptions = { withAuth: true }): Promise<T> {
+    return this.instance.put<any, T>(endpoint, data);
+  }
+
+  /**
+   * PATCH request
+   */
+  static async patch<T>(endpoint: string, data: any, options: RequestOptions = { withAuth: true }): Promise<T> {
+    return this.instance.patch<any, T>(endpoint, data);
+  }
+
+  /**
+   * DELETE request
+   */
+  static async delete<T>(endpoint: string, options: RequestOptions = { withAuth: true }): Promise<T> {
+    return this.instance.delete<any, T>(endpoint);
   }
 }
 
-// Base API URL from environment or default
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-
-// Create axios instance with default config
-const apiClient = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-  },
-  withCredentials: true, // Important for cookies/CSRF
-});
-
-// Add request interceptor for authentication
-apiClient.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage if it exists
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    const { response } = error;
-    
-    // Handle unauthorized errors (401)
-    if (response?.status === 401) {
-      // Clear token and redirect to login
-      localStorage.removeItem("token");
-      window.location.href = "/login?session=expired";
-    }
-    
-    // Create a more informative error
-    const apiError = new ApiError(
-      response?.data?.message || error.message || "Unknown error occurred",
-      response?.status || 500,
-      response?.data
-    );
-    
-    return Promise.reject(apiError);
-  }
-);
-
-// Generic API request method
-export const apiRequest = async <T>(
-  config: AxiosRequestConfig
-): Promise<T> => {
-  try {
-    const response = await apiClient(config);
-    return response.data;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    if (axios.isAxiosError(error)) {
-      throw new ApiError(
-        error.response?.data?.message || error.message,
-        error.response?.status || 500,
-        error.response?.data
-      );
-    }
-    throw error;
-  }
-};
-
-export default apiClient;
+export default ApiService;

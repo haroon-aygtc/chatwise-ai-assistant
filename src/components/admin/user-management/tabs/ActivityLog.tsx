@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,76 +18,142 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-// Mock data for activity logs
-const mockActivityLogs = [
-  {
-    id: "1",
-    user_name: "John Doe",
-    user_avatar: "",
-    action: "Logged in",
-    description: "User logged in successfully",
-    created_at: "2023-06-15T10:30:00",
-  },
-  {
-    id: "2",
-    user_name: "Admin User",
-    user_avatar: "",
-    action: "Created user",
-    description: "Created new user: jane@example.com",
-    created_at: "2023-06-14T14:45:00",
-  },
-  {
-    id: "3",
-    user_name: "Jane Smith",
-    user_avatar: "",
-    action: "Updated permissions",
-    description: "Updated permissions for role: Editor",
-    created_at: "2023-06-14T09:15:00",
-  },
-  {
-    id: "4",
-    user_name: "System",
-    user_avatar: "",
-    action: "Backup completed",
-    description: "Weekly backup completed successfully",
-    created_at: "2023-06-13T02:00:00",
-  },
-  {
-    id: "5",
-    user_name: "Admin User",
-    user_avatar: "",
-    action: "Settings changed",
-    description: "Updated system email settings",
-    created_at: "2023-06-12T16:30:00",
-  },
-];
+import { useToast } from "@/components/ui/use-toast";
+import ActivityLogService, { ActivityLog, ActivityLogParams } from "@/services/activity/activityLogService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 
 const ActivityLog = () => {
-  const [activityLogs, setActivityLogs] = useState(mockActivityLogs);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [totalLogs] = useState(mockActivityLogs.length);
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [totalLogs, setTotalLogs] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [lastPage, setLastPage] = useState(1);
+  const [activityTypes, setActivityTypes] = useState<string[]>([]);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(false);
+  const [filters, setFilters] = useState<ActivityLogParams>({
+    page: 1,
+    per_page: 10,
+  });
+  const { toast } = useToast();
 
-  const fetchLogs = () => {
+  // Load activity logs
+  const fetchLogs = async () => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setActivityLogs(mockActivityLogs);
+    setError(null);
+    
+    try {
+      const response = await ActivityLogService.getActivityLogs(filters);
+      setActivityLogs(response.data);
+      setTotalLogs(response.total);
+      setCurrentPage(response.current_page);
+      setLastPage(response.last_page);
+      setPerPage(response.per_page);
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      setError(error instanceof Error ? error : new Error("Failed to fetch activity logs"));
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load activity logs. Please try again.",
+      });
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
-  const exportLogs = async (format) => {
-    console.log(`Exporting logs in ${format} format`);
-    // Implementation would go here
-    return Promise.resolve();
+  // Load activity types for filter
+  const fetchActivityTypes = async () => {
+    setIsLoadingTypes(true);
+    
+    try {
+      const types = await ActivityLogService.getActivityTypes();
+      setActivityTypes(types);
+    } catch (error) {
+      console.error("Error fetching activity types:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load activity types for filtering.",
+      });
+    } finally {
+      setIsLoadingTypes(false);
+    }
   };
 
-  const goToPage = (page) => {
-    setCurrentPage(page);
-    // In a real implementation, this would fetch data for the new page
+  // Initial loads
+  useEffect(() => {
+    fetchLogs();
+    fetchActivityTypes();
+  }, []);
+
+  // Reload when filters change
+  useEffect(() => {
+    fetchLogs();
+  }, [filters]);
+
+  // Export logs
+  const exportLogs = async (format: string) => {
+    setIsExporting(true);
+    
+    try {
+      const blob = await ActivityLogService.exportActivityLogs(filters);
+      
+      // Create a download link and click it
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `activity-logs-${format === 'csv' ? 'csv' : 'xlsx'}`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      link.parentNode?.removeChild(link);
+      
+      toast({
+        title: "Export successful",
+        description: "Activity logs have been exported successfully.",
+      });
+    } catch (error) {
+      console.error("Error exporting activity logs:", error);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: "Failed to export activity logs. Please try again.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Pagination
+  const goToPage = (page: number) => {
+    setFilters(prev => ({ ...prev, page }));
   };
 
   const handleRefresh = () => {
@@ -94,19 +161,24 @@ const ActivityLog = () => {
   };
 
   const handleExport = async () => {
-    try {
-      await exportLogs("csv");
-    } catch (err) {
-      console.error("Error exporting activity logs:", err);
-    }
+    await exportLogs('csv');
   };
 
-  const goToNextPage = () => {
-    goToPage(currentPage + 1);
+  // Apply filters
+  const applyFilters = (newFilters: Partial<ActivityLogParams>) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters,
+      page: 1, // Reset to first page when filters change
+    }));
   };
 
-  const goToPreviousPage = () => {
-    goToPage(Math.max(1, currentPage - 1));
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      page: 1,
+      per_page: perPage,
+    });
   };
 
   return (
@@ -120,11 +192,106 @@ const ActivityLog = () => {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" /> Filter
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" /> Export
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="mr-2 h-4 w-4" /> Filter
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Filter Activity Logs</SheetTitle>
+                  <SheetDescription>
+                    Apply filters to narrow down your activity logs.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="action-type">Action Type</Label>
+                    <Select
+                      onValueChange={(value) => 
+                        applyFilters({ action_type: value !== "all" ? value : undefined })
+                      }
+                      value={filters.action_type || "all"}
+                    >
+                      <SelectTrigger id="action-type">
+                        <SelectValue placeholder="Select action type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Actions</SelectItem>
+                        {activityTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date Range</Label>
+                    <div className="flex flex-col gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start text-left">
+                            {filters.date_from ? format(new Date(filters.date_from), 'PPP') : "From Date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={filters.date_from ? new Date(filters.date_from) : undefined}
+                            onSelect={(date) => 
+                              applyFilters({ date_from: date ? format(date, 'yyyy-MM-dd') : undefined })
+                            }
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start text-left">
+                            {filters.date_to ? format(new Date(filters.date_to), 'PPP') : "To Date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={filters.date_to ? new Date(filters.date_to) : undefined}
+                            onSelect={(date) => 
+                              applyFilters({ date_to: date ? format(date, 'yyyy-MM-dd') : undefined })
+                            }
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="search">Search</Label>
+                    <Input
+                      id="search"
+                      placeholder="Search in descriptions..."
+                      value={filters.search || ""}
+                      onChange={(e) => applyFilters({ search: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div className="flex justify-between pt-4">
+                    <Button variant="outline" onClick={resetFilters}>
+                      Reset Filters
+                    </Button>
+                    <Button onClick={() => fetchLogs()}>
+                      Apply Filters
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              <Download className="mr-2 h-4 w-4" /> 
+              {isExporting ? "Exporting..." : "Export"}
             </Button>
             <Button
               variant="outline"
@@ -143,7 +310,7 @@ const ActivityLog = () => {
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription>
               {error.message || "Failed to load activity logs"}
             </AlertDescription>
@@ -191,7 +358,7 @@ const ActivityLog = () => {
                   </div>
                   <p className="text-sm">
                     {activity.action}{" "}
-                    <span className="font-medium">{activity.description}</span>
+                    <span className="text-muted-foreground">{activity.description}</span>
                   </p>
                 </div>
               </div>
@@ -200,25 +367,26 @@ const ActivityLog = () => {
         )}
       </CardContent>
       <CardFooter className="border-t pt-4 flex justify-between">
-        <Button variant="outline" size="sm" onClick={() => goToPage(1)}>
-          View All Activity
-        </Button>
+        <div className="text-sm text-muted-foreground">
+          Showing {activityLogs.length} of {totalLogs} entries
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             disabled={isLoading || currentPage <= 1}
-            onClick={goToPreviousPage}
+            onClick={() => goToPage(currentPage - 1)}
           >
             Previous
           </Button>
+          <div className="text-sm">
+            Page {currentPage} of {lastPage}
+          </div>
           <Button
             variant="outline"
             size="sm"
-            disabled={
-              isLoading || (totalLogs > 0 && currentPage * 10 >= totalLogs)
-            }
-            onClick={goToNextPage}
+            disabled={isLoading || currentPage >= lastPage}
+            onClick={() => goToPage(currentPage + 1)}
           >
             Next
           </Button>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import {
@@ -11,27 +12,23 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/components/ui/use-toast";
+import { Role, PermissionCategory } from "@/types/ai-configuration";
+import RoleService from "@/services/role/roleService";
+import PermissionService from "@/services/permission/permissionService";
+import { CreateRoleDialog } from "../dialogs/CreateRoleDialog";
+import { EditRoleDialog } from "../dialogs/EditRoleDialog";
+import { DeleteRoleDialog } from "../dialogs/DeleteRoleDialog";
+import { PermissionManagement } from "../components/PermissionManagement";
 
-// Mock interfaces
-interface Permission {
-  id: string;
-  name: string;
-  description: string;
-  module: string;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions?: string[];
-  userCount?: number;
-  isSystem?: boolean;
-  createdAt?: string;
-}
-
-// Mock components
-const RoleCard = ({ role, onEdit, onDelete, canEdit, canDelete }: { 
+// Role card component
+const RoleCard = ({ 
+  role, 
+  onEdit, 
+  onDelete, 
+  canEdit, 
+  canDelete 
+}: { 
   role: Role, 
   onEdit: (role: Role) => void, 
   onDelete: (role: Role) => void,
@@ -65,220 +62,206 @@ const RoleCard = ({ role, onEdit, onDelete, canEdit, canDelete }: {
   );
 };
 
-const PermissionManagement = ({ role, availablePermissions, canEdit }: {
-  role: Role,
-  availablePermissions: Permission[],
-  canEdit: boolean
-}) => {
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Configure permissions for the {role.name} role
-      </p>
-      <div className="border rounded-md p-4">
-        <p>Permission management UI would go here</p>
-      </div>
-    </div>
-  );
-};
-
-// Mock dialogs
-const CreateRoleDialog = ({ open, onOpenChange, onSuccess, availablePermissions, canCreate }: {
-  open: boolean,
-  onOpenChange: (open: boolean) => void,
-  onSuccess: () => void,
-  availablePermissions: Permission[],
-  canCreate: boolean
-}) => {
-  return null; // Mock implementation
-};
-
-const EditRoleDialog = ({ open, onOpenChange, role, onSuccess, availablePermissions, canEdit }: {
-  open: boolean,
-  onOpenChange: (open: boolean) => void,
-  role: Role,
-  onSuccess: () => void,
-  availablePermissions: Permission[],
-  canEdit: boolean
-}) => {
-  return null; // Mock implementation
-};
-
-const DeleteRoleDialog = ({ open, onOpenChange, role, onSuccess, canDelete }: {
-  open: boolean,
-  onOpenChange: (open: boolean) => void,
-  role: Role,
-  onSuccess: () => void,
-  canDelete: boolean
-}) => {
-  return null; // Mock implementation
-};
-
-// Mock roles data
-const mockRoles: Role[] = [
-  {
-    id: "admin",
-    name: "Administrator",
-    description: "Full access to all system features and settings",
-    userCount: 3,
-    isSystem: true,
-    createdAt: "2023-01-01T00:00:00Z",
-    permissions: ["view_dashboard", "manage_users", "manage_roles"]
-  },
-  {
-    id: "manager",
-    name: "Manager",
-    description: "Can manage users and view most system features",
-    userCount: 8,
-    isSystem: false,
-    createdAt: "2023-01-15T00:00:00Z",
-    permissions: ["view_dashboard", "view_users", "view_roles"]
-  },
-  {
-    id: "editor",
-    name: "Editor",
-    description: "Can edit content but has limited administrative access",
-    userCount: 12,
-    isSystem: false,
-    createdAt: "2023-02-01T00:00:00Z",
-    permissions: ["view_dashboard", "view_users"]
-  },
-  {
-    id: "user",
-    name: "User",
-    description: "Basic access to the system",
-    userCount: 45,
-    isSystem: true,
-    createdAt: "2023-01-01T00:00:00Z",
-    permissions: ["view_dashboard"]
-  }
-];
-
-// Mock permissions data
-const mockPermissions: Permission[] = [
-  {
-    id: "view_dashboard",
-    name: "View Dashboard",
-    description: "Can view dashboard",
-    module: "Dashboard",
-  },
-  {
-    id: "manage_users",
-    name: "Manage Users",
-    description: "Can create, edit and delete users",
-    module: "Users",
-  },
-  {
-    id: "view_users",
-    name: "View Users",
-    description: "Can view user list",
-    module: "Users",
-  },
-  {
-    id: "manage_roles",
-    name: "Manage Roles",
-    description: "Can create, edit and delete roles",
-    module: "Access Control",
-  },
-  {
-    id: "create_roles",
-    name: "Create Roles",
-    description: "Can create new roles",
-    module: "Access Control",
-  },
-  {
-    id: "edit_roles",
-    name: "Edit Roles",
-    description: "Can edit existing roles",
-    module: "Access Control",
-  },
-  {
-    id: "delete_roles",
-    name: "Delete Roles",
-    description: "Can delete roles",
-    module: "Access Control",
-  },
-  {
-    id: "view_roles",
-    name: "View Roles",
-    description: "Can view role list",
-    module: "Access Control",
-  },
-  {
-    id: "manage_permissions",
-    name: "Manage Permissions",
-    description: "Can assign permissions to roles",
-    module: "Access Control",
-  },
-  {
-    id: "view_activity_log",
-    name: "View Activity Log",
-    description: "Can view activity logs",
-    module: "System",
-  },
-  {
-    id: "manage_settings",
-    name: "Manage Settings",
-    description: "Can change system settings",
-    module: "System",
-  }
-];
-
 const RolesPermissions = () => {
   const [showCreateRoleDialog, setShowCreateRoleDialog] = useState(false);
   const [showEditRoleDialog, setShowEditRoleDialog] = useState(false);
   const [showDeleteRoleDialog, setShowDeleteRoleDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [activeRoleTab, setActiveRoleTab] = useState("admin");
+  const [activeRoleTab, setActiveRoleTab] = useState<string>("");
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [permissionCategories, setPermissionCategories] = useState<PermissionCategory[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [rolesError, setRolesError] = useState<Error | null>(null);
   const [permissionsError, setPermissionsError] = useState<Error | null>(null);
-  const [roles, setRoles] = useState<Role[]>(mockRoles);
-  const [permissions, setPermissions] = useState<Permission[]>(mockPermissions);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+  const { toast } = useToast();
 
   // Mock permission checks - in a real app, these would come from an auth context
+  // TODO: Replace with actual permission checks from your auth system
   const effectiveCanCreateRoles = true;
   const effectiveCanEditRoles = true;
   const effectiveCanDeleteRoles = true;
   const effectiveCanManagePermissions = true;
-  
-  // Mock refresh function
-  const refreshRoles = () => {
+
+  // Fetch roles
+  const fetchRoles = async () => {
     setIsLoadingRoles(true);
+    setRolesError(null);
     
-    // Simulate API delay
-    setTimeout(() => {
-      setRoles([...mockRoles]);
+    try {
+      const rolesData = await RoleService.getRoles();
+      setRoles(rolesData);
+      
+      // Set first role as active if none is selected
+      if (rolesData.length > 0 && !activeRoleTab) {
+        setActiveRoleTab(rolesData[0].id);
+        setSelectedPermissions(rolesData[0].permissions || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch roles:", error);
+      setRolesError(error instanceof Error ? error : new Error("Failed to fetch roles"));
+    } finally {
       setIsLoadingRoles(false);
-    }, 800);
+    }
   };
 
+  // Fetch permissions
+  const fetchPermissions = async () => {
+    setIsLoadingPermissions(true);
+    setPermissionsError(null);
+    
+    try {
+      const permissionsData = await PermissionService.getPermissionsByCategory();
+      setPermissionCategories(permissionsData);
+    } catch (error) {
+      console.error("Failed to fetch permissions:", error);
+      setPermissionsError(error instanceof Error ? error : new Error("Failed to fetch permissions"));
+    } finally {
+      setIsLoadingPermissions(false);
+    }
+  };
+
+  // Fetch both roles and permissions on initial load
+  useEffect(() => {
+    fetchRoles();
+    fetchPermissions();
+  }, []);
+
+  // Update selected permissions when changing role
+  useEffect(() => {
+    if (activeRoleTab && roles.length > 0) {
+      const role = roles.find(r => r.id === activeRoleTab);
+      if (role) {
+        setSelectedPermissions(role.permissions || []);
+      }
+    }
+  }, [activeRoleTab, roles]);
+
+  // Handle role editing
   const handleEditRole = (role: Role) => {
     if (!effectiveCanEditRoles) return;
     setSelectedRole(role);
     setShowEditRoleDialog(true);
   };
 
+  // Handle role deletion
   const handleDeleteRole = (role: Role) => {
     if (!effectiveCanDeleteRoles) return;
     setSelectedRole(role);
     setShowDeleteRoleDialog(true);
   };
 
-  const handleCreateRoleSuccess = () => {
-    setShowCreateRoleDialog(false);
-    refreshRoles();
+  // Save role permissions
+  const saveRolePermissions = async () => {
+    if (!activeRoleTab || !effectiveCanManagePermissions) return;
+    
+    setIsSavingPermissions(true);
+    try {
+      await RoleService.updateRolePermissions(activeRoleTab, selectedPermissions);
+      
+      // Update local state
+      setRoles(prevRoles => prevRoles.map(role => 
+        role.id === activeRoleTab 
+          ? { ...role, permissions: selectedPermissions } 
+          : role
+      ));
+      
+      toast({
+        title: "Permissions updated",
+        description: "Role permissions have been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to update permissions:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update permissions. Please try again.",
+      });
+    } finally {
+      setIsSavingPermissions(false);
+    }
   };
 
-  const handleEditRoleSuccess = () => {
-    setShowEditRoleDialog(false);
-    refreshRoles();
+  // Create a new role
+  const handleCreateRole = async (name: string, description: string, permissions: string[]) => {
+    try {
+      const response = await RoleService.createRole({
+        name,
+        description,
+        permissions
+      });
+      
+      toast({
+        title: "Role created",
+        description: `Role "${name}" has been created successfully.`,
+      });
+      
+      fetchRoles();
+      return response.role;
+    } catch (error) {
+      console.error("Failed to create role:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create role. Please try again.",
+      });
+      throw error;
+    }
   };
 
-  const handleDeleteRoleSuccess = () => {
-    setShowDeleteRoleDialog(false);
-    refreshRoles();
+  // Update a role
+  const handleUpdateRole = async (id: string, name: string, description: string, permissions: string[]) => {
+    try {
+      await RoleService.updateRole(id, { name, description });
+      await RoleService.updateRolePermissions(id, permissions);
+      
+      toast({
+        title: "Role updated",
+        description: `Role "${name}" has been updated successfully.`,
+      });
+      
+      fetchRoles();
+    } catch (error) {
+      console.error("Failed to update role:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update role. Please try again.",
+      });
+      throw error;
+    }
+  };
+
+  // Delete a role
+  const handleDeleteRole = async (id: string) => {
+    try {
+      await RoleService.deleteRole(id);
+      
+      toast({
+        title: "Role deleted",
+        description: "The role has been deleted successfully.",
+      });
+      
+      fetchRoles();
+      
+      // If the deleted role was active, select another role
+      if (activeRoleTab === id && roles.length > 1) {
+        const newActiveRole = roles.find(r => r.id !== id);
+        if (newActiveRole) {
+          setActiveRoleTab(newActiveRole.id);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete role:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete role. Please try again.",
+      });
+      throw error;
+    }
   };
 
   return (
@@ -303,7 +286,7 @@ const RolesPermissions = () => {
         <CardContent>
           {rolesError && (
             <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
+              <AlertCircle className="h-4 w-4 mr-2" />
               <AlertDescription>
                 {rolesError.message || "Failed to load roles"}
               </AlertDescription>
@@ -315,7 +298,7 @@ const RolesPermissions = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
               <p className="text-sm text-muted-foreground">Loading roles...</p>
             </div>
-          ) : roles && roles.length > 0 ? (
+          ) : roles.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {roles.map((role) => (
                 <RoleCard
@@ -338,7 +321,7 @@ const RolesPermissions = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={refreshRoles}
+            onClick={fetchRoles}
             disabled={isLoadingRoles}
           >
             <RefreshCw
@@ -349,169 +332,97 @@ const RolesPermissions = () => {
         </CardFooter>
       </Card>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Permission Management</CardTitle>
-          <CardDescription>
-            Configure detailed permissions for each role
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {permissionsError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {permissionsError.message || "Failed to load permissions"}
-              </AlertDescription>
-            </Alert>
-          )}
+      {roles.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Permission Management</CardTitle>
+            <CardDescription>
+              Configure detailed permissions for each role
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {permissionsError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  {permissionsError.message || "Failed to load permissions"}
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {isLoadingPermissions ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Loading permissions...
-              </p>
-            </div>
-          ) : roles && roles.length > 0 ? (
-            <Tabs
-              value={activeRoleTab || roles[0]?.id}
-              onValueChange={setActiveRoleTab}
-            >
-              <TabsList className="mb-4">
-                {roles.map((role) => (
-                  <TabsTrigger key={role.id} value={role.id}>
-                    {role.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            {isLoadingPermissions ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Loading permissions...
+                </p>
+              </div>
+            ) : permissionCategories.length > 0 ? (
+              <Tabs
+                value={activeRoleTab}
+                onValueChange={setActiveRoleTab}
+              >
+                <TabsList className="mb-4 w-full flex overflow-auto">
+                  {roles.map((role) => (
+                    <TabsTrigger key={role.id} value={role.id} className="flex-shrink-0">
+                      {role.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-              {roles.map((role) => (
-                <TabsContent key={role.id} value={role.id}>
+                <TabsContent value={activeRoleTab} className="mt-4">
                   <PermissionManagement
-                    role={role}
-                    availablePermissions={
-                      permissions || [
-                        {
-                          id: "view_dashboard",
-                          name: "View Dashboard",
-                          description: "Can view dashboard",
-                          module: "Dashboard",
-                        },
-                        {
-                          id: "manage_users",
-                          name: "Manage Users",
-                          description: "Can create, edit and delete users",
-                          module: "Users",
-                        },
-                        {
-                          id: "view_users",
-                          name: "View Users",
-                          description: "Can view user list",
-                          module: "Users",
-                        },
-                        {
-                          id: "manage_roles",
-                          name: "Manage Roles",
-                          description: "Can create, edit and delete roles",
-                          module: "Access Control",
-                        },
-                        {
-                          id: "create_roles",
-                          name: "Create Roles",
-                          description: "Can create new roles",
-                          module: "Access Control",
-                        },
-                        {
-                          id: "edit_roles",
-                          name: "Edit Roles",
-                          description: "Can edit existing roles",
-                          module: "Access Control",
-                        },
-                        {
-                          id: "delete_roles",
-                          name: "Delete Roles",
-                          description: "Can delete roles",
-                          module: "Access Control",
-                        },
-                        {
-                          id: "view_roles",
-                          name: "View Roles",
-                          description: "Can view role list",
-                          module: "Access Control",
-                        },
-                        {
-                          id: "manage_permissions",
-                          name: "Manage Permissions",
-                          description: "Can assign permissions to roles",
-                          module: "Access Control",
-                        },
-                        {
-                          id: "view_activity_log",
-                          name: "View Activity Log",
-                          description: "Can view activity logs",
-                          module: "System",
-                        },
-                        {
-                          id: "manage_settings",
-                          name: "Manage Settings",
-                          description: "Can change system settings",
-                          module: "System",
-                        },
-                        {
-                          id: "manage_ai_models",
-                          name: "Manage AI Models",
-                          description: "Can configure AI models",
-                          module: "AI Configuration",
-                        },
-                        {
-                          id: "manage_knowledge_base",
-                          name: "Manage Knowledge Base",
-                          description: "Can manage knowledge base content",
-                          module: "AI Configuration",
-                        },
-                        {
-                          id: "manage_prompts",
-                          name: "Manage Prompts",
-                          description: "Can create and edit prompt templates",
-                          module: "AI Configuration",
-                        },
-                        {
-                          id: "manage_response_formatting",
-                          name: "Manage Response Formatting",
-                          description: "Can configure response formatting",
-                          module: "AI Configuration",
-                        },
-                      ]
-                    }
-                    canEdit={effectiveCanManagePermissions}
+                    permissionCategories={permissionCategories}
+                    selectedPermissions={selectedPermissions}
+                    onChange={setSelectedPermissions}
                   />
                 </TabsContent>
-              ))}
-            </Tabs>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground border rounded-md">
-              <p>No roles available for permission management.</p>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t pt-4 flex justify-end gap-2">
-          {effectiveCanManagePermissions && (
-            <>
-              <Button variant="outline">Reset to Default</Button>
-              <Button>Save Changes</Button>
-            </>
-          )}
-        </CardFooter>
-      </Card>
+              </Tabs>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground border rounded-md">
+                <p>No permissions available for configuration.</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="border-t pt-4 flex justify-end gap-2">
+            {effectiveCanManagePermissions && (
+              <>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const role = roles.find(r => r.id === activeRoleTab);
+                    if (role) {
+                      setSelectedPermissions(role.permissions || []);
+                    }
+                  }}
+                  disabled={isSavingPermissions}
+                >
+                  Reset Changes
+                </Button>
+                <Button 
+                  onClick={saveRolePermissions}
+                  disabled={isSavingPermissions}
+                >
+                  {isSavingPermissions ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </>
+            )}
+          </CardFooter>
+        </Card>
+      )}
 
       {/* Create Role Dialog */}
       <CreateRoleDialog
         open={showCreateRoleDialog}
         onOpenChange={setShowCreateRoleDialog}
-        onSuccess={handleCreateRoleSuccess}
-        availablePermissions={permissions || []}
-        canCreate={effectiveCanCreateRoles}
+        onCreateRole={handleCreateRole}
+        permissionCategories={permissionCategories}
       />
 
       {/* Edit Role Dialog */}
@@ -520,9 +431,8 @@ const RolesPermissions = () => {
           open={showEditRoleDialog}
           onOpenChange={setShowEditRoleDialog}
           role={selectedRole}
-          onSuccess={handleEditRoleSuccess}
-          availablePermissions={permissions || []}
-          canEdit={effectiveCanEditRoles}
+          onUpdateRole={handleUpdateRole}
+          permissionCategories={permissionCategories}
         />
       )}
 
@@ -532,8 +442,7 @@ const RolesPermissions = () => {
           open={showDeleteRoleDialog}
           onOpenChange={setShowDeleteRoleDialog}
           role={selectedRole}
-          onSuccess={handleDeleteRoleSuccess}
-          canDelete={effectiveCanDeleteRoles}
+          onSuccess={() => handleDeleteRole(selectedRole.id)}
         />
       )}
     </>
