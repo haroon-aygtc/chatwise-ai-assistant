@@ -1,12 +1,12 @@
 
 /**
- * Custom API error class for handling error responses from the API
+ * Custom API Error class
  */
 export class ApiError extends Error {
   status: number;
   errors?: Record<string, string[]>;
   
-  constructor(message: string, status = 500, errors?: Record<string, string[]>) {
+  constructor(message: string, status: number = 400, errors?: Record<string, string[]>) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -15,71 +15,41 @@ export class ApiError extends Error {
 }
 
 /**
- * Create an API error from an HTTP response
- */
-export const createApiError = async (response: Response): Promise<ApiError> => {
-  try {
-    const data = await response.json();
-    
-    // Handle standard Laravel error format
-    if (data && data.message) {
-      return new ApiError(
-        data.message,
-        response.status,
-        data.errors || undefined
-      );
-    }
-    
-    // Fallback
-    return new ApiError(
-      `Request failed with status ${response.status}`,
-      response.status
-    );
-  } catch (e) {
-    // If we can't parse the JSON response
-    return new ApiError(
-      `Request failed with status ${response.status}`,
-      response.status
-    );
-  }
-};
-
-/**
- * Network error
+ * Network Error class for connectivity issues
  */
 export class NetworkError extends Error {
-  constructor(message = 'Network error occurred. Please check your connection.') {
+  constructor(message: string = 'Network error occurred. Please check your connection.') {
     super(message);
     this.name = 'NetworkError';
   }
 }
 
 /**
- * Authentication error
+ * Authentication Error class
  */
 export class AuthError extends ApiError {
-  constructor(message = 'Authentication failed', status = 401) {
+  constructor(message: string = 'Authentication failed', status: number = 401) {
     super(message, status);
     this.name = 'AuthError';
   }
 }
 
 /**
- * Permission error
+ * Authorization Error class
  */
-export class PermissionError extends ApiError {
-  constructor(message = 'You do not have permission to perform this action', status = 403) {
+export class ForbiddenError extends ApiError {
+  constructor(message: string = 'You do not have permission to perform this action', status: number = 403) {
     super(message, status);
-    this.name = 'PermissionError';
+    this.name = 'ForbiddenError';
   }
 }
 
 /**
- * Validation error
+ * Validation Error class
  */
 export class ValidationError extends ApiError {
-  constructor(message = 'Validation failed', status = 422, errors?: Record<string, string[]>) {
-    super(message, status, errors);
+  constructor(message: string = 'Validation failed', errors?: Record<string, string[]>) {
+    super(message, 422, errors);
     this.name = 'ValidationError';
   }
 }

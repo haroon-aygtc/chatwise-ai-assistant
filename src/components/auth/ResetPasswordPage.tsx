@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -5,6 +6,7 @@ import { z } from "zod";
 import { ApiError } from "@/services/api/errors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import AuthService from "@/services/auth/authService";
 import {
   Form,
   FormControl,
@@ -65,12 +67,13 @@ export default function ResetPasswordPage() {
     setError(null);
     
     try {
-      await resetPassword(
+      await AuthService.resetPassword({
         token,
         email,
-        values.password,
-        values.confirmPassword
-      );
+        password: values.password,
+        password_confirmation: values.confirmPassword
+      });
+      
       setSuccess(true);
       
       // Redirect to login after 3 seconds
