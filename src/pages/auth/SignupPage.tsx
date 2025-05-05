@@ -4,7 +4,10 @@ import { SignupForm } from "@/modules/auth/components/SignupForm";
 
 export default function SignupPage() {
   return (
-    <AuthLayout title="" description="">
+    <AuthLayout 
+      title="Create an Account" 
+      description="Fill in the details below to create your account"
+    >
       <SignupForm />
     </AuthLayout>
   );
