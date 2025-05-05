@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Github } from "lucide-react";
 import { PersonalInfoStep } from "./PersonalInfoStep";
 import { OrganizationStep } from "./OrganizationStep";
 import { ReviewStep } from "./ReviewStep";
