@@ -14,6 +14,7 @@ interface AuthContextType {
   hasRole: (role: string | string[]) => boolean;
   hasPermission: (permission: string | string[]) => boolean;
   updateUser: (userData: Partial<UserResponse>) => void;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,6 +36,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
+
+  // Function to refresh authentication status
+  const refreshAuth = async (): Promise<void> => {
+    try {
+      if (tokenService.validateToken()) {
+        const userData = await AuthService.getCurrentUser();
+        setUser(userData);
+        setIsAuthenticated(true);
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    } catch (error) {
+      console.error('Error refreshing auth:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+      tokenService.clearToken();
+    }
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -62,7 +82,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
-  }, []);
+    
+    // Set up token expiry check interval
+    const tokenCheckInterval = setInterval(() => {
+      // If token is expired, trigger a logout
+      if (isAuthenticated && tokenService.isTokenExpired()) {
+        console.log('Token expired during session, logging out...');
+        logout();
+        toast({
+          title: "Session expired",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    }, 60000); // Check every minute
+
+    return () => {
+      clearInterval(tokenCheckInterval);
+    };
+  }, [isAuthenticated]);
 
   const login = async (email: string, password: string, remember: boolean): Promise<void> => {
     setIsLoading(true);
@@ -127,6 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setUser(null);
       setIsAuthenticated(false);
+      tokenService.clearToken();
       toast({
         title: "Logout successful",
         description: "You have been logged out.",
@@ -171,6 +211,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     hasRole,
     hasPermission,
     updateUser,
+    refreshAuth,
   };
 
   return (

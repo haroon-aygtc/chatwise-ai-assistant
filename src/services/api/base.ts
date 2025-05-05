@@ -41,7 +41,20 @@ class ApiService {
 
     // Add request interceptor to include auth token
     this.instance.interceptors.request.use(
-      (config) => {
+      async (config) => {
+        // Check if token is expired before making the request
+        if (tokenService.isTokenExpired()) {
+          console.log("Token is expired or will expire soon, attempting to refresh");
+          
+          // For now we just clear the token and redirect to login
+          // In a more advanced implementation, you could add a token refresh mechanism here
+          tokenService.clearToken();
+          window.location.href = '/login';
+          
+          // Reject the request
+          return Promise.reject(new Error('Token expired'));
+        }
+        
         const token = tokenService.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -127,5 +140,8 @@ class ApiService {
     return this.instance.delete<any, T>(endpoint);
   }
 }
+
+// Initialize the API service
+ApiService.init();
 
 export default ApiService;
