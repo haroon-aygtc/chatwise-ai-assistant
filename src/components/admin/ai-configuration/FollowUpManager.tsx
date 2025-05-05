@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Card,
@@ -65,6 +66,7 @@ export const FollowUpManager = ({
     text: "",
     description: "",
     order: 0,
+    isActive: true,
   });
   const [enableFollowUps, setEnableFollowUps] = useState(true);
   const [maxSuggestions, setMaxSuggestions] = useState(3);
@@ -78,18 +80,21 @@ export const FollowUpManager = ({
       text: "Need more help?",
       description: "General follow-up",
       order: 1,
+      isActive: true,
     },
     {
       id: "suggestion2",
       text: "Talk to a human agent",
       description: "Escalation option",
       order: 2,
+      isActive: true,
     },
     {
       id: "suggestion3",
       text: "Learn about our pricing",
       description: "Sales inquiry",
       order: 3,
+      isActive: true,
     },
   ]);
 
@@ -114,6 +119,7 @@ export const FollowUpManager = ({
       text: "",
       description: "",
       order: suggestions.length + 1,
+      isActive: true,
     });
     setShowAddDialog(true);
   };
@@ -134,6 +140,7 @@ export const FollowUpManager = ({
         text: newSuggestion.text,
         description: newSuggestion.description || "",
         order: newSuggestion.order || suggestions.length + 1,
+        isActive: true,
       };
 
       setSuggestions([...suggestions, suggestion]);
