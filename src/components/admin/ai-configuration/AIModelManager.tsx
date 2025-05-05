@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Card,
@@ -11,25 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Bot, Save, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Import types from the centralized types file
+import { AIModel, RoutingRule } from "@/types/ai-configuration";
+
 // MOCK COMPONENTS – Replace these with real components if available
 import { ModelCard } from "./ModelCard";
 import { RoutingRules } from "./RoutingRules";
 import { AddModelDialog } from "./AddModelDialog";
-
-// ✅ TYPE DEFINITIONS
-export interface AIModel {
-  id: string;
-  name: string;
-  description: string;
-  provider: string;
-  temperature: number;
-}
-
-export interface RoutingRule {
-  id: string;
-  modelId: string;
-  condition: string;
-}
 
 // ✅ MOCK HOOK: Simulates fetching AI models & routing rules
 function useAIModels() {
@@ -39,22 +28,47 @@ function useAIModels() {
       name: "ChatGPT-4",
       description: "OpenAI's GPT-4 Model",
       provider: "OpenAI",
-      temperature: 0.7,
+      version: "4.0",
+      isActive: true,
+      configuration: {
+        temperature: 0.7,
+        maxTokens: 1000,
+        topP: 1,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+      },
     },
     {
       id: "model-2",
       name: "Gemini-Pro",
       description: "Google's Gemini Pro Model",
       provider: "Google",
-      temperature: 0.6,
+      version: "Pro",
+      isActive: true,
+      configuration: {
+        temperature: 0.6,
+        maxTokens: 1000,
+        topP: 1,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+      },
     },
   ]);
 
   const [routingRules, setRoutingRules] = useState<RoutingRule[]>([
     {
       id: "rule-1",
+      name: "Legal Routing",
       modelId: "model-1",
-      condition: "category === 'legal'",
+      description: "Route legal queries to ChatGPT-4",
+      conditions: [
+        {
+          field: "message",
+          operator: "contains",
+          value: "legal",
+        },
+      ],
+      priority: 1,
     },
   ]);
 
@@ -64,9 +78,9 @@ function useAIModels() {
     isLoading: false,
     isSaving: false,
     error: null,
-    updateModel: (updatedModel: AIModel) => {
+    updateModel: (updatedModel: Partial<AIModel>) => {
       setModels((prev) =>
-        prev.map((m) => (m.id === updatedModel.id ? updatedModel : m))
+        prev.map((m) => (m.id === updatedModel.id ? { ...m, ...updatedModel } : m))
       );
     },
     updateRoutingRules: setRoutingRules,
@@ -75,8 +89,7 @@ function useAIModels() {
         ...prev,
         {
           id: `rule-${prev.length + 1}`,
-          modelId: models[0]?.id || "",
-          condition: "category === 'general'",
+          ...rule,
         },
       ]),
     deleteRoutingRule: (id: string) =>
@@ -276,9 +289,9 @@ export const AIModelManager = ({
         <RoutingRules
           models={models}
           rules={routingRules}
-          onAddRule={(rule) => Promise.resolve(addRoutingRule(rule))}
-          onUpdateRules={(rules) => Promise.resolve(updateRoutingRules(rules))}
-          onDeleteRule={(rule) => Promise.resolve(deleteRoutingRule(rule))}
+          onAddRule={(rule) => addRoutingRule(rule)}
+          onUpdateRules={(rules) => updateRoutingRules(rules)}
+          onDeleteRule={deleteRoutingRule}
         />
       )}
 

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Card,
@@ -33,7 +34,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PromptTemplate } from "@/types/ai-configuration";
+import { PromptTemplate, PromptVariable } from "@/types/ai-configuration";
 import {
   Dialog,
   DialogContent,
@@ -61,9 +62,10 @@ export const PromptTemplateManager = ({
   const [newTemplate, setNewTemplate] = useState<Partial<PromptTemplate>>({
     name: "",
     description: "",
-    content: "",
+    template: "",
     category: "general",
     variables: [],
+    isActive: true,
   });
 
   const [templates, setTemplates] = useState<PromptTemplate[]>([
@@ -71,30 +73,40 @@ export const PromptTemplateManager = ({
       id: "template1",
       name: "Welcome Message",
       description: "Initial greeting for new users",
-      content:
-        "Hello {user_name}, welcome to {company_name}! I'm your AI assistant and I'm here to help you with any questions about our products and services.",
-      variables: ["user_name", "company_name"],
+      template: "Hello {user_name}, welcome to {company_name}! I'm your AI assistant and I'm here to help you with any questions about our products and services.",
+      variables: [
+        { name: "user_name", description: "User's name", required: true, defaultValue: "" },
+        { name: "company_name", description: "Company name", required: true, defaultValue: "" }
+      ],
       category: "general",
+      isActive: true,
       isDefault: true,
     },
     {
       id: "template2",
       name: "Product Information",
       description: "Details about products and services",
-      content:
-        "Our {product_name} offers the following features: {features}. The pricing starts at {price}. Would you like more specific information about any of these features?",
-      variables: ["product_name", "features", "price"],
+      template: "Our {product_name} offers the following features: {features}. The pricing starts at {price}. Would you like more specific information about any of these features?",
+      variables: [
+        { name: "product_name", description: "Product name", required: true, defaultValue: "" },
+        { name: "features", description: "Product features", required: true, defaultValue: "" },
+        { name: "price", description: "Product price", required: true, defaultValue: "" }
+      ],
       category: "products",
+      isActive: true,
       isDefault: false,
     },
     {
       id: "template3",
       name: "Technical Support",
       description: "Handling technical questions",
-      content:
-        "I understand you're having an issue with {issue_description}. Let me help you troubleshoot this. First, could you tell me if you've tried {troubleshooting_step}?",
-      variables: ["issue_description", "troubleshooting_step"],
+      template: "I understand you're having an issue with {issue_description}. Let me help you troubleshoot this. First, could you tell me if you've tried {troubleshooting_step}?",
+      variables: [
+        { name: "issue_description", description: "Description of the issue", required: true, defaultValue: "" },
+        { name: "troubleshooting_step", description: "Initial troubleshooting step", required: true, defaultValue: "" }
+      ],
       category: "support",
+      isActive: true,
       isDefault: false,
     },
   ]);
@@ -118,9 +130,10 @@ export const PromptTemplateManager = ({
     setNewTemplate({
       name: "",
       description: "",
-      content: "",
+      template: "",
       category: "general",
       variables: [],
+      isActive: true,
     });
     setShowAddDialog(true);
   };
@@ -135,19 +148,23 @@ export const PromptTemplateManager = ({
   };
 
   const handleSaveNewTemplate = () => {
-    if (newTemplate.name && newTemplate.content) {
-      const variableMatches = newTemplate.content.match(/\{([^}]+)\}/g) || [];
-      const extractedVariables = variableMatches.map((v) =>
-        v.replace(/[{}]/g, ""),
-      );
+    if (newTemplate.name && newTemplate.template) {
+      const variableMatches = newTemplate.template.match(/\{([^}]+)\}/g) || [];
+      const extractedVariables: PromptVariable[] = variableMatches.map((v) => ({
+        name: v.replace(/[{}]/g, ""),
+        description: "",
+        required: true,
+        defaultValue: "",
+      }));
 
       const template: PromptTemplate = {
         id: `template${templates.length + 1}`,
         name: newTemplate.name,
         description: newTemplate.description || "",
-        content: newTemplate.content,
+        template: newTemplate.template,
         variables: extractedVariables,
         category: newTemplate.category || "general",
+        isActive: true,
         isDefault: false,
       };
 
@@ -170,12 +187,16 @@ export const PromptTemplateManager = ({
   const handleVariableChange = (value: string) => {
     if (currentTemplate) {
       const variableMatches = value.match(/\{([^}]+)\}/g) || [];
-      const extractedVariables = variableMatches.map((v) =>
-        v.replace(/[{}]/g, ""),
-      );
+      const extractedVariables: PromptVariable[] = variableMatches.map((v) => ({
+        name: v.replace(/[{}]/g, ""),
+        description: "",
+        required: true,
+        defaultValue: "",
+      }));
+      
       setCurrentTemplate({
         ...currentTemplate,
-        content: value,
+        template: value,
         variables: extractedVariables,
       });
     }

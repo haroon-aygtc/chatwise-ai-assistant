@@ -1,3 +1,4 @@
+
 /**
  * Types for AI configuration
  */
@@ -43,6 +44,8 @@ export interface PromptTemplate {
   variables: PromptVariable[];
   category?: string;
   isActive: boolean;
+  isDefault?: boolean;
+  content?: string; // Added for compatibility with existing code
 }
 
 export interface PromptVariable {
@@ -97,4 +100,32 @@ export interface FollowUpSuggestion {
   context?: string[];
   isActive: boolean;
   priority?: number;
+  description?: string; // Added for compatibility with existing code
+  order?: number; // Added for compatibility with existing code
+}
+
+// Added these types for compatibility with KnowledgeBaseManager
+export interface DocumentCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  title: string;
+  content: string;
+  categoryId: string;
+  tags: string[];
+  url?: string;
+  lastUpdated: string;
+}
+
+// Added for BrandingEngineManager
+export interface BrandVoice {
+  id: string;
+  name: string;
+  description: string;
+  tone: string;
+  examples: string[];
 }
