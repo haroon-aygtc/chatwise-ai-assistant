@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -12,155 +13,164 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { PermissionManagement } from "../components/PermissionManagement";
+import { PermissionCategory } from "@/types/ai-configuration";
 
-import { NewRole, PermissionCategory } from "../../../../types";
-import PermissionGroup from "../components/PermissionGroup";
+// Form schema
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Role name must be at least 2 characters",
+  }),
+  description: z.string().optional(),
+});
 
 interface CreateRoleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  availablePermissions: PermissionCategory[];
-  onSuccess?: () => void;
-  canCreate?: boolean;
+  onCreateRole: (name: string, description: string, permissions: string[]) => Promise<void>;
+  permissionCategories: PermissionCategory[];
+  children?: React.ReactNode;
 }
 
 export function CreateRoleDialog({
   open,
   onOpenChange,
-  availablePermissions,
-  onSuccess,
-  canCreate = true,
+  onCreateRole,
+  permissionCategories,
+  children,
 }: CreateRoleDialogProps) {
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [permissionError, setPermissionError] = useState<string | null>(null);
-  const [newRole, setNewRole] = useState<NewRole>({
-    name: "",
-    description: "",
-    permissions: [],
+  const { toast } = useToast();
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
   });
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens/closes
   useEffect(() => {
     if (open) {
-      setNewRole({ name: "", description: "", permissions: [] });
-      setPermissionError(null);
+      form.reset({
+        name: "",
+        description: "",
+      });
+      setSelectedPermissions([]);
     }
-  }, [open]);
+  }, [open, form]);
 
-  const handleCreateRole = () => {
-    // Check if user has permission to create roles
-    if (!canCreate) {
-      setPermissionError("You don't have permission to create roles.");
-      return;
-    }
-
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
-    setPermissionError(null);
-
-    // Simulate API call
-    setTimeout(() => {
-      // In a real implementation, this would create a new role in the database
+    try {
+      await onCreateRole(
+        values.name,
+        values.description || "",
+        selectedPermissions
+      );
+      toast({
+        title: "Role created",
+        description: `Role "${values.name}" has been created successfully.`,
+      });
       onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to create role:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create role. Please try again.",
+      });
+    } finally {
       setIsSubmitting(false);
-      // Reset form
-      setNewRole({ name: "", description: "", permissions: [] });
-      // Call success callback if provided
-      if (onSuccess) {
-        onSuccess();
-      }
-    }, 1000);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Role</DialogTitle>
           <DialogDescription>
-            Define a new role and assign permissions.
+            Add a new role with specific permissions
           </DialogDescription>
         </DialogHeader>
 
-        {permissionError && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{permissionError}</AlertDescription>
-          </Alert>
-        )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter role name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="flex-1 overflow-hidden">
-          <div className="space-y-4 py-4 overflow-hidden flex flex-col h-full">
-            <div className="space-y-2">
-              <Label htmlFor="role-name">Role Name</Label>
-              <Input
-                id="role-name"
-                placeholder="e.g., Content Manager"
-                value={newRole.name}
-                onChange={(e) =>
-                  setNewRole({ ...newRole, name: e.target.value })
-                }
-                disabled={!canCreate}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Describe the purpose of this role"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="py-4">
+              <FormLabel className="block mb-2">Permissions</FormLabel>
+              <PermissionManagement
+                permissionCategories={permissionCategories}
+                selectedPermissions={selectedPermissions}
+                onChange={setSelectedPermissions}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="role-description">Description</Label>
-              <Textarea
-                id="role-description"
-                placeholder="Describe the purpose and responsibilities of this role"
-                value={newRole.description}
-                onChange={(e) =>
-                  setNewRole({ ...newRole, description: e.target.value })
-                }
-                className="resize-none"
-                disabled={!canCreate}
-              />
-            </div>
-            <div className="space-y-2 flex-1 overflow-hidden">
-              <Label>Permissions</Label>
-              <div className="border rounded-md overflow-hidden flex-1">
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="p-4 space-y-6">
-                    {availablePermissions.map((category) => (
-                      <PermissionGroup
-                        key={category.category}
-                        category={category}
-                        selectedPermissions={newRole.permissions}
-                        setStateFunction={setNewRole}
-                        currentState={newRole}
-                        idPrefix="new-role"
-                        disabled={!canCreate}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreateRole}
-            disabled={isSubmitting || !newRole.name.trim() || !canCreate}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="h-4 w-4 mr-2 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
-                Creating...
-              </>
-            ) : (
-              "Create Role"
-            )}
-          </Button>
-        </DialogFooter>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                  </>
+                ) : (
+                  "Create Role"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

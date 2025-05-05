@@ -1,9 +1,14 @@
 
 import * as React from "react";
-import { Checkbox, CheckboxProps } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { type CheckedState } from "@radix-ui/react-checkbox";
 
-export interface CustomCheckboxProps extends Omit<CheckboxProps, "ref"> {
+export interface CustomCheckboxProps {
+  checked?: CheckedState;
+  onCheckedChange?: (checked: CheckedState) => void;
+  disabled?: boolean;
+  className?: string;
   indeterminate?: boolean;
 }
 
