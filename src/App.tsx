@@ -21,6 +21,7 @@ import WidgetBuilderPage from "./pages/admin/WidgetBuilderPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import NotFound from "./pages/NotFound";
 import { ThemeDebugger } from "./components/debug/ThemeDebugger";
+import ComponentShowcasePage from "./pages/ComponentShowcasePage"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -32,10 +33,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<ComponentShowcasePage />} /> {/* Changed to show showcase by default */}
+          <Route path="/landing" element={<LandingPage />} /> {/* Added original landing to /landing */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/theme-debug" element={<div className="container py-10"><ThemeDebugger /></div>} />
+          <Route path="/components" element={<ComponentShowcasePage />} /> {/* Also available at /components */}
           
           {/* Admin routes */}
           <Route path="/admin" element={<AdminLayout />}>
