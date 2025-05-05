@@ -1,169 +1,112 @@
 
 import ApiService from '../api/base';
-import { tokenService } from './tokenService';
+import { User } from '@/types/user';
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-  remember?: boolean;
-}
-
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
-
-export interface UserResponse {
-  id: string;
-  name: string;
-  email: string;
-  status: string;
-  avatar_url?: string;
-  last_active?: string;
-  roles: string[];
-  permissions: string[];
-}
-
-export interface LoginResponse {
-  user: UserResponse;
-  token: string;
-}
-
-export interface RegisterResponse {
-  user: UserResponse;
-  token: string;
-  message: string;
-}
-
-export interface PasswordResetRequest {
-  email: string;
-}
-
-export interface PasswordResetConfirmRequest {
-  token: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
-
-class AuthService {
+/**
+ * Service for handling authentication related API calls
+ */
+const AuthService = {
   /**
    * Login a user
-   * @param credentials Login credentials
    */
-  static async login(credentials: LoginRequest): Promise<LoginResponse> {
+  login: async (email: string, password: string) => {
     try {
-      const response = await ApiService.post<LoginResponse>(
-        '/login',
-        credentials,
-        { withAuth: false }
-      );
-
-      // Store the token
-      if (response.token) {
-        tokenService.setToken(response.token, credentials.remember || false);
-      }
-
+      const response = await ApiService.post('/auth/login', { email, password });
       return response;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
     }
-  }
+  },
 
   /**
    * Register a new user
-   * @param userData User registration data
    */
-  static async register(userData: RegisterRequest): Promise<RegisterResponse> {
+  signup: async (userData: any) => {
     try {
-      const response = await ApiService.post<RegisterResponse>(
-        '/register',
-        userData,
-        { withAuth: false }
-      );
-
-      // Store the token if provided
-      if (response.token) {
-        tokenService.setToken(response.token, false);
-      }
-
+      const response = await ApiService.post('/auth/register', userData);
       return response;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Signup error:', error);
       throw error;
     }
-  }
-
-  /**
-   * Get current user profile
-   */
-  static async getCurrentUser(): Promise<UserResponse> {
-    try {
-      return await ApiService.get<UserResponse>('/user');
-    } catch (error) {
-      console.error('Get user error:', error);
-      throw error;
-    }
-  }
+  },
 
   /**
    * Logout the current user
    */
-  static async logout(): Promise<void> {
+  logout: async () => {
     try {
-      await ApiService.post('/logout', {});
-      tokenService.clearToken();
+      await ApiService.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
-      // Always clear token even if API call fails
-      tokenService.clearToken();
       throw error;
     }
-  }
+  },
 
   /**
-   * Request a password reset
-   * @param email User email
+   * Get the current authenticated user
    */
-  static async requestPasswordReset(email: string): Promise<{ message: string }> {
+  getCurrentUser: async (): Promise<User> => {
     try {
-      return await ApiService.post<{ message: string }>(
-        '/password/reset-request',
-        { email },
-        { withAuth: false }
-      );
+      const response = await ApiService.get('/auth/user');
+      return response;
     } catch (error) {
-      console.error('Password reset request error:', error);
+      console.error('Get current user error:', error);
       throw error;
     }
-  }
+  },
+
+  /**
+   * Check if user is authenticated
+   */
+  checkAuth: async (): Promise<boolean> => {
+    try {
+      await ApiService.get('/auth/check');
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * Request password reset
+   */
+  requestPasswordReset: async (email: string) => {
+    try {
+      const response = await ApiService.post('/auth/forgot-password', { email });
+      return response;
+    } catch (error) {
+      console.error('Request password reset error:', error);
+      throw error;
+    }
+  },
 
   /**
    * Reset password with token
-   * @param data Password reset data
    */
-  static async resetPassword(data: PasswordResetConfirmRequest): Promise<{ message: string }> {
+  resetPassword: async (data: { token: string; email: string; password: string; password_confirmation: string }) => {
     try {
-      return await ApiService.post<{ message: string }>(
-        '/password/reset',
-        data,
-        { withAuth: false }
-      );
+      const response = await ApiService.post('/auth/reset-password', data);
+      return response;
     } catch (error) {
-      console.error('Password reset error:', error);
+      console.error('Reset password error:', error);
       throw error;
     }
-  }
+  },
 
   /**
-   * Check if the user is authenticated
+   * Verify email
    */
-  static isAuthenticated(): boolean {
-    return tokenService.validateToken();
-  }
-}
+  verifyEmail: async (token: string) => {
+    try {
+      const response = await ApiService.post('/auth/verify-email', { token });
+      return response;
+    } catch (error) {
+      console.error('Verify email error:', error);
+      throw error;
+    }
+  },
+};
 
 export default AuthService;

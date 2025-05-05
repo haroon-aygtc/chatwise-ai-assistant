@@ -1,16 +1,28 @@
 
 import ApiService from '../api/base';
+import { DateRange } from '@/types/user';
 
 export interface ActivityLog {
   id: string;
   user_id: string;
   user_name: string;
-  user_avatar?: string;
   action: string;
+  action_type: string;
   description: string;
-  ip_address?: string;
-  user_agent?: string;
+  ip_address: string;
+  user_agent: string;
   created_at: string;
+  resource_type?: string;
+  resource_id?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface ActivityLogResponse {
+  data: ActivityLog[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 export interface ActivityLogParams {
@@ -18,40 +30,41 @@ export interface ActivityLogParams {
   per_page?: number;
   user_id?: string;
   action_type?: string;
-  date_from?: string;
-  date_to?: string;
+  date_range?: DateRange;
   search?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
-export interface ActivityLogResponse {
-  data: ActivityLog[];
-  total: number;
-  per_page: number;
-  current_page: number;
-  last_page: number;
-}
-
-class ActivityLogService {
+/**
+ * Service for managing activity logs
+ */
+export const activityLogService = {
   /**
-   * Get a paginated list of activity logs
+   * Get activity logs with optional filtering
    */
-  static async getActivityLogs(params: ActivityLogParams = {}): Promise<ActivityLogResponse> {
-    return ApiService.get<ActivityLogResponse>('/activity-logs', params);
-  }
+  getActivityLogs: async (params?: ActivityLogParams): Promise<ActivityLogResponse> => {
+    return ApiService.get<ActivityLogResponse>('/activity-logs', { params });
+  },
 
   /**
-   * Get activity log types for filtering
+   * Get available action types
    */
-  static async getActivityTypes(): Promise<string[]> {
-    return ApiService.get<string[]>('/activity-logs/types');
-  }
+  getActionTypes: async (): Promise<string[]> => {
+    const response = await ApiService.get<{ data: string[] }>('/activity-logs/types');
+    return response.data;
+  },
 
   /**
-   * Export activity logs to CSV
+   * Export activity logs based on filters
    */
-  static async exportActivityLogs(params: ActivityLogParams = {}): Promise<Blob> {
-    return ApiService.getBlob('/activity-logs/export', params);
+  exportActivityLogs: async (params?: ActivityLogParams): Promise<Blob> => {
+    const response = await ApiService.getAxiosInstance().get('/activity-logs/export', { 
+      params,
+      responseType: 'blob' 
+    });
+    return new Blob([response.data], { type: response.headers['content-type'] });
   }
-}
+};
 
-export default ActivityLogService;
+export default activityLogService;

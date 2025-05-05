@@ -1,46 +1,52 @@
 
-import { useState, useEffect, useMemo } from 'react';
-import { PermissionCategory, Permission } from '@/types';
+import { useState, useEffect, useMemo } from "react";
+import { PermissionCategory, Permission } from "@/types/user";
 
-export function usePermissionFilter(categories: PermissionCategory[]) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
-  
-  const permissionsByCategory = useMemo(() => {
-    const result: Record<string, Permission[]> = {};
-    
-    // Filter permissions based on search query
-    const filterPermissions = (permissions: Permission[]) => {
-      if (!searchQuery) return permissions;
-      return permissions.filter(p => 
-        p.displayName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    };
-    
-    // Process each category
-    categories.forEach(category => {
-      const filteredPermissions = filterPermissions(category.permissions);
-      if (filteredPermissions.length > 0) {
-        result[category.name] = filteredPermissions;
-      }
-    });
-    
-    return result;
-  }, [categories, searchQuery]);
-  
-  // Reset active category if it no longer exists after filtering
+export function usePermissionFilter(
+  categories: PermissionCategory[],
+  searchQuery: string = ""
+) {
+  const [filteredCategories, setFilteredCategories] = useState<PermissionCategory[]>([]);
+
+  // Filter categories and permissions based on search query
   useEffect(() => {
-    if (activeCategory !== 'all' && !Object.keys(permissionsByCategory).includes(activeCategory)) {
-      setActiveCategory('all');
+    if (!searchQuery) {
+      setFilteredCategories(categories);
+      return;
     }
-  }, [permissionsByCategory, activeCategory]);
-  
-  return {
-    searchQuery,
-    setSearchQuery,
-    permissionsByCategory,
-    activeCategory,
-    setActiveCategory
-  };
+
+    const query = searchQuery.toLowerCase();
+    
+    // Filter permissions in each category
+    const filtered = categories
+      .map(category => {
+        // Check if any permission in the category matches the search
+        const matchingPermissions = category.permissions.filter(permission => 
+          permission.name.toLowerCase().includes(query) ||
+          permission.displayName.toLowerCase().includes(query) ||
+          (permission.description && permission.description.toLowerCase().includes(query))
+        );
+        
+        // If category name matches, include all permissions
+        if (category.name.toLowerCase().includes(query)) {
+          return { ...category };
+        }
+        
+        // If some permissions match, return the category with just those permissions
+        if (matchingPermissions.length > 0) {
+          return {
+            ...category,
+            permissions: matchingPermissions
+          };
+        }
+        
+        // No matches in this category
+        return null;
+      })
+      .filter(Boolean) as PermissionCategory[];
+    
+    setFilteredCategories(filtered);
+  }, [categories, searchQuery]);
+
+  return { filteredCategories };
 }
