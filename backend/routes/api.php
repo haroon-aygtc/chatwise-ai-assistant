@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\KnowledgeBaseController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\PromptTemplateController;
+use App\Http\Controllers\API\ResponseFormatController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\UserController;
 use Illuminate\Http\Request;
@@ -92,5 +93,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [PromptTemplateController::class, 'destroy']);
         Route::get('/categories/list', [PromptTemplateController::class, 'getCategories']);
         Route::post('/{id}/increment-usage', [PromptTemplateController::class, 'incrementUsage']);
+    });
+    
+    // Response Format routes
+    Route::prefix('response-formats')->group(function () {
+        Route::get('/', [ResponseFormatController::class, 'index']);
+        Route::post('/', [ResponseFormatController::class, 'store']);
+        Route::get('/{id}', [ResponseFormatController::class, 'show']);
+        Route::put('/{id}', [ResponseFormatController::class, 'update']);
+        Route::delete('/{id}', [ResponseFormatController::class, 'destroy']);
+        Route::get('/default', [ResponseFormatController::class, 'getDefault']);
+        Route::post('/{id}/set-default', [ResponseFormatController::class, 'setDefault']);
     });
 });

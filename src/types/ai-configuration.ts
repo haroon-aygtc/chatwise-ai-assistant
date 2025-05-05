@@ -144,15 +144,15 @@ export interface ResponseFormat {
   name: string;
   description?: string;
   format: string;
+  length: string;
+  tone: string;
   isDefault?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  // Additional properties used in ResponseFormatterManager
-  length?: string;
-  tone?: string;
-  options?: Array<{
-    id: string;
-    name: string;
-    value: string;
-  }>;
+  options: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
 }
