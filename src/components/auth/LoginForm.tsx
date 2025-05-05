@@ -79,7 +79,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     <>
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
-        <p className="text-gray-400">Enter your credentials to access your account</p>
+        <p className="text-muted-foreground">Enter your credentials to access your account</p>
       </div>
       
       <form onSubmit={handleLogin} className="space-y-6">
@@ -98,8 +98,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-gray-300">Password</Label>
-            <Button variant="link" size="sm" className="p-0 h-auto text-blue-400">
+            <Label htmlFor="password">Password</Label>
+            <Button variant="link" size="sm" className="p-0 h-auto">
               Forgot password?
             </Button>
           </div>
@@ -122,16 +122,15 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             id="remember" 
             checked={rememberMe}
             onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-            className="border-gray-500 data-[state=checked]:bg-blue-500"
           />
-          <Label htmlFor="remember" className="text-sm font-normal text-gray-400">
+          <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground">
             Remember me
           </Label>
         </div>
         
         <Button 
           type="submit" 
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700"
+          className="w-full h-12"
           disabled={isLoading}
         >
           {isLoading ? "Signing in..." : (
@@ -141,7 +140,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           )}
         </Button>
         
-        <div className="relative my-6">
+        {/* <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-700"></div>
           </div>
@@ -177,16 +176,16 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             Google
           </Button>
         </div>
-        
+         */}
         {/* Demo credentials notice - can be removed in production */}
-        <div className="mt-6 text-center text-xs text-gray-600">
+        <div className="mt-6 text-center text-xs text-muted-foreground">
           <p>Demo credentials: admin@example.com / password</p>
         </div>
       </form>
       
-      <p className="text-center text-sm text-gray-500 mt-8">
+      <p className="text-center text-sm text-muted-foreground mt-8">
         Don't have an account?{" "}
-        <Button variant="link" className="p-0 h-auto font-normal text-blue-400" onClick={() => navigate("/signup")}>
+        <Button variant="link" className="p-0 h-auto font-normal" onClick={() => navigate("/signup")}>
           Sign up
         </Button>
       </p>

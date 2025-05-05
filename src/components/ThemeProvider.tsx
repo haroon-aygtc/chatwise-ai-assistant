@@ -1,7 +1,13 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "system";
+type Theme =
+  | "light"
+  | "dark"
+  | "system"
+  | "purple"
+  | "blue"
+  | "green"
+  | "orange";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -23,31 +29,51 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = "dark",
+  defaultTheme = "system",
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
   );
 
   useEffect(() => {
     const root = window.document.documentElement;
-    
-    root.classList.remove("light", "dark");
-    
+
+    // Remove all theme classes
+    root.classList.remove(
+      "light",
+      "dark",
+      "purple-theme",
+      "blue-theme",
+      "green-theme",
+      "orange-theme",
+    );
+
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
         .matches
         ? "dark"
         : "light";
-      
+
       root.classList.add(systemTheme);
       return;
     }
+
+    if (theme === "light" || theme === "dark") {
+      root.classList.add(theme);
+    } else {
+      // For custom themes, add both the base theme and the custom theme class
+      root.classList.add("light"); // Use light as the base
+      root.classList.add(`${theme}-theme`);
+      
+      // Add a data attribute for easier CSS targeting
+      root.setAttribute('data-theme', theme);
+    }
     
-    root.classList.add(theme);
-  }, [theme]);
+    // Store the current theme in localStorage
+    localStorage.setItem(storageKey, theme);
+  }, [theme, storageKey]);
 
   const value = {
     theme,
@@ -66,9 +92,9 @@ export function ThemeProvider({
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext);
-  
+
   if (context === undefined)
     throw new Error("useTheme must be used within a ThemeProvider");
-    
+
   return context;
 };

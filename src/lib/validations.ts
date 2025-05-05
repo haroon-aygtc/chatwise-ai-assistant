@@ -59,10 +59,18 @@ export const validatePasswordMatch = (password: string, confirmPassword: string)
   return { isValid: true, error: null };
 };
 
-export const validatePhoneNumber = (phoneNumber: string): ValidationResult => {
+export const validatePhoneNumber = (phoneNumber: string, isValid?: boolean): ValidationResult => {
   const required = validateRequired(phoneNumber);
   if (!required.isValid) return required;
 
+  // If isValid is provided (from intl-tel-input validation), use that
+  if (isValid !== undefined) {
+    return isValid 
+      ? { isValid: true, error: null }
+      : { isValid: false, error: "Please enter a valid phone number" };
+  }
+
+  // Fallback validation if isValid is not provided
   // Remove non-digit characters for validation
   const digitsOnly = phoneNumber.replace(/\D/g, '');
   

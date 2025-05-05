@@ -8,7 +8,6 @@ interface ReviewStepProps {
     name: string;
     email: string;
     orgName: string;
-    jobTitle: string;
     agreeTerms: boolean;
   };
   updateFormData: (key: string, value: string | boolean) => void;
@@ -33,12 +32,6 @@ export function ReviewStep({ formData, updateFormData }: ReviewStepProps) {
             </>
           )}
           
-          {formData.jobTitle && (
-            <>
-              <div className="text-sm text-gray-500">Job Title:</div>
-              <div className="text-sm font-medium text-white">{formData.jobTitle}</div>
-            </>
-          )}
         </div>
       </div>
       

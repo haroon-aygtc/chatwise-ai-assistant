@@ -86,13 +86,13 @@ export function PhoneInput({
     <div className="space-y-2">
       <Label
         htmlFor={id}
-        className={`text-gray-300 ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ""}`}
+        className={`text-foreground ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ""}`}
       >
         {label}
       </Label>
       <div className="flex gap-2">
         <Select value={selectedCountry.code} onValueChange={handleCountryChange}>
-          <SelectTrigger className="w-[110px] h-12 bg-[#131B2E] border-[#2A3349] focus:border-gray-500 text-white">
+          <SelectTrigger className="w-[110px] h-12 bg-background border-input focus:border-primary text-foreground">
             <SelectValue>
               <div className="flex items-center gap-1">
                 <span className="text-lg">{selectedCountry.flag}</span>
@@ -122,11 +122,11 @@ export function PhoneInput({
             value={value}
             onChange={handlePhoneChange}
             onBlur={handleBlur}
-            className={`pl-10 h-12 bg-[#131B2E] border-[#2A3349] ${
+            className={`pl-10 h-12 bg-background border-input ${
               hasError
                 ? "border-red-500 focus:border-red-500"
-                : "focus:border-gray-500"
-            } text-white ${className}`}
+                : "focus:border-primary"
+            } text-foreground ${className}`}
           />
         </div>
       </div>

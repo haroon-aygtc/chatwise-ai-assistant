@@ -1,0 +1,360 @@
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Suggestions</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddSuggestion}
+                      disabled={!enableFollowUps}
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Add Suggestion
+                    </Button>
+                  </div>
+
+                  {suggestions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No suggestions defined yet. Add your first suggestion to
+                      get started.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {suggestions.map((suggestion, index) => (
+                        <div
+                          key={suggestion.id}
+                          className="flex items-center justify-between p-3 border rounded-md"
+                        >
+                          <div>
+                            <p className="font-medium">{suggestion.text}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {suggestion.description}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleMoveUp(suggestion.id)}
+                              disabled={index === 0 || !enableFollowUps}
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleMoveDown(suggestion.id)}
+                              disabled={
+                                index === suggestions.length - 1 ||
+                                !enableFollowUps
+                              }
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditSuggestion(suggestion)}
+                              disabled={!enableFollowUps}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteSuggestion(suggestion.id)}
+                              disabled={!enableFollowUps}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Follow-Up Suggestions</CardTitle>
+              <CardDescription>
+                Preview how follow-up suggestions will appear
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleTest}
+                    disabled={isTesting || suggestions.length === 0}
+                  >
+                    {isTesting ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2 h-4 w-4" /> Test Suggestions
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="preview" className="space-y-4 pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Follow-Up Preview</CardTitle>
+              <CardDescription>
+                See how follow-up suggestions will appear after AI responses
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {testResponse ? (
+                <div className="space-y-4">
+                  <div className="p-4 border rounded-md bg-muted/20">
+                    <div className="whitespace-pre-wrap">{testResponse}</div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Settings</h4>
+                      <ul className="text-sm space-y-1">
+                        <li>
+                          <span className="font-medium">Enabled:</span>{" "}
+                          {enableFollowUps ? "Yes" : "No"}
+                        </li>
+                        <li>
+                          <span className="font-medium">Max Suggestions:</span>{" "}
+                          {maxSuggestions}
+                        </li>
+                        <li>
+                          <span className="font-medium">Total Suggestions:</span>{" "}
+                          {suggestions.length}
+                        </li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Active Suggestions</h4>
+                      <ul className="text-sm space-y-1">
+                        {suggestions
+                          .slice(0, maxSuggestions)
+                          .map((suggestion) => (
+                            <li key={suggestion.id}>
+                              <span className="font-medium">"{suggestion.text}"</span>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Play className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p>
+                    No preview available. Run a test to see the follow-up
+                    suggestions.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setActiveTab("suggestions")}
+                  >
+                    Go to Suggestions
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Example Use Cases</CardTitle>
+              <CardDescription>
+                Common scenarios for follow-up suggestions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Support Escalation</h4>
+                  <div className="p-3 border rounded-md bg-muted/10 text-sm">
+                    <p>
+                      <strong>AI Response:</strong> I understand you're having an
+                      issue with your account. Let me help troubleshoot that for
+                      you...
+                    </p>
+                    <div className="mt-3 space-x-2">
+                      <Badge variant="outline" className="cursor-pointer">
+                        Talk to a human agent
+                      </Badge>
+                      <Badge variant="outline" className="cursor-pointer">
+                        View account FAQ
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Sales Opportunity</h4>
+                  <div className="p-3 border rounded-md bg-muted/10 text-sm">
+                    <p>
+                      <strong>AI Response:</strong> Our premium plan includes all
+                      these features plus advanced analytics and priority
+                      support...
+                    </p>
+                    <div className="mt-3 space-x-2">
+                      <Badge variant="outline" className="cursor-pointer">
+                        See pricing details
+                      </Badge>
+                      <Badge variant="outline" className="cursor-pointer">
+                        Start free trial
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Suggestion Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Follow-Up Suggestion</DialogTitle>
+            <DialogDescription>
+              Create a new follow-up suggestion for users
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="suggestion-text" className="text-right">
+                Text
+              </Label>
+              <Input
+                id="suggestion-text"
+                value={newSuggestion.text}
+                onChange={(e) =>
+                  setNewSuggestion({ ...newSuggestion, text: e.target.value })
+                }
+                className="col-span-3"
+                placeholder="e.g., Need more help?"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="suggestion-description" className="text-right">
+                Description
+              </Label>
+              <Input
+                id="suggestion-description"
+                value={newSuggestion.description}
+                onChange={(e) =>
+                  setNewSuggestion({
+                    ...newSuggestion,
+                    description: e.target.value,
+                  })
+                }
+                className="col-span-3"
+                placeholder="e.g., General follow-up question"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowAddDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveNewSuggestion}
+              disabled={!newSuggestion.text}
+            >
+              Add Suggestion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Suggestion Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Follow-Up Suggestion</DialogTitle>
+            <DialogDescription>
+              Modify an existing follow-up suggestion
+            </DialogDescription>
+          </DialogHeader>
+          {currentSuggestion && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-suggestion-text" className="text-right">
+                  Text
+                </Label>
+                <Input
+                  id="edit-suggestion-text"
+                  value={currentSuggestion.text}
+                  onChange={(e) =>
+                    setCurrentSuggestion({
+                      ...currentSuggestion,
+                      text: e.target.value,
+                    })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="edit-suggestion-description"
+                  className="text-right"
+                >
+                  Description
+                </Label>
+                <Input
+                  id="edit-suggestion-description"
+                  value={currentSuggestion.description}
+                  onChange={(e) =>
+                    setCurrentSuggestion({
+                      ...currentSuggestion,
+                      description: e.target.value,
+                    })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveEditedSuggestion}
+              disabled={!currentSuggestion || !currentSuggestion.text}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default FollowUpManager;

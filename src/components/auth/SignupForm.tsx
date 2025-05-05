@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { FormField } from "@/components/ui/form-field";
-import { PhoneInput } from "@/components/ui/phone-input";
+import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
 import {
   validateRequired,
   validateEmail,
@@ -26,6 +26,7 @@ export function SignupForm() {
     email: "",
     phone: "",
     countryCode: "US",
+    isPhoneValid: false,
     password: "",
     confirmPassword: "",
     agreeTerms: false,
@@ -41,7 +42,7 @@ export function SignupForm() {
     // Validate all fields
     const nameValidation = validateRequired(formData.name);
     const emailValidation = validateEmail(formData.email);
-    const phoneValidation = validatePhoneNumber(formData.phone);
+    const phoneValidation = validatePhoneNumber(formData.phone, formData.isPhoneValid);
     const passwordValidation = validatePassword(formData.password);
     const confirmPasswordValidation = validatePasswordMatch(
       formData.password,
@@ -81,10 +82,11 @@ export function SignupForm() {
       
       toast({
         title: "Registration successful",
-        description: "Your account has been created. Please sign in.",
+        description: "Your account has been created. Redirecting to dashboard...",
       });
       
-      navigate("/login");
+      // Redirect directly to dashboard instead of login
+      navigate("/admin/chat-sessions");
     } catch (error) {
       toast({
         title: "Registration error",
@@ -100,7 +102,7 @@ export function SignupForm() {
     <>
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2">Create an Account</h1>
-        <p className="text-gray-400">Enter your details to sign up</p>
+        <p className="text-muted-foreground">Enter your details to sign up</p>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -128,16 +130,16 @@ export function SignupForm() {
           autoComplete="email"
         />
         
-        <PhoneInput
+        <SimplePhoneInput
           id="phone"
           label="Phone Number"
           value={formData.phone}
-          countryCode={formData.countryCode}
-          onChange={(value, countryCode) => {
+          onChange={(value, isValid, countryCode) => {
             updateFormField("phone", value);
             updateFormField("countryCode", countryCode);
+            updateFormField("isPhoneValid", isValid);
           }}
-          validate={() => validatePhoneNumber(formData.phone)}
+          validate={(isValid) => validatePhoneNumber(formData.phone, isValid)}
           required
         />
         
@@ -172,16 +174,15 @@ export function SignupForm() {
             id="terms" 
             checked={formData.agreeTerms}
             onCheckedChange={(checked) => updateFormField("agreeTerms", checked as boolean)}
-            className="border-gray-500 data-[state=checked]:bg-blue-500"
           />
-          <Label htmlFor="terms" className="text-sm font-normal text-gray-400">
-            I agree to the <Button variant="link" className="p-0 h-auto text-blue-400">Terms of Service</Button> and <Button variant="link" className="p-0 h-auto text-blue-400">Privacy Policy</Button>
+          <Label htmlFor="terms" className="text-sm font-normal text-muted-foreground">
+            I agree to the <Button variant="link" className="p-0 h-auto">Terms of Service</Button> and <Button variant="link" className="p-0 h-auto">Privacy Policy</Button>
           </Label>
         </div>
         
         <Button 
           type="submit" 
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700"
+          className="w-full h-12"
           disabled={isLoading}
         >
           {isLoading ? "Creating account..." : (
@@ -191,21 +192,21 @@ export function SignupForm() {
           )}
         </Button>
         
-        <div className="relative my-6">
+        {/* <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700"></div>
+            <div className="w-full border-t border-input"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-[#0A101F] px-2 text-gray-500">OR SIGN UP WITH</span>
+            <span className="bg-background px-2 text-muted-foreground">OR SIGN UP WITH</span>
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" className="h-12 bg-transparent border-gray-700 text-white hover:bg-gray-800">
+          <Button variant="outline" className="h-12 bg-transparent border-input text-foreground hover:bg-muted">
             <Github className="mr-2 h-5 w-5" />
             GitHub
           </Button>
-          <Button variant="outline" className="h-12 bg-transparent border-gray-700 text-white hover:bg-gray-800">
+          <Button variant="outline" className="h-12 bg-transparent border-input text-foreground hover:bg-muted">
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -226,12 +227,12 @@ export function SignupForm() {
             </svg>
             Google
           </Button>
-        </div>
+        </div> */}
       </form>
       
-      <p className="text-center text-sm text-gray-500 mt-8">
+      <p className="text-center text-sm text-muted-foreground mt-8">
         Already have an account?{" "}
-        <Button variant="link" className="p-0 h-auto font-normal text-blue-400" onClick={() => navigate("/login")}>
+        <Button variant="link" className="p-0 h-auto font-normal" onClick={() => navigate("/login")}>
           Sign in
         </Button>
       </p>
