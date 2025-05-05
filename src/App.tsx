@@ -61,18 +61,14 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/components" element={<ComponentShowcasePage />} />
 
-              {/* Auth routes */}
-              <Route element={<AuthLayout />}>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-              </Route>
+              {/* Auth routes - Use the page components directly which internally use AuthLayout */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Protected routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/home" element={<HomePage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-              </Route>
+              <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
 
               {/* Admin routes */}
               <Route
