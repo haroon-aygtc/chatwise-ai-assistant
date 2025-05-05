@@ -52,3 +52,10 @@ export interface DateRange {
   from: Date | undefined;
   to?: Date | undefined;
 }
+
+export interface PermissionCategory {
+  id: string;
+  name: string;
+  category: string;
+  permissions: Permission[];
+}
