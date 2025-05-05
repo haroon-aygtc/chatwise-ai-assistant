@@ -1,2 +1,2 @@
 
-export * from './responseFormatService';
+export * from '../ai-configuration/responseFormatService';

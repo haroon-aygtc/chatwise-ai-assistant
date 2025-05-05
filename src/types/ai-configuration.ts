@@ -156,3 +156,8 @@ export interface ResponseFormat {
     formatCodeBlocks: boolean;
   };
 }
+
+export interface DateRange {
+  from: Date;
+  to: Date;
+}

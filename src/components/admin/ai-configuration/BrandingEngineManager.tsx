@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Card,
@@ -49,9 +50,14 @@ export const BrandingEngineManager = ({
   const [activeTab, setActiveTab] = useState("settings");
 
   const [brandSettings, setBrandSettings] = useState<BrandVoice>({
+    id: "brand1",
+    name: "Default Brand Voice",
+    description: "Our standard brand voice for all communications",
     brandName: "Acme Inc",
     positioning: "inline",
     signature: "If you have any more questions, the Acme team is here to help!",
+    tone: ["friendly", "professional"],
+    examples: [],
   });
 
   const [brandPersonality, setBrandPersonality] = useState({
