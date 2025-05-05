@@ -109,6 +109,7 @@ export interface DocumentCategory {
   id: string;
   name: string;
   description?: string;
+  documentCount?: number; // Added for compatibility
 }
 
 export interface KnowledgeDocument {
@@ -119,6 +120,11 @@ export interface KnowledgeDocument {
   tags: string[];
   url?: string;
   lastUpdated: string;
+  description?: string; // Added for compatibility
+  fileType?: string; // Added for compatibility
+  fileSize?: number; // Added for compatibility
+  status?: string; // Added for compatibility
+  uploadedAt?: string; // Added for compatibility
 }
 
 // Added for BrandingEngineManager
@@ -128,4 +134,26 @@ export interface BrandVoice {
   description: string;
   tone: string;
   examples: string[];
+  brandName?: string; // Added for compatibility
+  positioning?: string; // Added for compatibility
+  signature?: string; // Added for compatibility
+}
+
+// Added for Permission Management components
+export interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+  module?: string;
+}
+
+export interface PermissionCategory {
+  name: string;
+  permissions: Permission[];
+}
+
+export interface PermissionManagementProps {
+  selectedPermissions: string[];
+  onChange: React.Dispatch<React.SetStateAction<string[]>>;
+  permissionCategories: PermissionCategory[];
 }

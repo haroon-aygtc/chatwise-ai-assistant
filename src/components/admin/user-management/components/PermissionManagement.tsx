@@ -1,178 +1,123 @@
-import { useState, useEffect, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Role, Permission } from "@/types";
-import { Loader2 } from "lucide-react";
+
+import { useState, useEffect } from "react";
+import { PermissionGroup } from "./PermissionGroup";
+import { PermissionCategory, Permission } from "@/types/ai-configuration";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface PermissionManagementProps {
-  role: Role;
-  availablePermissions: Permission[];
+  selectedPermissions: string[];
+  onChange: React.Dispatch<React.SetStateAction<string[]>>;
+  permissionCategories: PermissionCategory[];
 }
 
-const PermissionManagement = ({
-  role,
-  availablePermissions,
+export const PermissionManagement = ({
+  selectedPermissions,
+  onChange,
+  permissionCategories
 }: PermissionManagementProps) => {
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredCategories, setFilteredCategories] = useState<PermissionCategory[]>([]);
 
-  // Group permissions by module
-  const permissionsByModule = useMemo(() => {
-    if (!availablePermissions || availablePermissions.length === 0) {
-      return {};
-    }
-
-    return availablePermissions.reduce<Record<string, Permission[]>>(
-      (acc, permission) => {
-        const module = permission.module || "General";
-        if (!acc[module]) {
-          acc[module] = [];
-        }
-        acc[module].push(permission);
-        return acc;
-      },
-      {},
-    );
-  }, [availablePermissions]);
-
-  // Initialize selected permissions based on role
+  // Group permissions by module/category if not already grouped
   useEffect(() => {
-    if (role && role.permissions) {
-      const permissionIds = role.permissions.map((p) => p.id);
-      setSelectedPermissions(permissionIds);
-    } else {
-      setSelectedPermissions([]);
+    if (!searchQuery.trim()) {
+      setFilteredCategories(permissionCategories);
+      return;
     }
-  }, [role]);
 
-  const handlePermissionChange = (permissionId: string, checked: boolean) => {
+    const query = searchQuery.toLowerCase();
+    const filtered = permissionCategories
+      .map(category => {
+        // Filter permissions within each category
+        const filteredPermissions = category.permissions.filter(
+          permission =>
+            permission.name.toLowerCase().includes(query) ||
+            (permission.description && permission.description.toLowerCase().includes(query)) ||
+            (permission.module && permission.module.toLowerCase().includes(query))
+        );
+
+        // Return category with filtered permissions if any match
+        return filteredPermissions.length > 0
+          ? { ...category, permissions: filteredPermissions }
+          : null;
+      })
+      .filter(Boolean) as PermissionCategory[];
+
+    setFilteredCategories(filtered);
+  }, [searchQuery, permissionCategories]);
+
+  // Handle select all permissions
+  const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedPermissions([...selectedPermissions, permissionId]);
-    } else {
-      setSelectedPermissions(
-        selectedPermissions.filter((id) => id !== permissionId),
+      // Get all permission IDs from all categories
+      const allPermissionIds = permissionCategories.flatMap(category =>
+        category.permissions.map(permission => permission.id)
       );
+      onChange(allPermissionIds);
+    } else {
+      onChange([]);
     }
   };
 
-  const handleSavePermissions = async () => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 1000);
-  };
+  // Calculate if all permissions are selected
+  const allSelected = permissionCategories.every(category =>
+    category.permissions.every(permission => selectedPermissions.includes(permission.id))
+  );
 
-  const handleSelectAllInModule = (module: string, checked: boolean) => {
-    const modulePermissionIds = permissionsByModule[module].map((p) => p.id);
-
-    if (checked) {
-      // Add all permissions from this module that aren't already selected
-      const newSelectedPermissions = [
-        ...selectedPermissions,
-        ...modulePermissionIds.filter(
-          (id) => !selectedPermissions.includes(id),
-        ),
-      ];
-      setSelectedPermissions(newSelectedPermissions);
-    } else {
-      // Remove all permissions from this module
-      setSelectedPermissions(
-        selectedPermissions.filter((id) => !modulePermissionIds.includes(id)),
-      );
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+  // Calculate if some permissions are selected
+  const someSelected =
+    selectedPermissions.length > 0 &&
+    !permissionCategories.every(category =>
+      category.permissions.every(permission => selectedPermissions.includes(permission.id))
     );
-  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">{role.name} Permissions</h2>
-          <p className="text-sm text-muted-foreground">
-            Configure permissions for this role
-          </p>
-        </div>
-        <Button onClick={handleSavePermissions} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save Permissions"
-          )}
-        </Button>
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search permissions..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-8"
+        />
       </div>
 
-      <div className="space-y-6">
-        {Object.keys(permissionsByModule).length > 0 ? (
-          Object.entries(permissionsByModule).map(([module, permissions]) => (
-            <Card key={module} className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">{module}</h3>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`select-all-${module}`}
-                    checked={
-                      permissions.every((p) =>
-                        selectedPermissions.includes(p.id),
-                      ) && permissions.length > 0
-                    }
-                    onCheckedChange={(checked) =>
-                      handleSelectAllInModule(module, checked === true)
-                    }
-                  />
-                  <Label htmlFor={`select-all-${module}`}>Select All</Label>
-                </div>
-              </div>
-              <Separator className="mb-4" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {permissions.map((permission) => (
-                  <div
-                    key={permission.id}
-                    className="flex items-center space-x-2"
-                  >
-                    <Checkbox
-                      id={`permission-${permission.id}`}
-                      checked={selectedPermissions.includes(permission.id)}
-                      onCheckedChange={(checked) =>
-                        handlePermissionChange(permission.id, checked === true)
-                      }
-                    />
-                    <Label
-                      htmlFor={`permission-${permission.id}`}
-                      className="text-sm font-medium"
-                    >
-                      {permission.name}
-                      <p className="text-xs text-muted-foreground">
-                        {permission.description}
-                      </p>
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ))
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No permissions available for this role.</p>
+      <div className="border rounded-md p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <CustomCheckbox
+            id="select-all-permissions"
+            checked={allSelected}
+            indeterminate={!allSelected && someSelected}
+            onCheckedChange={handleSelectAll}
+          />
+          <label
+            htmlFor="select-all-permissions"
+            className="text-sm font-medium cursor-pointer"
+          >
+            Select All Permissions
+          </label>
+        </div>
+
+        <div className="space-y-2">
+          {filteredCategories.map((category) => (
+            <PermissionGroup
+              key={category.name}
+              name={category.name}
+              permissions={category.permissions}
+              selectedPermissions={selectedPermissions}
+              onChange={onChange}
+            />
+          ))}
+        </div>
+
+        {filteredCategories.length === 0 && (
+          <div className="text-center py-4 text-muted-foreground">
+            No permissions match your search criteria.
           </div>
         )}
       </div>
     </div>
   );
 };
-
-export default PermissionManagement;
