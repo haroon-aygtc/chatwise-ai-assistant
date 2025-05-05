@@ -12,7 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 // Layout components
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import AuthLayout from "@/components/auth/AuthLayout";
 import AdminLayout from "@/components/admin/AdminLayout";
 
