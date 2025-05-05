@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\API\ActivityLogController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\FollowUpController;
 use App\Http\Controllers\API\KnowledgeBaseController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\PromptTemplateController;
@@ -104,5 +105,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [ResponseFormatController::class, 'destroy']);
         Route::get('/default', [ResponseFormatController::class, 'getDefault']);
         Route::post('/{id}/set-default', [ResponseFormatController::class, 'setDefault']);
+    });
+    
+    // Follow-Up Suggestions routes
+    Route::prefix('follow-up-suggestions')->group(function () {
+        Route::get('/', [FollowUpController::class, 'getAllSuggestions']);
+        Route::post('/', [FollowUpController::class, 'createSuggestion']);
+        Route::get('/{id}', [FollowUpController::class, 'getSuggestionById']);
+        Route::put('/{id}', [FollowUpController::class, 'updateSuggestion']);
+        Route::delete('/{id}', [FollowUpController::class, 'deleteSuggestion']);
+        Route::post('/reorder', [FollowUpController::class, 'reorderSuggestions']);
+        Route::post('/{id}/move-up', [FollowUpController::class, 'moveSuggestionUp']);
+        Route::post('/{id}/move-down', [FollowUpController::class, 'moveSuggestionDown']);
+        Route::get('/settings', [FollowUpController::class, 'getSettings']);
+        Route::put('/settings', [FollowUpController::class, 'updateSettings']);
+        Route::post('/test', [FollowUpController::class, 'testSuggestions']);
     });
 });
