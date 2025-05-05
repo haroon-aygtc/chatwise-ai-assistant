@@ -6,7 +6,7 @@ export { SignupForm } from './components/SignupForm';
 export { ResetPasswordForm } from './components/ResetPasswordForm';
 export { default as ProtectedRoute } from './components/ProtectedRoute';
 
-export { tokenService } from './services/tokenService';
+export { default as tokenService } from './services/tokenService';
 export { default as AuthService } from './services/authService';
 
 export * from './types';
