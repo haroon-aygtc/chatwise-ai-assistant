@@ -1,17 +1,16 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -32,10 +31,7 @@ import {
   ArrowUp,
   ArrowDown,
   Play,
-  AlertCircle,
-  MessageCircle,
 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FollowUpSuggestion } from "@/types/ai-configuration";
 import {
@@ -46,80 +42,95 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import followUpService from "@/services/ai-configuration/followUpService";
 
 export interface FollowUpManagerProps {
   standalone?: boolean;
 }
 
-export const FollowUpManager = ({
+const FollowUpManager = ({
   standalone = false,
 }: FollowUpManagerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [currentSuggestion, setCurrentSuggestion] =
-    useState<FollowUpSuggestion | null>(null);
-  const [newSuggestion, setNewSuggestion] = useState<
-    Partial<FollowUpSuggestion>
-  >({
+  const [currentSuggestion, setCurrentSuggestion] = useState<FollowUpSuggestion | null>(null);
+  const [newSuggestion, setNewSuggestion] = useState<Partial<FollowUpSuggestion>>({
     text: "",
     description: "",
+    category: "general",
     order: 0,
-    isActive: true,
+    is_active: true,
   });
   const [enableFollowUps, setEnableFollowUps] = useState(true);
   const [maxSuggestions, setMaxSuggestions] = useState(3);
   const [testResponse, setTestResponse] = useState("");
+  const [testFollowUps, setTestFollowUps] = useState<FollowUpSuggestion[]>([]);
   const [isTesting, setIsTesting] = useState(false);
   const [activeTab, setActiveTab] = useState("suggestions");
+  const [suggestions, setSuggestions] = useState<FollowUpSuggestion[]>([]);
 
-  const [suggestions, setSuggestions] = useState<FollowUpSuggestion[]>([
-    {
-      id: "suggestion1",
-      text: "Need more help?",
-      description: "General follow-up",
-      order: 1,
-      isActive: true,
-    },
-    {
-      id: "suggestion2",
-      text: "Talk to a human agent",
-      description: "Escalation option",
-      order: 2,
-      isActive: true,
-    },
-    {
-      id: "suggestion3",
-      text: "Learn about our pricing",
-      description: "Sales inquiry",
-      order: 3,
-      isActive: true,
-    },
-  ]);
+  useEffect(() => {
+    fetchSuggestions();
+    fetchSettings();
+  }, []);
 
-  const handleRefresh = () => {
+  const fetchSuggestions = async () => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const data = await followUpService.getAllSuggestions();
+      setSuggestions(data);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      toast.error("Failed to load follow-up suggestions");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const handleSave = () => {
+  const fetchSettings = async () => {
+    setIsLoading(true);
+    try {
+      const data = await followUpService.getSettings();
+      setEnableFollowUps(data.enabled);
+      setMaxSuggestions(data.max_suggestions);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      toast.error("Failed to load settings");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchSuggestions();
+    fetchSettings();
+  };
+
+  const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await followUpService.updateSettings({
+        enabled: enableFollowUps,
+        max_suggestions: maxSuggestions,
+      });
+      toast.success("Settings saved successfully");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
       setIsSaving(false);
-    }, 1000);
+    }
   };
 
   const handleAddSuggestion = () => {
     setNewSuggestion({
       text: "",
       description: "",
+      category: "general",
       order: suggestions.length + 1,
-      isActive: true,
+      is_active: true,
     });
     setShowAddDialog(true);
   };
@@ -129,78 +140,118 @@ export const FollowUpManager = ({
     setShowEditDialog(true);
   };
 
-  const handleDeleteSuggestion = (id: string) => {
-    setSuggestions(suggestions.filter((suggestion) => suggestion.id !== id));
-  };
-
-  const handleSaveNewSuggestion = () => {
-    if (newSuggestion.text) {
-      const suggestion: FollowUpSuggestion = {
-        id: `suggestion${suggestions.length + 1}`,
-        text: newSuggestion.text,
-        description: newSuggestion.description || "",
-        order: newSuggestion.order || suggestions.length + 1,
-        isActive: true,
-      };
-
-      setSuggestions([...suggestions, suggestion]);
-      setShowAddDialog(false);
+  const handleDeleteSuggestion = async (id: string) => {
+    try {
+      await followUpService.deleteSuggestion(id);
+      setSuggestions(suggestions.filter((suggestion) => suggestion.id !== id));
+      toast.success("Suggestion deleted successfully");
+    } catch (error) {
+      console.error("Error deleting suggestion:", error);
+      toast.error("Failed to delete suggestion");
     }
   };
 
-  const handleSaveEditedSuggestion = () => {
-    if (currentSuggestion) {
-      const updatedSuggestions = suggestions.map((suggestion) =>
-        suggestion.id === currentSuggestion.id ? currentSuggestion : suggestion,
-      );
+  const handleSaveNewSuggestion = async () => {
+    if (newSuggestion.text && newSuggestion.category) {
+      try {
+        const createdSuggestion = await followUpService.createSuggestion(newSuggestion);
+        setSuggestions([...suggestions, createdSuggestion]);
+        toast.success("Suggestion added successfully");
+        setShowAddDialog(false);
+      } catch (error) {
+        console.error("Error creating suggestion:", error);
+        toast.error("Failed to create suggestion");
+      }
+    }
+  };
+
+  const handleSaveEditedSuggestion = async () => {
+    if (currentSuggestion && currentSuggestion.text && currentSuggestion.category) {
+      try {
+        const updatedSuggestion = await followUpService.updateSuggestion(
+          currentSuggestion.id,
+          currentSuggestion
+        );
+        
+        const updatedSuggestions = suggestions.map((suggestion) =>
+          suggestion.id === updatedSuggestion.id ? updatedSuggestion : suggestion
+        );
+        
+        setSuggestions(updatedSuggestions);
+        toast.success("Suggestion updated successfully");
+        setShowEditDialog(false);
+        setCurrentSuggestion(null);
+      } catch (error) {
+        console.error("Error updating suggestion:", error);
+        toast.error("Failed to update suggestion");
+      }
+    }
+  };
+
+  const handleMoveUp = async (id: string) => {
+    try {
+      const updatedSuggestions = await followUpService.moveSuggestionUp(id);
       setSuggestions(updatedSuggestions);
-      setShowEditDialog(false);
-      setCurrentSuggestion(null);
+    } catch (error) {
+      console.error("Error moving suggestion up:", error);
+      toast.error("Failed to reorder suggestions");
     }
   };
 
-  const handleMoveUp = (id: string) => {
-    const index = suggestions.findIndex((suggestion) => suggestion.id === id);
-    if (index > 0) {
-      const newSuggestions = [...suggestions];
-      const temp = newSuggestions[index].order;
-      newSuggestions[index].order = newSuggestions[index - 1].order;
-      newSuggestions[index - 1].order = temp;
-      newSuggestions.sort((a, b) => a.order - b.order);
-      setSuggestions(newSuggestions);
+  const handleMoveDown = async (id: string) => {
+    try {
+      const updatedSuggestions = await followUpService.moveSuggestionDown(id);
+      setSuggestions(updatedSuggestions);
+    } catch (error) {
+      console.error("Error moving suggestion down:", error);
+      toast.error("Failed to reorder suggestions");
     }
   };
 
-  const handleMoveDown = (id: string) => {
-    const index = suggestions.findIndex((suggestion) => suggestion.id === id);
-    if (index < suggestions.length - 1) {
-      const newSuggestions = [...suggestions];
-      const temp = newSuggestions[index].order;
-      newSuggestions[index].order = newSuggestions[index + 1].order;
-      newSuggestions[index + 1].order = temp;
-      newSuggestions.sort((a, b) => a.order - b.order);
-      setSuggestions(newSuggestions);
-    }
-  };
-
-  const handleTest = () => {
+  const handleTest = async () => {
     setIsTesting(true);
-    // Simulate API call
-    setTimeout(() => {
-      const response =
-        "Our product offers several powerful features designed to enhance your customer experience. The AI-powered chat provides intelligent responses based on your business knowledge. We also offer multi-channel support, allowing seamless integration with your website, mobile app, and social media platforms.";
-
-      const followUps = enableFollowUps
-        ? suggestions
-            .slice(0, maxSuggestions)
-            .map((s) => `- ${s.text}`)
-            .join("\n")
-        : "";
-
-      setTestResponse(followUps ? `${response}\n\n${followUps}` : response);
-      setIsTesting(false);
+    try {
+      const result = await followUpService.testSuggestions();
+      setTestResponse(result.response);
+      setTestFollowUps(result.followUps);
       setActiveTab("preview");
-    }, 1500);
+      toast.success("Test completed successfully");
+    } catch (error) {
+      console.error("Error testing suggestions:", error);
+      toast.error("Failed to test suggestions");
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleSwitchChange = async (checked: boolean) => {
+    setEnableFollowUps(checked);
+    try {
+      await followUpService.updateSettings({
+        enabled: checked,
+        max_suggestions: maxSuggestions,
+      });
+      toast.success(checked ? "Follow-ups enabled" : "Follow-ups disabled");
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      toast.error("Failed to update settings");
+      setEnableFollowUps(!checked); // Revert on error
+    }
+  };
+
+  const handleMaxSuggestionsChange = async (value: string) => {
+    const newMax = parseInt(value);
+    setMaxSuggestions(newMax);
+    try {
+      await followUpService.updateSettings({
+        enabled: enableFollowUps,
+        max_suggestions: newMax,
+      });
+    } catch (error) {
+      console.error("Error updating max suggestions:", error);
+      toast.error("Failed to update max suggestions");
+      setMaxSuggestions(maxSuggestions); // Revert on error
+    }
   };
 
   return (
@@ -262,7 +313,7 @@ export const FollowUpManager = ({
                 </div>
                 <Switch
                   checked={enableFollowUps}
-                  onCheckedChange={setEnableFollowUps}
+                  onCheckedChange={handleSwitchChange}
                   id="enable-followups"
                 />
               </div>
@@ -278,9 +329,7 @@ export const FollowUpManager = ({
                   </div>
                   <Select
                     value={maxSuggestions.toString()}
-                    onValueChange={(value) =>
-                      setMaxSuggestions(parseInt(value))
-                    }
+                    onValueChange={handleMaxSuggestionsChange}
                     disabled={!enableFollowUps}
                   >
                     <SelectTrigger className="w-[100px]">
@@ -311,7 +360,12 @@ export const FollowUpManager = ({
                     </Button>
                   </div>
 
-                  {suggestions.length === 0 ? (
+                  {isLoading ? (
+                    <div className="text-center py-8">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                      <p className="mt-2 text-muted-foreground">Loading suggestions...</p>
+                    </div>
+                  ) : suggestions.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       No suggestions defined yet. Add your first suggestion to
                       get started.
@@ -325,9 +379,14 @@ export const FollowUpManager = ({
                         >
                           <div>
                             <p className="font-medium">{suggestion.text}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {suggestion.description}
-                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {suggestion.category}
+                              </Badge>
+                              <p className="text-sm text-muted-foreground">
+                                {suggestion.description}
+                              </p>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
@@ -421,6 +480,15 @@ export const FollowUpManager = ({
                 <div className="space-y-4">
                   <div className="p-4 border rounded-md bg-muted/20">
                     <div className="whitespace-pre-wrap">{testResponse}</div>
+                    {testFollowUps.length > 0 && (
+                      <div className="mt-4 space-x-2">
+                        {testFollowUps.map((suggestion) => (
+                          <Badge key={suggestion.id} variant="outline" className="cursor-pointer">
+                            {suggestion.text}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
@@ -447,15 +515,16 @@ export const FollowUpManager = ({
                         Active Suggestions
                       </h4>
                       <ul className="text-sm space-y-1">
-                        {suggestions
-                          .slice(0, maxSuggestions)
-                          .map((suggestion) => (
-                            <li key={suggestion.id}>
-                              <span className="font-medium">
-                                "{suggestion.text}"
-                              </span>
-                            </li>
-                          ))}
+                        {testFollowUps.map((suggestion) => (
+                          <li key={suggestion.id}>
+                            <span className="font-medium">
+                              "{suggestion.text}"
+                            </span>{" "}
+                            <span className="text-muted-foreground">
+                              ({suggestion.category})
+                            </span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </div>
@@ -559,6 +628,28 @@ export const FollowUpManager = ({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="suggestion-category" className="text-right">
+                Category
+              </Label>
+              <Select
+                value={newSuggestion.category}
+                onValueChange={(value) =>
+                  setNewSuggestion({ ...newSuggestion, category: value })
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="support">Support</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="feedback">Feedback</SelectItem>
+                  <SelectItem value="escalation">Escalation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="suggestion-description" className="text-right">
                 Description
               </Label>
@@ -587,7 +678,7 @@ export const FollowUpManager = ({
             <Button
               type="button"
               onClick={handleSaveNewSuggestion}
-              disabled={!newSuggestion.text}
+              disabled={!newSuggestion.text || !newSuggestion.category}
             >
               Add Suggestion
             </Button>
@@ -623,6 +714,31 @@ export const FollowUpManager = ({
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-suggestion-category" className="text-right">
+                  Category
+                </Label>
+                <Select
+                  value={currentSuggestion.category}
+                  onValueChange={(value) =>
+                    setCurrentSuggestion({
+                      ...currentSuggestion,
+                      category: value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="support">Support</SelectItem>
+                    <SelectItem value="sales">Sales</SelectItem>
+                    <SelectItem value="feedback">Feedback</SelectItem>
+                    <SelectItem value="escalation">Escalation</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label
                   htmlFor="edit-suggestion-description"
                   className="text-right"
@@ -654,7 +770,7 @@ export const FollowUpManager = ({
             <Button
               type="button"
               onClick={handleSaveEditedSuggestion}
-              disabled={!currentSuggestion || !currentSuggestion.text}
+              disabled={!currentSuggestion || !currentSuggestion.text || !currentSuggestion.category}
             >
               Save Changes
             </Button>
