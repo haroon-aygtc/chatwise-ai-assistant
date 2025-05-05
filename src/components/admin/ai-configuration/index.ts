@@ -6,4 +6,4 @@ export { default as KnowledgeBaseManager } from "./KnowledgeBaseManager";
 export { RoutingRules } from "./RoutingRules";
 export { default as PromptTemplateManager } from "./prompt-templates/PromptTemplateManager";
 export { default as DataSourcesManager } from "./data-sources/DataSourcesManager";
-export { default as ResponseFormatterManager } from "./response-formats/ResponseFormatterManager";
+export { ResponseFormatterManager } from "./response-formats/ResponseFormatterManager";

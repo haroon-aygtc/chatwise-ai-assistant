@@ -1,118 +1,121 @@
 
-import { useState } from 'react';
-import { Permission } from '@/types/user';
+import React, { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { ChevronRight } from 'lucide-react';
+import { Permission } from '@/types';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
-interface PermissionGroupProps {
-  category: string;
+export interface PermissionGroupProps {
+  categoryId: string;
+  categoryName: string;
   permissions: Permission[];
   selectedPermissions: string[];
-  onTogglePermission: (permissionId: string, checked: boolean) => void;
-  disabled?: boolean;
+  onChange: (permissionIds: string[]) => void;
 }
 
 export function PermissionGroup({
-  category,
+  categoryId,
+  categoryName,
   permissions,
   selectedPermissions,
-  onTogglePermission,
-  disabled = false,
+  onChange,
 }: PermissionGroupProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  const allSelected = permissions.every((permission) =>
-    selectedPermissions.includes(permission.id)
-  );
-  
-  const someSelected = permissions.some((permission) =>
-    selectedPermissions.includes(permission.id)
-  ) && !allSelected;
+  const allChecked = permissions.every(p => selectedPermissions.includes(p.id));
+  const someChecked = !allChecked && permissions.some(p => selectedPermissions.includes(p.id));
 
-  const handleToggleAll = (checked: boolean) => {
-    permissions.forEach((permission) => {
-      if (selectedPermissions.includes(permission.id) !== checked) {
-        onTogglePermission(permission.id, checked);
-      }
-    });
+  const handleToggleCategory = (checked: boolean) => {
+    if (checked) {
+      // Add all permissions from this category
+      const permissionIds = permissions.map(p => p.id);
+      const newSelectedPermissions = [
+        ...selectedPermissions.filter(id => !permissionIds.includes(id)),
+        ...permissionIds,
+      ];
+      onChange(newSelectedPermissions);
+    } else {
+      // Remove all permissions from this category
+      const newSelectedPermissions = selectedPermissions.filter(
+        id => !permissions.map(p => p.id).includes(id)
+      );
+      onChange(newSelectedPermissions);
+    }
+  };
+
+  const handleTogglePermission = (permissionId: string, checked: boolean) => {
+    if (checked) {
+      onChange([...selectedPermissions, permissionId]);
+    } else {
+      onChange(selectedPermissions.filter(id => id !== permissionId));
+    }
   };
 
   return (
-    <div className="mb-4 border rounded-lg">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="flex items-center p-3 bg-muted/30 rounded-t-lg">
-          <CollapsibleTrigger asChild>
-            <button
-              className="p-1 rounded-md hover:bg-muted/50 mr-2"
-              aria-label={isOpen ? 'Collapse section' : 'Expand section'}
-            >
-              <ChevronRight
-                className={`h-4 w-4 transition-transform duration-200 ${
-                  isOpen ? 'transform rotate-90' : ''
-                }`}
-              />
-            </button>
-          </CollapsibleTrigger>
-
-          <div className="flex-1 flex items-center">
+    <div className="border rounded-md p-4 mb-4">
+      <div className="flex items-center space-x-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-gray-500 hover:text-gray-700"
+          aria-label={isExpanded ? "Collapse category" : "Expand category"}
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-5 w-5" />
+          ) : (
+            <ChevronRight className="h-5 w-5" />
+          )}
+        </button>
+        <div className="flex-1">
+          <div className="flex items-center space-x-2">
             <Checkbox
-              id={`select-all-${category}`}
-              checked={allSelected}
-              indeterminate={someSelected}
-              onCheckedChange={handleToggleAll}
-              disabled={disabled}
-              aria-label={`Select all ${category} permissions`}
-              className="mr-2 data-[state=indeterminate]:bg-primary"
+              id={`category-${categoryId}`}
+              checked={allChecked}
+              onCheckedChange={handleToggleCategory}
+              aria-label={`Toggle all permissions in ${categoryName}`}
+              className="data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground"
+              data-state={someChecked ? "indeterminate" : undefined}
             />
             <label
-              htmlFor={`select-all-${category}`}
-              className="text-sm font-medium flex-1 cursor-pointer"
+              htmlFor={`category-${categoryId}`}
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
-              {category}
+              {categoryName}
             </label>
-            <span className="text-xs text-muted-foreground">
-              {selectedPermissions.filter((id) =>
-                permissions.some((p) => p.id === id)
-              ).length}{' '}
-              / {permissions.length}
-            </span>
           </div>
         </div>
+      </div>
 
-        <CollapsibleContent>
-          <div className="p-3 pt-2 space-y-2">
-            {permissions.map((permission) => (
-              <div key={permission.id} className="flex items-start">
-                <Checkbox
-                  id={permission.id}
-                  checked={selectedPermissions.includes(permission.id)}
-                  onCheckedChange={(checked) =>
-                    onTogglePermission(permission.id, !!checked)
-                  }
-                  disabled={disabled}
-                  className="mt-0.5 mr-2"
-                />
-                <div className="flex-1">
-                  <label
-                    htmlFor={permission.id}
-                    className="text-sm font-medium cursor-pointer"
-                  >
-                    {permission.name}
-                  </label>
+      {isExpanded && (
+        <div className="pl-9 space-y-3">
+          {permissions.map(permission => (
+            <div key={permission.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={`permission-${permission.id}`}
+                checked={selectedPermissions.includes(permission.id)}
+                onCheckedChange={(checked) => 
+                  handleTogglePermission(permission.id, checked as boolean)
+                }
+                aria-label={`Toggle permission ${permission.displayName}`}
+              />
+              <div className="grid gap-1.5">
+                <label
+                  htmlFor={`permission-${permission.id}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  {permission.displayName}
+                </label>
+                {permission.description && (
                   <p className="text-xs text-muted-foreground">
                     {permission.description}
                   </p>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+export default PermissionGroup;
