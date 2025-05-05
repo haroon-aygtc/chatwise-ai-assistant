@@ -382,7 +382,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex justify-center items-center">
       {/* Left Column - Branding & Info */}
       <div className="hidden md:flex md:w-2/5 bg-gradient-to-br from-accent/90 to-primary/90 text-white p-10 flex-col justify-between">
         <div>
