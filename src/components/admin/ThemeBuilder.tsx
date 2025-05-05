@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Card,
@@ -13,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { useTheme } from "@/components/ui/theme-provider";
+import { useTheme } from "@/components/theme-provider";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
