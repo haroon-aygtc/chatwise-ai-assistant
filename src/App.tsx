@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import SessionExpirationModal from "@/components/auth/SessionExpirationModal";
 
 // Layout components
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -105,6 +106,7 @@ function App() {
             </Routes>
           </Router>
           <Toaster position="top-right" />
+          <SessionExpirationModal />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

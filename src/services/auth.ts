@@ -20,11 +20,10 @@ export const login = async (
   email: string,
   password: string
 ): Promise<LoginResponse> => {
-  return ApiService.post<LoginResponse>({
-    url: "/auth/login",
-    data: { email, password },
-    withAuth: false
-  });
+  return ApiService.post<LoginResponse>(
+    "/auth/login",
+    { email, password }
+  );
 };
 
 export const signup = async (
@@ -33,34 +32,32 @@ export const signup = async (
   password: string,
   passwordConfirmation: string
 ): Promise<SignupResponse> => {
-  return ApiService.post<SignupResponse>({
-    url: "/auth/register",
-    data: {
+  return ApiService.post<SignupResponse>(
+    "/auth/register",
+    {
       name,
       email,
       password,
       password_confirmation: passwordConfirmation,
-    },
-    withAuth: false
-  });
+    }
+  );
 };
 
 export const logout = async (): Promise<void> => {
-  await ApiService.post<void>({
-    url: "/auth/logout",
-    withAuth: true
-  });
+  await ApiService.post<void>(
+    "/auth/logout",
+    {}
+  );
   
   // Clear token from localStorage
   localStorage.removeItem("token");
 };
 
 export const forgotPassword = async (email: string): Promise<{ message: string }> => {
-  return ApiService.post<{ message: string }>({
-    url: "/auth/forgot-password",
-    data: { email },
-    withAuth: false
-  });
+  return ApiService.post<{ message: string }>(
+    "/auth/forgot-password",
+    { email }
+  );
 };
 
 export const resetPassword = async (
@@ -69,21 +66,17 @@ export const resetPassword = async (
   password: string,
   passwordConfirmation: string
 ): Promise<ResetPasswordResponse> => {
-  return ApiService.post<ResetPasswordResponse>({
-    url: "/auth/reset-password",
-    data: {
+  return ApiService.post<ResetPasswordResponse>(
+    "/auth/reset-password",
+    {
       token,
       email,
       password,
       password_confirmation: passwordConfirmation,
-    },
-    withAuth: false
-  });
+    }
+  );
 };
 
 export const checkAuth = async (): Promise<User> => {
-  return ApiService.get<User>({
-    url: "/auth/me",
-    withAuth: true
-  });
+  return ApiService.get<User>("/auth/me");
 };
