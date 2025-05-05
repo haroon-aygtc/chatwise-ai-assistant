@@ -2,11 +2,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, ArrowRight, Github } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
+import { FormField } from "@/components/ui/form-field";
+import { validateEmail, validateRequired } from "@/lib/validations";
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -15,21 +16,41 @@ interface LoginFormProps {
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const updateFormField = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate fields
+    const emailValidation = validateEmail(formData.email);
+    const passwordValidation = validateRequired(formData.password);
+    
+    if (!emailValidation.isValid || !passwordValidation.isValid) {
+      toast({
+        title: "Validation errors",
+        description: "Please correct the errors in the form.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
       // Simulate API login delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Demo login - in production, this would validate with your Laravel backend
-      if (email === "admin@example.com" && password === "password") {
+      // Demo login - in production, this would validate with your backend
+      if (formData.email === "admin@example.com" && formData.password === "password") {
         toast({
           title: "Login successful",
           description: "Welcome to ChatWise Admin Dashboard",
@@ -62,21 +83,18 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       </div>
       
       <form onSubmit={handleLogin} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-gray-300">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="pl-10 h-12 bg-[#131B2E] border-[#2A3349] focus:border-gray-500 text-white"
-            />
-          </div>
-        </div>
+        <FormField
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="name@example.com"
+          value={formData.email}
+          onChange={(value) => updateFormField("email", value)}
+          validate={() => validateEmail(formData.email)}
+          required
+          icon={<Mail className="h-4 w-4" />}
+          autoComplete="email"
+        />
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -85,18 +103,18 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               Forgot password?
             </Button>
           </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12 bg-[#131B2E] border-[#2A3349] focus:border-gray-500 text-white"
-              required
-            />
-          </div>
+          <FormField
+            id="password"
+            label=""
+            type="password"
+            placeholder="••••••••"
+            value={formData.password}
+            onChange={(value) => updateFormField("password", value)}
+            validate={() => validateRequired(formData.password)}
+            required
+            icon={<Lock className="h-4 w-4" />}
+            autoComplete="current-password"
+          />
         </div>
         
         <div className="flex items-center space-x-2">
