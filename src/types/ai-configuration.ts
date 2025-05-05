@@ -58,8 +58,8 @@ export interface FollowUpSuggestion {
   category: string;
   description?: string;
   order?: number;
-  triggerConditions?: string[];
   isActive?: boolean;
+  triggerConditions?: string[];
   createdAt?: string;
   updatedAt?: string;
 }

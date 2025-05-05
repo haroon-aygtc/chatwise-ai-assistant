@@ -61,7 +61,7 @@ const FollowUpManager = ({
     description: "",
     category: "general",
     order: 0,
-    is_active: true,
+    isActive: true,
   });
   const [enableFollowUps, setEnableFollowUps] = useState(true);
   const [maxSuggestions, setMaxSuggestions] = useState(3);
@@ -130,7 +130,7 @@ const FollowUpManager = ({
       description: "",
       category: "general",
       order: suggestions.length + 1,
-      is_active: true,
+      isActive: true,
     });
     setShowAddDialog(true);
   };

@@ -1,122 +1,101 @@
 
-import axios from "axios";
-import { AIModel, RoutingRule } from "@/types/ai-configuration";
-import { API_BASE_URL } from "@/services/api/config";
-import { ApiResponse } from "@/services/api/types";
+import ApiService from '../api/base';
+import { AIModel, RoutingRule } from '@/types/ai-configuration';
 
-/**
- * Get all AI models
- */
-export const getModels = async (): Promise<AIModel[]> => {
+export const getAllModels = async (): Promise<AIModel[]> => {
   try {
-    const response = await axios.get<ApiResponse<AIModel[]>>(`${API_BASE_URL}/ai/models`);
-    return response.data.data;
+    const response = await ApiService.get<{ data: AIModel[] }>('/ai/models');
+    return response.data;
   } catch (error) {
-    console.error("Error fetching AI models:", error);
-    return [];
+    console.error('Error fetching AI models:', error);
+    throw error;
   }
 };
 
-/**
- * Get a single AI model by ID
- */
-export const getModel = async (id: string): Promise<AIModel | null> => {
+export const getModelById = async (id: string): Promise<AIModel> => {
   try {
-    const response = await axios.get<ApiResponse<AIModel>>(`${API_BASE_URL}/ai/models/${id}`);
-    return response.data.data;
+    const response = await ApiService.get<{ data: AIModel }>(`/ai/models/${id}`);
+    return response.data;
   } catch (error) {
     console.error(`Error fetching AI model ${id}:`, error);
-    return null;
+    throw error;
   }
 };
 
-/**
- * Create a new AI model
- */
-export const createModel = async (model: Omit<AIModel, "id">): Promise<AIModel | null> => {
+export const createModel = async (model: Omit<AIModel, 'id'>): Promise<AIModel> => {
   try {
-    const response = await axios.post<ApiResponse<AIModel>>(`${API_BASE_URL}/ai/models`, model);
-    return response.data.data;
+    const response = await ApiService.post<{ data: AIModel }>('/ai/models', model);
+    return response.data;
   } catch (error) {
-    console.error("Error creating AI model:", error);
-    return null;
+    console.error('Error creating AI model:', error);
+    throw error;
   }
 };
 
-/**
- * Update an existing AI model
- */
-export const updateModel = async (id: string, model: Partial<AIModel>): Promise<AIModel | null> => {
+export const updateModel = async (id: string, model: Partial<AIModel>): Promise<AIModel> => {
   try {
-    const response = await axios.put<ApiResponse<AIModel>>(`${API_BASE_URL}/ai/models/${id}`, model);
-    return response.data.data;
+    const response = await ApiService.put<{ data: AIModel }>(`/ai/models/${id}`, model);
+    return response.data;
   } catch (error) {
     console.error(`Error updating AI model ${id}:`, error);
-    return null;
+    throw error;
   }
 };
 
-/**
- * Delete an AI model
- */
-export const deleteModel = async (id: string): Promise<boolean> => {
+export const deleteModel = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${API_BASE_URL}/ai/models/${id}`);
-    return true;
+    await ApiService.delete<{ success: boolean }>(`/ai/models/${id}`);
   } catch (error) {
     console.error(`Error deleting AI model ${id}:`, error);
-    return false;
+    throw error;
   }
 };
 
-/**
- * Get all routing rules
- */
 export const getRoutingRules = async (): Promise<RoutingRule[]> => {
   try {
-    const response = await axios.get<ApiResponse<RoutingRule[]>>(`${API_BASE_URL}/ai/routing-rules`);
-    return response.data.data;
+    const response = await ApiService.get<{ data: RoutingRule[] }>('/ai/routing-rules');
+    return response.data;
   } catch (error) {
-    console.error("Error fetching routing rules:", error);
-    return [];
+    console.error('Error fetching routing rules:', error);
+    throw error;
   }
 };
 
-/**
- * Create a new routing rule
- */
-export const createRoutingRule = async (rule: Omit<RoutingRule, "id">): Promise<RoutingRule | null> => {
+export const createRoutingRule = async (rule: Omit<RoutingRule, 'id'>): Promise<RoutingRule> => {
   try {
-    const response = await axios.post<ApiResponse<RoutingRule>>(`${API_BASE_URL}/ai/routing-rules`, rule);
-    return response.data.data;
+    const response = await ApiService.post<{ data: RoutingRule }>('/ai/routing-rules', rule);
+    return response.data;
   } catch (error) {
-    console.error("Error creating routing rule:", error);
-    return null;
+    console.error('Error creating routing rule:', error);
+    throw error;
   }
 };
 
-/**
- * Update an existing routing rule
- */
-export const updateRoutingRule = async (id: string, rule: Partial<RoutingRule>): Promise<RoutingRule | null> => {
+export const updateRoutingRule = async (id: string, rule: Partial<RoutingRule>): Promise<RoutingRule> => {
   try {
-    const response = await axios.put<ApiResponse<RoutingRule>>(`${API_BASE_URL}/ai/routing-rules/${id}`, rule);
-    return response.data.data;
+    const response = await ApiService.put<{ data: RoutingRule }>(`/ai/routing-rules/${id}`, rule);
+    return response.data;
   } catch (error) {
     console.error(`Error updating routing rule ${id}:`, error);
-    return null;
+    throw error;
   }
 };
 
-/**
- * Delete a routing rule
- */
-export const deleteRoutingRule = async (id: string): Promise<boolean> => {
+export const deleteRoutingRule = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${API_BASE_URL}/ai/routing-rules/${id}`);
-    return true;
+    await ApiService.delete<{ success: boolean }>(`/ai/routing-rules/${id}`);
   } catch (error) {
     console.error(`Error deleting routing rule ${id}:`, error);
-    return false;
+    throw error;
+  }
+};
+
+export const testModel = async (id: string, prompt: string): Promise<string> => {
+  try {
+    const response = await ApiService.post<{ data: { response: string } }>(`/ai/models/${id}/test`, { prompt });
+    return response.data.response;
+  } catch (error) {
+    console.error(`Error testing AI model ${id}:`, error);
+    throw error;
   }
 };
