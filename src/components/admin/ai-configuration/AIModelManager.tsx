@@ -10,12 +10,89 @@ import {
 import { Button } from "@/components/ui/button";
 import { Bot, Save, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAIModels } from "@/hooks/ai-configuration/useAIModels";
-import { AIModel } from "@/types/ai-configuration";
+
+// MOCK COMPONENTS – Replace these with real components if available
 import { ModelCard } from "./ModelCard";
 import { RoutingRules } from "./RoutingRules";
 import { AddModelDialog } from "./AddModelDialog";
 
+// ✅ TYPE DEFINITIONS
+export interface AIModel {
+  id: string;
+  name: string;
+  description: string;
+  provider: string;
+  temperature: number;
+}
+
+export interface RoutingRule {
+  id: string;
+  modelId: string;
+  condition: string;
+}
+
+// ✅ MOCK HOOK: Simulates fetching AI models & routing rules
+function useAIModels() {
+  const [models, setModels] = useState<AIModel[]>([
+    {
+      id: "model-1",
+      name: "ChatGPT-4",
+      description: "OpenAI's GPT-4 Model",
+      provider: "OpenAI",
+      temperature: 0.7,
+    },
+    {
+      id: "model-2",
+      name: "Gemini-Pro",
+      description: "Google's Gemini Pro Model",
+      provider: "Google",
+      temperature: 0.6,
+    },
+  ]);
+
+  const [routingRules, setRoutingRules] = useState<RoutingRule[]>([
+    {
+      id: "rule-1",
+      modelId: "model-1",
+      condition: "category === 'legal'",
+    },
+  ]);
+
+  return {
+    models,
+    routingRules,
+    isLoading: false,
+    isSaving: false,
+    error: null,
+    updateModel: (updatedModel: AIModel) => {
+      setModels((prev) =>
+        prev.map((m) => (m.id === updatedModel.id ? updatedModel : m))
+      );
+    },
+    updateRoutingRules: setRoutingRules,
+    addRoutingRule: (rule: Omit<RoutingRule, "id">) =>
+      setRoutingRules((prev) => [
+        ...prev,
+        {
+          id: `rule-${prev.length + 1}`,
+          modelId: models[0]?.id || "",
+          condition: "category === 'general'",
+        },
+      ]),
+    deleteRoutingRule: (id: string) =>
+      setRoutingRules((prev) => prev.filter((r) => r.id !== id)),
+    saveAllChanges: async () => {
+      console.log("Saving models & rules...");
+      return true;
+    },
+    refreshData: () => {
+      console.log("Refreshing data...");
+    },
+    hasChanges: true,
+  };
+}
+
+// ✅ MAIN COMPONENT
 export interface AIModelManagerProps {
   onSave?: (models: AIModel[]) => void;
   standalone?: boolean;
@@ -55,6 +132,7 @@ export const AIModelManager = ({
 
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       {standalone && (
         <div className="flex items-center justify-between">
           <div>
@@ -93,6 +171,7 @@ export const AIModelManager = ({
         </div>
       )}
 
+      {/* ERROR */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -102,9 +181,9 @@ export const AIModelManager = ({
         </Alert>
       )}
 
+      {/* MODEL CARDS */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
-          // Loading placeholders
           Array(3)
             .fill(0)
             .map((_, i) => (
@@ -136,17 +215,15 @@ export const AIModelManager = ({
               </Card>
             ))
         ) : models && models.length > 0 ? (
-          // Actual model cards
           models.map((model) => (
             <ModelCard
               key={model.id}
               model={model}
-              onUpdate={updateModel}
+              onUpdate={async (id, updates) => updateModel(updates)}
               isUpdating={isSaving}
             />
           ))
         ) : (
-          // Empty state
           <Card className="col-span-full">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Bot className="h-12 w-12 text-muted-foreground mb-4" />
@@ -164,16 +241,13 @@ export const AIModelManager = ({
           </Card>
         )}
 
-        {/* Add Model Card */}
+        {/* ADD MODEL CARD */}
         {models && models.length > 0 && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center">
-                  <Bot className="mr-2 h-5 w-5 text-muted-foreground" /> Add
-                  Model
-                </CardTitle>
-              </div>
+              <CardTitle className="flex items-center">
+                <Bot className="mr-2 h-5 w-5 text-muted-foreground" /> Add Model
+              </CardTitle>
               <CardDescription>Configure a new AI model</CardDescription>
             </CardHeader>
             <CardContent>
@@ -197,18 +271,18 @@ export const AIModelManager = ({
         )}
       </div>
 
-      {/* Routing Rules */}
+      {/* ROUTING RULES */}
       {models && models.length > 0 && (
         <RoutingRules
           models={models}
           rules={routingRules}
-          onAddRule={addRoutingRule}
-          onUpdateRules={updateRoutingRules}
-          onDeleteRule={deleteRoutingRule}
+          onAddRule={(rule) => Promise.resolve(addRoutingRule(rule))}
+          onUpdateRules={(rules) => Promise.resolve(updateRoutingRules(rules))}
+          onDeleteRule={(rule) => Promise.resolve(deleteRoutingRule(rule))}
         />
       )}
 
-      {/* Add Model Dialog */}
+      {/* ADD MODEL DIALOG */}
       <AddModelDialog
         open={showAddModelDialog}
         onOpenChange={setShowAddModelDialog}

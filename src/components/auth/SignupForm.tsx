@@ -3,9 +3,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, User, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { FormField } from "@/components/ui/form-field";
 import { SimplePhoneInput } from "@/components/ui/simple-phone-input";
+import useSignupValidation, { SignupFormData } from "@/hooks/auth/useSignupValidation";
 import {
   validateRequired,
   validateEmail,

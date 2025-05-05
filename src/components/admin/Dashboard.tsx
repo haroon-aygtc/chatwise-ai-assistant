@@ -65,7 +65,7 @@ const Dashboard = () => {
     { name: "Sales", value: 10 },
   ];
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+  const COLORS = ["#0088FE", "#E6A817", "#FFBB28", "#FF8042"];
 
   const [dateRange, setDateRange] = useState("7d");
 
@@ -159,7 +159,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="text-2xl font-bold">1,234</div>
                 <p className="text-xs text-muted-foreground flex items-center">
-                  <span className="text-green-500 flex items-center mr-1">
+                  <span style={{ color: "#E6A817" }} className="flex items-center mr-1">
                     +12% <ArrowUpRight className="h-3 w-3" />
                   </span>
                   from last month
@@ -176,7 +176,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="text-2xl font-bold">5,678</div>
                 <p className="text-xs text-muted-foreground flex items-center">
-                  <span className="text-green-500 flex items-center mr-1">
+                  <span style={{ color: "#E6A817" }} className="flex items-center mr-1">
                     +23% <ArrowUpRight className="h-3 w-3" />
                   </span>
                   from last month
@@ -193,7 +193,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="text-2xl font-bold">24,567</div>
                 <p className="text-xs text-muted-foreground flex items-center">
-                  <span className="text-green-500 flex items-center mr-1">
+                  <span style={{ color: "#E6A817" }} className="flex items-center mr-1">
                     +18% <ArrowUpRight className="h-3 w-3" />
                   </span>
                   from last month
@@ -210,7 +210,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="text-2xl font-bold">1.2s</div>
                 <p className="text-xs text-muted-foreground flex items-center">
-                  <span className="text-green-500 flex items-center mr-1">
+                  <span style={{ color: "#E6A817" }} className="flex items-center mr-1">
                     -0.3s <ArrowUpRight className="h-3 w-3" />
                   </span>
                   from last month
@@ -304,8 +304,8 @@ const Dashboard = () => {
                       type="monotone"
                       dataKey="new"
                       name="New Users"
-                      stroke="hsl(var(--secondary))"
-                      fill="hsl(var(--secondary) / 0.2)"
+                      stroke="#E6A817"
+                      fill="rgba(230, 168, 23, 0.2)"
                       activeDot={{ r: 6 }}
                       animationDuration={1500}
                     />

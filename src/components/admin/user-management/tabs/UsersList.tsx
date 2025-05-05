@@ -46,14 +46,137 @@ import {
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-import { getRoleBadgeVariant } from "@/utils/helpers";
-import StatusIcon from "@/components/admin/user-management/components/StatusIcon";
-import { EditUserDialog } from "@/components/admin/user-management/dialogs/EditUserDialog";
-import { DeleteUserDialog } from "@/components/admin/user-management/dialogs/DeleteUserDialog";
-import { User } from "@/types";
-import { useUsers } from "@/hooks/user-management/useUsers";
-import { useRoles } from "@/hooks/access-control/useRoles";
-import { SEARCH_DEBOUNCE_TIME, USER_STATUSES_ARRAY } from "@/constants";
+// Mock data for users
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastActive: string;
+  avatar?: string;
+}
+
+// Mock data for roles
+interface Role {
+  id: string;
+  name: string;
+}
+
+// Mock status component
+const StatusIcon = ({ status }: { status: string }) => {
+  const getStatusColor = () => {
+    switch (status) {
+      case "active":
+        return "bg-green-500";
+      case "inactive":
+        return "bg-gray-400";
+      case "pending":
+        return "bg-amber-500";
+      case "suspended":
+        return "bg-red-500";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
+  return (
+    <div className="flex items-center">
+      <div className={`h-2 w-2 rounded-full ${getStatusColor()} mr-2`}></div>
+      <span className="capitalize">{status}</span>
+    </div>
+  );
+};
+
+// Mock dialogs
+const EditUserDialog = ({ user, open, onOpenChange }: { user: User, open: boolean, onOpenChange: (open: boolean) => void }) => {
+  return null; // Mock implementation
+};
+
+const DeleteUserDialog = ({ user, open, onOpenChange }: { user: User, open: boolean, onOpenChange: (open: boolean) => void }) => {
+  return null; // Mock implementation
+};
+
+// Helper function for badge variants
+const getRoleBadgeVariant = (role: string): "default" | "secondary" | "outline" | "destructive" => {
+  switch (role.toLowerCase()) {
+    case "admin":
+      return "destructive";
+    case "manager":
+      return "default";
+    case "editor":
+      return "secondary";
+    default:
+      return "outline";
+  }
+};
+
+// Mock constants
+const SEARCH_DEBOUNCE_TIME = 300;
+const USER_STATUSES_ARRAY = [
+  { value: "all", label: "All Statuses" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "pending", label: "Pending" },
+  { value: "suspended", label: "Suspended" }
+];
+
+// Mock users data
+const mockUsers: User[] = [
+  {
+    id: "1",
+    name: "John Doe",
+    email: "john.doe@example.com",
+    role: "admin",
+    status: "active",
+    lastActive: "2023-06-15T10:30:00Z",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=john"
+  },
+  {
+    id: "2",
+    name: "Jane Smith",
+    email: "jane.smith@example.com",
+    role: "manager",
+    status: "active",
+    lastActive: "2023-06-14T14:20:00Z",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane"
+  },
+  {
+    id: "3",
+    name: "Robert Johnson",
+    email: "robert.johnson@example.com",
+    role: "editor",
+    status: "inactive",
+    lastActive: "2023-05-28T09:15:00Z",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=robert"
+  },
+  {
+    id: "4",
+    name: "Emily Davis",
+    email: "emily.davis@example.com",
+    role: "user",
+    status: "pending",
+    lastActive: "2023-06-10T16:45:00Z",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=emily"
+  },
+  {
+    id: "5",
+    name: "Michael Wilson",
+    email: "michael.wilson@example.com",
+    role: "user",
+    status: "suspended",
+    lastActive: "2023-06-01T11:20:00Z",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=michael"
+  }
+];
+
+// Mock roles data
+const mockRoles: Role[] = [
+  { id: "1", name: "admin" },
+  { id: "2", name: "manager" },
+  { id: "3", name: "editor" },
+  { id: "4", name: "user" }
+];
 
 // UsersList component with proper role and status filtering
 const UsersList = () => {
@@ -63,54 +186,50 @@ const UsersList = () => {
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
   const [showDeleteUserDialog, setShowDeleteUserDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null,
-  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>(mockUsers);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Get users data
-  const {
-    users,
-    totalUsers,
-    currentPage,
-    isLoading,
-    error,
-    fetchUsers,
-    updateQueryParams,
-  } = useUsers();
-
-  // Get roles data
-  const { roles, isLoading: isLoadingRoles } = useRoles();
-
-  // Handle search query changes with debounce
+  // Filter users based on search, role, and status
   useEffect(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
+    setIsLoading(true);
+    
+    // Simulate API delay
     const timeout = setTimeout(() => {
-      updateQueryParams({ search: searchQuery || undefined });
-    }, SEARCH_DEBOUNCE_TIME);
-
-    setSearchTimeout(timeout);
-
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
-  }, [searchQuery, updateQueryParams]);
-
-  // Handle role filter changes
-  useEffect(() => {
-    updateQueryParams({
-      role: selectedRole !== "all" ? selectedRole : undefined,
-    });
-  }, [selectedRole, updateQueryParams]);
-
-  // Handle status filter changes
-  useEffect(() => {
-    updateQueryParams({
-      status: selectedStatus !== "all" ? selectedStatus : undefined,
-    });
-  }, [selectedStatus, updateQueryParams]);
+      try {
+        let filtered = [...mockUsers];
+        
+        // Apply search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          filtered = filtered.filter(
+            user => 
+              user.name.toLowerCase().includes(query) || 
+              user.email.toLowerCase().includes(query)
+          );
+        }
+        
+        // Apply role filter
+        if (selectedRole !== "all") {
+          filtered = filtered.filter(user => user.role === selectedRole);
+        }
+        
+        // Apply status filter
+        if (selectedStatus !== "all") {
+          filtered = filtered.filter(user => user.status === selectedStatus);
+        }
+        
+        setFilteredUsers(filtered);
+        setIsLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("An error occurred"));
+        setIsLoading(false);
+      }
+    }, 500); // Simulate network delay
+    
+    return () => clearTimeout(timeout);
+  }, [searchQuery, selectedRole, selectedStatus]);
 
   const openEditUserDialog = (user: User) => {
     setSelectedUser(user);
@@ -124,7 +243,13 @@ const UsersList = () => {
 
   // Handle manual refresh
   const handleRefresh = () => {
-    fetchUsers();
+    setIsLoading(true);
+    
+    // Simulate refresh
+    setTimeout(() => {
+      setFilteredUsers([...mockUsers]);
+      setIsLoading(false);
+    }, 800);
   };
 
   return (
@@ -148,12 +273,11 @@ const UsersList = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  {roles &&
-                    roles.map((role) => (
-                      <SelectItem key={role.id} value={role.name}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
+                  {mockRoles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -224,8 +348,8 @@ const UsersList = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : users && users.length > 0 ? (
-                users.map((user) => (
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
@@ -304,16 +428,14 @@ const UsersList = () => {
         <CardFooter>
           <div className="flex items-center justify-between w-full">
             <p className="text-sm text-muted-foreground">
-              Showing {users?.length || 0} of {totalUsers} users
+              Showing {filteredUsers.length} of {mockUsers.length} users
             </p>
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isLoading || currentPage <= 1}
-                onClick={() =>
-                  updateQueryParams({ page: Math.max(1, currentPage - 1) })
-                }
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               >
                 Previous
               </Button>
@@ -322,9 +444,9 @@ const UsersList = () => {
                 size="sm"
                 disabled={
                   isLoading ||
-                  (totalUsers > 0 && currentPage * 10 >= totalUsers)
+                  (mockUsers.length > 0 && currentPage * 10 >= mockUsers.length)
                 }
-                onClick={() => updateQueryParams({ page: currentPage + 1 })}
+                onClick={() => setCurrentPage(currentPage + 1)}
               >
                 Next
               </Button>
