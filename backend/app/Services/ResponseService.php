@@ -4,91 +4,53 @@
 namespace App\Services;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\MessageBag;
 
 class ResponseService
 {
     /**
-     * Return a success JSON response.
+     * Return success response
      *
-     * @param  array|string  $data
-     * @param  string  $message
-     * @param  int  $statusCode
-     * @return \Illuminate\Http\JsonResponse
+     * @param mixed $data
+     * @param string|null $message
+     * @param int $statusCode
+     * @return JsonResponse
      */
-    public static function success($data = null, string $message = 'Success', int $statusCode = 200): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $data,
-        ], $statusCode);
-    }
-
-    /**
-     * Return an error JSON response.
-     *
-     * @param  string  $message
-     * @param  int  $statusCode
-     * @param  array|null  $errors
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public static function error(string $message = 'Error', int $statusCode = 400, $errors = null): JsonResponse
+    public static function success($data = null, ?string $message = null, int $statusCode = 200): JsonResponse
     {
         $response = [
-            'success' => false,
-            'message' => $message,
+            'success' => true,
         ];
 
-        if (!is_null($errors)) {
-            $response['errors'] = $errors instanceof MessageBag ? $errors->toArray() : $errors;
+        if ($data !== null) {
+            $response['data'] = $data;
+        }
+
+        if ($message) {
+            $response['message'] = $message;
         }
 
         return response()->json($response, $statusCode);
     }
 
     /**
-     * Return a not found JSON response.
+     * Return error response
      *
-     * @param  string  $message
-     * @return \Illuminate\Http\JsonResponse
+     * @param string $message
+     * @param array|null $errors
+     * @param int $statusCode
+     * @return JsonResponse
      */
-    public static function notFound(string $message = 'Resource not found'): JsonResponse
+    public static function error(string $message, ?array $errors = null, int $statusCode = 400): JsonResponse
     {
-        return self::error($message, 404);
-    }
+        $response = [
+            'success' => false,
+            'message' => $message,
+        ];
 
-    /**
-     * Return a forbidden JSON response.
-     *
-     * @param  string  $message
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public static function forbidden(string $message = 'Forbidden'): JsonResponse
-    {
-        return self::error($message, 403);
-    }
+        if ($errors !== null) {
+            $response['errors'] = $errors;
+        }
 
-    /**
-     * Return an unauthorized JSON response.
-     *
-     * @param  string  $message
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public static function unauthorized(string $message = 'Unauthorized'): JsonResponse
-    {
-        return self::error($message, 401);
-    }
-
-    /**
-     * Return a validation error JSON response.
-     *
-     * @param  \Illuminate\Support\MessageBag|array  $errors
-     * @param  string  $message
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public static function validationError($errors, string $message = 'Validation failed'): JsonResponse
-    {
-        return self::error($message, 422, $errors);
+        return response()->json($response, $statusCode);
     }
 }

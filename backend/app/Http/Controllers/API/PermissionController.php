@@ -4,11 +4,23 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Permission;
 
 class PermissionController extends Controller
 {
+    protected $permissionService;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @param PermissionService $permissionService
+     */
+    public function __construct(PermissionService $permissionService)
+    {
+        $this->permissionService = $permissionService;
+    }
+
     /**
      * Display a listing of all permissions.
      *
@@ -16,7 +28,7 @@ class PermissionController extends Controller
      */
     public function index()
     {
-        $permissions = Permission::all();
+        $permissions = $this->permissionService->getAllPermissions();
         
         return response()->json($permissions);
     }
@@ -28,24 +40,7 @@ class PermissionController extends Controller
      */
     public function getByCategory()
     {
-        $permissions = Permission::all();
-        
-        // Group permissions by category
-        $permissionsByCategory = $permissions->groupBy(function ($permission) {
-            // Extract category from permission name
-            // Format: 'create users' -> category is 'users'
-            // Format: 'view dashboard' -> category is 'dashboard'
-            $parts = explode(' ', $permission->name);
-            if (count($parts) > 1) {
-                return ucfirst($parts[1]); // Get second part and capitalize
-            }
-            return 'General';
-        })->map(function ($permissions, $category) {
-            return [
-                'category' => $category,
-                'permissions' => $permissions->values(),
-            ];
-        })->values();
+        $permissionsByCategory = $this->permissionService->getPermissionsByCategory();
         
         return response()->json($permissionsByCategory);
     }
