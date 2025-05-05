@@ -1,99 +1,68 @@
-
-import { tokenService } from './tokenService';
-
 /**
- * Service for managing user session
+ * Service for managing authentication tokens
  */
-class SessionService {
-  private refreshCallbacks: (() => Promise<void>)[] = [];
-  private sessionCheckInterval: number | null = null;
-  private expirationWarningThreshold = 5 * 60; // 5 minutes in seconds
-
+const TokenService = {
   /**
-   * Register a callback to be called when session needs refreshing
-   * @param callback Function to call when session needs refreshing
+   * Store the authentication token
    */
-  registerRefreshCallback(callback: () => Promise<void>): void {
-    this.refreshCallbacks.push(callback);
-  }
-
-  /**
-   * Start monitoring the session for expiration
-   * @param intervalSeconds How often to check session status (in seconds)
-   */
-  startSessionMonitor(intervalSeconds: number = 60): void {
-    if (this.sessionCheckInterval) {
-      this.stopSessionMonitor();
+  setToken: (token: string, rememberMe: boolean = false) => {
+    if (rememberMe) {
+      localStorage.setItem('auth_token', token);
+    } else {
+      sessionStorage.setItem('auth_token', token);
     }
-
-    this.sessionCheckInterval = window.setInterval(() => {
-      this.checkSession();
-    }, intervalSeconds * 1000);
-
-    // Initial check
-    this.checkSession();
-  }
+  },
 
   /**
-   * Stop monitoring the session
+   * Get the stored authentication token
    */
-  stopSessionMonitor(): void {
-    if (this.sessionCheckInterval) {
-      clearInterval(this.sessionCheckInterval);
-      this.sessionCheckInterval = null;
-    }
-  }
+  getToken: (): string | null => {
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  },
 
   /**
-   * Check the current session status
-   * @returns Information about session status
+   * Clear the stored authentication token
    */
-  checkSession(): { isValid: boolean; timeRemaining: number | null; isExpiringSoon: boolean } {
-    const token = tokenService.getToken();
-    if (!token) {
-      return { isValid: false, timeRemaining: null, isExpiringSoon: false };
-    }
-
-    // Decode token to get expiration
-    const decoded = tokenService.decodeToken(token);
-    if (!decoded || !decoded.exp) {
-      return { isValid: true, timeRemaining: null, isExpiringSoon: false };
-    }
-
-    // Calculate time remaining
-    const currentTime = Math.floor(Date.now() / 1000);
-    const timeRemaining = decoded.exp - currentTime;
-    const isExpiringSoon = timeRemaining > 0 && timeRemaining <= this.expirationWarningThreshold;
-
-    return {
-      isValid: timeRemaining > 0,
-      timeRemaining,
-      isExpiringSoon
-    };
-  }
+  clearToken: () => {
+    localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('auth_token');
+  },
 
   /**
-   * Attempt to refresh the session
-   * @returns Whether the refresh was successful
+   * Check if a token exists and is not expired
    */
-  async refreshSession(): Promise<boolean> {
+  validateToken: (): boolean => {
+    const token = TokenService.getToken();
+    if (!token) return false;
+    
     try {
-      // Call all registered refresh callbacks
-      await Promise.all(this.refreshCallbacks.map(callback => callback()));
-      return true;
+      // Simple check if token exists and has the expected format
+      // In a real app, you would also check the expiration
+      return token.split('.').length === 3;
     } catch (error) {
-      console.error('Failed to refresh session:', error);
       return false;
     }
-  }
+  },
 
   /**
-   * Set the threshold for showing expiration warnings
-   * @param minutes Minutes before expiration to show warning
+   * Decode the JWT token to get user information
    */
-  setExpirationWarningThreshold(minutes: number): void {
-    this.expirationWarningThreshold = minutes * 60;
+  decodeToken: (token: string) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
   }
-}
+};
 
-export const sessionService = new SessionService();
+export default TokenService;

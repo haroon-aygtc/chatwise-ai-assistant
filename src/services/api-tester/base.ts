@@ -16,7 +16,7 @@ import {
 } from "./config";
 import { apiCache } from "./cache";
 import { getApiUrl, getEndpointDefinition } from "./registry";
-import { tokenService } from "../auth/tokenService";
+import { tokenService as TokenService } from '@/modules/auth';
 
 export class ApiError extends Error {
   status: number;
@@ -154,7 +154,7 @@ export class BaseApiService {
     // Ensure CSRF token is initialized for POST requests
     if (CSRF_ENABLED) {
       try {
-        await tokenService.initCsrfToken();
+        await TokenService.initCsrfToken();
       } catch (error) {
         console.warn(
           "Failed to initialize CSRF token before POST request:",
@@ -178,7 +178,7 @@ export class BaseApiService {
     // Ensure CSRF token is initialized for PUT requests
     if (CSRF_ENABLED) {
       try {
-        await tokenService.initCsrfToken();
+        await TokenService.initCsrfToken();
       } catch (error) {
         console.warn(
           "Failed to initialize CSRF token before PUT request:",
@@ -202,7 +202,7 @@ export class BaseApiService {
     // Ensure CSRF token is initialized for PATCH requests
     if (CSRF_ENABLED) {
       try {
-        await tokenService.initCsrfToken();
+        await TokenService.initCsrfToken();
       } catch (error) {
         console.warn(
           "Failed to initialize CSRF token before PATCH request:",
@@ -226,7 +226,7 @@ export class BaseApiService {
     // Ensure CSRF token is initialized for DELETE requests
     if (CSRF_ENABLED) {
       try {
-        await tokenService.initCsrfToken();
+        await TokenService.initCsrfToken();
       } catch (error) {
         console.warn(
           "Failed to initialize CSRF token before DELETE request:",
@@ -385,7 +385,7 @@ export class BaseApiService {
     // Validate token for authenticated endpoints
     if (requiresAuth && !isPublicEndpoint) {
       // Get the token
-      let token = tokenService.getToken();
+      let token = TokenService.getToken();
 
       // If no token exists for an authenticated endpoint, throw an error
       // unless we're in development mode
@@ -404,7 +404,7 @@ export class BaseApiService {
       if (
         token &&
         TOKEN_AUTO_REFRESH &&
-        tokenService.isTokenExpired(TOKEN_REFRESH_THRESHOLD)
+        TokenService.isTokenExpired(TOKEN_REFRESH_THRESHOLD)
       ) {
         try {
           console.log(
@@ -421,7 +421,7 @@ export class BaseApiService {
           } else {
             console.log("Using refreshed token for request");
             // Get the new token after refresh
-            token = tokenService.getToken() || token;
+            token = TokenService.getToken() || token;
           }
         } catch (refreshError) {
           console.error("Error during token refresh:", refreshError);
@@ -429,10 +429,10 @@ export class BaseApiService {
       }
 
       // Check if token is expired (after refresh attempt)
-      if (token && tokenService.isTokenExpired()) {
+      if (token && TokenService.isTokenExpired()) {
         console.warn(`Token expired or will expire soon for request to ${url}`);
         // Clear the invalid token
-        tokenService.clearToken();
+        TokenService.clearToken();
 
         // Redirect to login page if not already there
         if (window.location.pathname !== "/login") {
@@ -454,7 +454,7 @@ export class BaseApiService {
 
     // Add CSRF token to headers for non-GET requests if enabled
     if (CSRF_ENABLED && options.method !== "GET") {
-      const csrfToken = tokenService.getCsrfToken();
+      const csrfToken = TokenService.getCsrfToken();
       if (csrfToken) {
         options.headers = {
           ...options.headers,
@@ -568,7 +568,7 @@ export class BaseApiService {
             "CSRF token mismatch detected, attempting to refresh token",
           );
           // Try to refresh the CSRF token
-          await tokenService.initCsrfToken();
+          await TokenService.initCsrfToken();
 
           // If we haven't exceeded retry count, retry the request with the new token
           if (retryCount < MAX_RETRIES) {
@@ -682,7 +682,7 @@ apiService.addErrorInterceptor(async (error) => {
     // Only redirect if it's been more than 3 seconds since the last redirect
     if (currentTime - lastRedirectTime > 3000) {
       // Clear the token
-      tokenService.clearToken();
+      TokenService.clearToken();
 
       // Redirect to login page if not already there
       if (window.location.pathname !== "/login") {
