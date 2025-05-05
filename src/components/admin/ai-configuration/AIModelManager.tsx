@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Card,
@@ -29,6 +28,8 @@ function useAIModels() {
       description: "OpenAI's GPT-4 Model",
       provider: "OpenAI",
       version: "4.0",
+      maxTokens: 1000,
+      temperature: 0.7,
       isActive: true,
       configuration: {
         temperature: 0.7,
@@ -44,6 +45,8 @@ function useAIModels() {
       description: "Google's Gemini Pro Model",
       provider: "Google",
       version: "Pro",
+      maxTokens: 1000,
+      temperature: 0.6,
       isActive: true,
       configuration: {
         temperature: 0.6,
@@ -82,6 +85,7 @@ function useAIModels() {
       setModels((prev) =>
         prev.map((m) => (m.id === updatedModel.id ? { ...m, ...updatedModel } : m))
       );
+      return Promise.resolve(true);
     },
     updateRoutingRules: setRoutingRules,
     addRoutingRule: (rule: Omit<RoutingRule, "id">) =>

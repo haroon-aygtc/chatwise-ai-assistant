@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Dialog,
@@ -52,6 +51,8 @@ export const AddModelDialog = ({
       description,
       provider,
       version,
+      maxTokens: maxTokens,
+      temperature: temperature,
       isActive: true,
       apiKey: apiKey || undefined,
       configuration: {
