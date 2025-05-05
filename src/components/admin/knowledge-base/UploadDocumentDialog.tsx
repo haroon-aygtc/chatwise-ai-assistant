@@ -1,19 +1,19 @@
 
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useState, ChangeEvent } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { DocumentCategory } from "@/types/knowledge-base";
-import { Upload, File, X } from "lucide-react";
+import { FileUp, X } from "lucide-react";
+import { DocumentCategory, CreateDocumentRequest } from "@/types/knowledge-base";
 
 interface UploadDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpload: (data: any) => void;
+  onUpload: (data: CreateDocumentRequest) => void;
   categories: DocumentCategory[];
   isUploading: boolean;
 }
@@ -30,133 +30,119 @@ export const UploadDocumentDialog = ({
   const [categoryId, setCategoryId] = useState("");
   const [tags, setTags] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [content, setContent] = useState("");
+  const [fileContent, setFileContent] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadType, setUploadType] = useState<'file' | 'text'>('file');
 
-  // Reset form
+  // Reset form when dialog opens/closes
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // Reset form if closing
+      resetForm();
+    }
+    onOpenChange(open);
+  };
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setCategoryId("");
     setTags("");
     setFile(null);
-    setContent("");
+    setFileContent("");
     setUploadProgress(0);
   };
 
-  // Handle file change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    
+    setFile(selectedFile);
+    
+    // If it's a text file, try to read its contents
+    if (selectedFile.type === 'text/plain' || selectedFile.name.endsWith('.txt')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setFileContent(event.target.result as string);
+        }
+      };
+      reader.readAsText(selectedFile);
+    } else {
+      setFileContent("");
     }
   };
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title.trim()) {
-      alert("Title is required");
-      return;
-    }
-    
-    if (uploadType === 'file' && !file) {
-      alert("Please select a file to upload");
-      return;
-    }
-    
-    if (uploadType === 'text' && !content.trim()) {
-      alert("Content is required for text upload");
-      return;
-    }
-    
-    if (!categoryId) {
-      alert("Please select a category");
-      return;
-    }
-    
-    // Parse tags from comma-separated string
-    const parsedTags = tags
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(tag => tag);
-    
-    // Prepare upload data
-    const uploadData = {
+  const handleUpload = () => {
+    // Split comma-separated tags into an array
+    const tagsArray = tags
+      ? tags.split(',').map((tag) => tag.trim()).filter(Boolean)
+      : [];
+
+    const documentData: CreateDocumentRequest = {
       title,
       description,
-      categoryId,
-      tags: parsedTags,
-      content: uploadType === 'text' ? content : '',
-      file: uploadType === 'file' ? file : undefined
+      content: fileContent,
+      categoryId: categoryId || undefined,
+      tags: tagsArray,
+      file
     };
-    
+
     // Simulate upload progress
-    if (uploadType === 'file' && file) {
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 300);
-    }
-    
-    onUpload(uploadData);
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setUploadProgress(progress);
+      if (progress >= 100) {
+        clearInterval(interval);
+        // Call the actual upload function
+        onUpload(documentData);
+      }
+    }, 100);
   };
 
-  // Clear selected file
-  const clearFile = () => {
-    setFile(null);
-  };
+  const isFormValid = title.trim() !== "" && (file !== null || fileContent.trim() !== "");
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
-      if (!newOpen) resetForm();
-      onOpenChange(newOpen);
-    }}>
-      <DialogContent className="sm:max-w-[550px]">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>
           <DialogDescription>
             Add a new document to your knowledge base
           </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="title">Document Title *</Label>
+
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="title">Title *</Label>
             <Input
               id="title"
+              placeholder="Document title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter document title"
-              required
             />
           </div>
-          
-          <div className="space-y-2">
+
+          <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
+              placeholder="Brief description of the document"
+              rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter document description"
-              rows={2}
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Category *</Label>
-            <Select value={categoryId} onValueChange={setCategoryId} required>
+
+          <div className="grid gap-2">
+            <Label htmlFor="category">Category</Label>
+            <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map(category => (
+                <SelectItem value="">None</SelectItem>
+                {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
                   </SelectItem>
@@ -164,105 +150,65 @@ export const UploadDocumentDialog = ({
               </SelectContent>
             </Select>
           </div>
-          
-          <div className="space-y-2">
+
+          <div className="grid gap-2">
             <Label htmlFor="tags">Tags</Label>
             <Input
               id="tags"
+              placeholder="Enter tags separated by commas"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="Enter tags separated by commas"
             />
             <p className="text-xs text-muted-foreground">
-              Separate tags with commas (e.g., product, feature, guide)
+              Example: product, documentation, guide
             </p>
           </div>
-          
-          <div className="space-y-2">
-            <Label>Upload Type</Label>
-            <div className="flex space-x-4">
-              <Button
-                type="button"
-                variant={uploadType === 'file' ? 'default' : 'outline'}
-                onClick={() => setUploadType('file')}
+
+          <div className="grid gap-2">
+            <Label htmlFor="file">Upload File</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="file"
+                type="file"
+                onChange={handleFileChange}
                 className="flex-1"
-              >
-                <Upload className="mr-2 h-4 w-4" /> File Upload
-              </Button>
-              <Button
-                type="button"
-                variant={uploadType === 'text' ? 'default' : 'outline'}
-                onClick={() => setUploadType('text')}
-                className="flex-1"
-              >
-                <File className="mr-2 h-4 w-4" /> Text Entry
-              </Button>
-            </div>
-          </div>
-          
-          {uploadType === 'file' ? (
-            <div className="space-y-2">
-              <Label htmlFor="file">Document File *</Label>
-              {file ? (
-                <div className="flex items-center justify-between border rounded-md p-2">
-                  <div className="flex items-center">
-                    <File className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm truncate max-w-[250px]">
-                      {file.name}
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFile}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center border border-dashed rounded-md p-6">
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <div className="flex flex-col items-center">
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                      <span className="text-sm font-medium">
-                        Click to upload or drag and drop
-                      </span>
-                      <span className="text-xs text-muted-foreground mt-1">
-                        PDF, DOCX, TXT, MD (max 10MB)
-                      </span>
-                    </div>
-                    <Input
-                      id="file-upload"
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileChange}
-                      accept=".pdf,.docx,.txt,.md"
-                    />
-                  </label>
-                </div>
+                accept=".txt,.md,.pdf,.docx,.doc"
+              />
+              {file && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setFile(null)}
+                  type="button"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               )}
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="content">Document Content *</Label>
+            {file && (
+              <p className="text-xs text-muted-foreground">
+                {file.name} ({Math.round(file.size / 1024)} KB)
+              </p>
+            )}
+          </div>
+
+          {fileContent && (
+            <div className="grid gap-2">
+              <Label htmlFor="content">Content Preview</Label>
               <Textarea
                 id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Enter document content"
-                rows={6}
-                required
+                value={fileContent}
+                onChange={(e) => setFileContent(e.target.value)}
+                rows={5}
+                className="font-mono text-xs"
               />
             </div>
           )}
-          
+
           {isUploading && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  Uploading document...
-                </span>
+                <span className="text-sm">Uploading...</span>
                 <span className="text-sm text-muted-foreground">
                   {uploadProgress}%
                 </span>
@@ -270,28 +216,24 @@ export const UploadDocumentDialog = ({
               <Progress value={uploadProgress} className="h-2" />
             </div>
           )}
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isUploading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isUploading || 
-                !title.trim() || 
-                !categoryId || 
-                (uploadType === 'file' && !file) || 
-                (uploadType === 'text' && !content.trim())}
-            >
-              {isUploading ? "Uploading..." : "Upload Document"}
-            </Button>
-          </DialogFooter>
-        </form>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={isUploading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpload}
+            disabled={!isFormValid || isUploading}
+          >
+            <FileUp className="h-4 w-4 mr-2" />
+            Upload
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

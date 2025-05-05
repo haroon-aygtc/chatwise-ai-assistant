@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\API\ActivityLogController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\KnowledgeBaseController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\UserController;
@@ -56,5 +57,28 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/activity-logs', [ActivityLogController::class, 'index']);
         Route::get('/activity-logs/types', [ActivityLogController::class, 'getActionTypes']);
         Route::get('/activity-logs/export', [ActivityLogController::class, 'export']);
+    });
+    
+    // Knowledge Base routes
+    Route::prefix('knowledge-base')->group(function () {
+        // Documents
+        Route::get('/documents', [KnowledgeBaseController::class, 'getAllDocuments']);
+        Route::get('/documents/{id}', [KnowledgeBaseController::class, 'getDocumentById']);
+        Route::post('/documents', [KnowledgeBaseController::class, 'createDocument']);
+        Route::post('/documents/upload', [KnowledgeBaseController::class, 'createDocument']);
+        Route::put('/documents/{id}', [KnowledgeBaseController::class, 'updateDocument']);
+        Route::delete('/documents/{id}', [KnowledgeBaseController::class, 'deleteDocument']);
+        Route::get('/documents/search', [KnowledgeBaseController::class, 'searchDocuments']);
+        
+        // Categories
+        Route::get('/categories', [KnowledgeBaseController::class, 'getAllCategories']);
+        Route::get('/categories/{id}', [KnowledgeBaseController::class, 'getCategoryById']);
+        Route::post('/categories', [KnowledgeBaseController::class, 'createCategory']);
+        Route::put('/categories/{id}', [KnowledgeBaseController::class, 'updateCategory']);
+        Route::delete('/categories/{id}', [KnowledgeBaseController::class, 'deleteCategory']);
+        
+        // Settings
+        Route::get('/settings', [KnowledgeBaseController::class, 'getSettings']);
+        Route::put('/settings', [KnowledgeBaseController::class, 'updateSettings']);
     });
 });
