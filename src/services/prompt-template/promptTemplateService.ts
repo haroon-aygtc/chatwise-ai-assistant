@@ -43,7 +43,7 @@ class PromptTemplateService {
    * Get all prompt templates with optional filtering
    */
   async getAllTemplates(filters: PromptTemplateFilters = {}): Promise<PromptTemplateResponse> {
-    const response = await ApiService.get<PromptTemplateResponse>('/prompt-templates', filters);
+    const response = await ApiService.get<PromptTemplateResponse>('/prompt-templates', { params: filters });
     
     // Transform the backend data to match frontend types
     return {

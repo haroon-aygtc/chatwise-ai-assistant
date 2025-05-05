@@ -4,26 +4,58 @@ export interface User {
   name: string;
   email: string;
   role?: string;
+  roles?: Role[];
   permissions?: string[];
-  status?: "active" | "inactive" | "pending";
+  status?: 'active' | 'inactive' | 'pending';
+  lastLogin?: string;
+  profileImage?: string;
   createdAt?: string;
   updatedAt?: string;
-  avatar?: string;
+  organization?: string;
+  jobTitle?: string;
+  phoneNumber?: string;
+  emailVerified?: boolean;
 }
 
-export interface NewUser {
+export interface Role {
+  id: string;
   name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-  role?: string;
-  status?: "active" | "inactive" | "pending";
+  description?: string;
+  permissions: string[];
+  userCount?: number;
+  isSystem?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface EditedUser {
+export interface Permission {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  categoryId?: string;
+}
+
+export interface PermissionCategory {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: Permission[];
+}
+
+export interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
+export interface NewRole {
+  name: string;
+  description?: string;
+  permissions: string[];
+}
+
+export interface EditedRole {
   name?: string;
-  email?: string;
-  role?: string;
-  status?: "active" | "inactive" | "pending";
+  description?: string;
   permissions?: string[];
 }

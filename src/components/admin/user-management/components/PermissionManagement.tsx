@@ -1,80 +1,57 @@
 
-import React from "react";
-import { PermissionCategory } from "@/types";
+import { useState, useEffect } from "react";
+import { PermissionGroup } from "./PermissionGroup";
+import { PermissionCategory } from "@/types/user";
 import { usePermissionFilter } from "../hooks/usePermissionFilter";
-import { usePermissionToggle } from "../hooks/usePermissionToggle";
-import { SearchBar } from "./permission/SearchBar";
-import { SelectAllToggle } from "./permission/SelectAllToggle";
-import { PermissionTabs } from "./permission/PermissionTabs";
-import { PermissionsList, SimplePermissionsList } from "./permission/PermissionsList";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
-interface PermissionManagementProps {
+export interface PermissionManagementProps {
   permissionCategories: PermissionCategory[];
-  selectedPermissions: string[];
-  onChange: (selectedPermissions: string[]) => void;
-  tabs?: boolean;
+  searchQuery?: string;
 }
 
 export function PermissionManagement({
   permissionCategories,
-  selectedPermissions,
-  onChange,
-  tabs = true,
+  searchQuery = "",
 }: PermissionManagementProps) {
-  const {
-    searchQuery,
-    setSearchQuery,
-    permissionsByCategory,
-    activeCategory,
-    setActiveCategory
-  } = usePermissionFilter(permissionCategories);
+  const [categories, setCategories] = useState<PermissionCategory[]>([]);
+  
+  // Map the input data to the correct format if needed
+  useEffect(() => {
+    // Make sure the data is in the expected format
+    const formattedCategories: PermissionCategory[] = permissionCategories.map(category => ({
+      id: category.id,
+      name: category.name,
+      description: category.description,
+      permissions: category.permissions,
+    }));
+    
+    setCategories(formattedCategories);
+  }, [permissionCategories]);
 
-  const {
-    allSelected,
-    someSelected,
-    toggleAllPermissions
-  } = usePermissionToggle(permissionCategories, selectedPermissions, onChange);
+  // Get filtered categories based on search
+  const { filteredCategories } = usePermissionFilter(categories, searchQuery);
 
   return (
     <div className="space-y-4">
-      {/* Search and select all */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <SearchBar 
-          searchQuery={searchQuery} 
-          setSearchQuery={setSearchQuery} 
+      {filteredCategories.map((category) => (
+        <PermissionGroup
+          key={category.id}
+          title={category.name}
+          permissions={category.permissions}
+          searchQuery={searchQuery}
         />
-        <SelectAllToggle 
-          allSelected={allSelected} 
-          someSelected={someSelected} 
-          toggleAllPermissions={toggleAllPermissions}
-        />
-      </div>
-
-      {/* Tabs or simple list */}
-      {tabs ? (
-        <>
-          <PermissionTabs 
-            permissionCategories={Object.keys(permissionsByCategory).map(key => ({
-              id: key,
-              name: key,
-              permissions: permissionsByCategory[key]
-            }))}
-            activeTab={activeCategory}
-            setActiveTab={setActiveCategory}
-          />
-          <PermissionsList
-            activeTab={activeCategory}
-            permissionsByCategory={permissionsByCategory}
-            selectedPermissions={selectedPermissions}
-            onChange={onChange}
-          />
-        </>
-      ) : (
-        <SimplePermissionsList
-          permissionsByCategory={permissionsByCategory}
-          selectedPermissions={selectedPermissions}
-          onChange={onChange}
-        />
+      ))}
+      
+      {filteredCategories.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          {searchQuery ? (
+            <p>No permissions match your search criteria</p>
+          ) : (
+            <p>No permission categories available</p>
+          )}
+        </div>
       )}
     </div>
   );

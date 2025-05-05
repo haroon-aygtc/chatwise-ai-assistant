@@ -11,6 +11,7 @@ export interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
+  signup: (data: any) => Promise<boolean>;
   hasRole: (role: string | string[]) => boolean;
   hasPermission: (permission: string | string[]) => boolean;
 }
@@ -64,6 +65,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Signup function
+  const signup = async (data: any): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const response = await AuthService.signup(data);
+      setUser(response);
+      return true;
+    } catch (error) {
+      console.error('Signup failed:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Logout function
   const logout = async () => {
     setIsLoading(true);
@@ -100,6 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     logout,
+    signup,
     hasRole,
     hasPermission,
   };

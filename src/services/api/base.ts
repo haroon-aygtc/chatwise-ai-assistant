@@ -1,4 +1,3 @@
-
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { tokenService as TokenService } from '@/modules/auth';
 
@@ -57,13 +56,27 @@ api.interceptors.response.use(
   }
 );
 
+// Helper to convert parameters to axios config
+const paramsToConfig = (params: any): AxiosRequestConfig => {
+  if (!params) return {};
+  
+  // If params already has an AxiosRequestConfig shape, return it
+  if (params.headers || params.params || params.data) {
+    return params;
+  }
+  
+  // Otherwise, convert to params config
+  return { params };
+};
+
 // Generic API service functions
 const ApiService = {
   /**
    * Make a GET request
    */
-  get: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  get: async <T>(url: string, params?: any): Promise<T> => {
     try {
+      const config = paramsToConfig(params);
       const response: AxiosResponse = await api.get(url, config);
       return response.data;
     } catch (error) {
