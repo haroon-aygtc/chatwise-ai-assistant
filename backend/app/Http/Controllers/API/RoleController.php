@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -58,6 +59,9 @@ class RoleController extends Controller
         if (isset($validated['permissions'])) {
             $role->syncPermissions($validated['permissions']);
         }
+        
+        // Log activity
+        ActivityLogService::logRoleCreated($role->name);
 
         return response()->json([
             'message' => 'Role created successfully',
@@ -110,6 +114,9 @@ class RoleController extends Controller
         }
         
         $role->save();
+        
+        // Log activity
+        ActivityLogService::logRoleUpdated($role->name);
 
         return response()->json([
             'message' => 'Role updated successfully',
@@ -140,7 +147,11 @@ class RoleController extends Controller
             ], 409);
         }
         
+        $roleName = $role->name;
         $role->delete();
+        
+        // Log activity
+        ActivityLogService::logRoleDeleted($roleName);
 
         return response()->json([
             'message' => 'Role deleted successfully'
@@ -162,6 +173,9 @@ class RoleController extends Controller
         ]);
 
         $role->syncPermissions($validated['permissions']);
+        
+        // Log activity
+        ActivityLogService::logPermissionsUpdated($role->name);
 
         return response()->json([
             'message' => 'Role permissions updated successfully',

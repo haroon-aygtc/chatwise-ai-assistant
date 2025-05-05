@@ -3,7 +3,7 @@
 export interface ValidationResult {
   isValid: boolean;
   message: string;
-  error?: string; // Added error property
+  error?: string;
 }
 
 /**
@@ -13,7 +13,8 @@ export const validateRequired = (value: any): ValidationResult => {
   const isValid = value !== undefined && value !== null && value !== '';
   return {
     isValid,
-    message: isValid ? '' : 'This field is required'
+    message: isValid ? '' : 'This field is required',
+    error: isValid ? undefined : 'This field is required'
   };
 };
 
@@ -25,7 +26,8 @@ export const validateEmail = (email: string): ValidationResult => {
   const isValid = emailRegex.test(email);
   return {
     isValid,
-    message: isValid ? '' : 'Please enter a valid email address'
+    message: isValid ? '' : 'Please enter a valid email address',
+    error: isValid ? undefined : 'Please enter a valid email address'
   };
 };
 
@@ -36,7 +38,8 @@ export const validatePassword = (password: string): ValidationResult => {
   const isValid = password.length >= 8;
   return {
     isValid,
-    message: isValid ? '' : 'Password must be at least 8 characters long'
+    message: isValid ? '' : 'Password must be at least 8 characters long',
+    error: isValid ? undefined : 'Password must be at least 8 characters long'
   };
 };
 
@@ -47,7 +50,8 @@ export const validatePasswordMatch = (password: string, confirmPassword: string)
   const isValid = password === confirmPassword;
   return {
     isValid,
-    message: isValid ? '' : 'Passwords do not match'
+    message: isValid ? '' : 'Passwords do not match',
+    error: isValid ? undefined : 'Passwords do not match'
   };
 };
 
@@ -57,6 +61,8 @@ export const validatePasswordMatch = (password: string, confirmPassword: string)
 export const validatePhoneNumber = (phone: string, isValid: boolean): ValidationResult => {
   return {
     isValid: isValid && phone.length > 0,
-    message: (isValid && phone.length > 0) ? '' : 'Please enter a valid phone number'
+    message: (isValid && phone.length > 0) ? '' : 'Please enter a valid phone number',
+    error: (isValid && phone.length > 0) ? undefined : 'Please enter a valid phone number'
   };
 };
+

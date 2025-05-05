@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -71,6 +72,9 @@ class UserController extends Controller
 
         // Assign role
         $user->assignRole($validated['role']);
+        
+        // Log activity
+        ActivityLogService::log('User Created', "Created new user: {$user->email} with role {$validated['role']}");
 
         return response()->json([
             'message' => 'User created successfully',
@@ -90,7 +94,7 @@ class UserController extends Controller
         $user->load('roles', 'permissions');
         
         $userData = $user->toArray();
-        $userData['permissions'] = $user->getAllPermissions();
+        $userData['permissions'] = $user->getAllPermissions()->pluck('name');
         
         return response()->json($userData);
     }
@@ -123,6 +127,9 @@ class UserController extends Controller
         }
         
         $user->update($updateData);
+        
+        // Log activity
+        ActivityLogService::logUserUpdate($user, implode(', ', array_keys($updateData)));
 
         return response()->json([
             'message' => 'User updated successfully',
@@ -144,6 +151,9 @@ class UserController extends Controller
                 'message' => 'You cannot delete your own account'
             ], 403);
         }
+        
+        // Log before deletion to capture the user email
+        ActivityLogService::log('User Deleted', "Deleted user: {$user->email}");
 
         $user->delete();
 
@@ -172,9 +182,13 @@ class UserController extends Controller
             ], 403);
         }
 
+        $oldStatus = $user->status;
         $user->update([
             'status' => $validated['status']
         ]);
+        
+        // Log activity
+        ActivityLogService::log('User Status Changed', "Changed user {$user->email} status from {$oldStatus} to {$validated['status']}");
 
         return response()->json([
             'message' => 'User status updated successfully',
@@ -203,8 +217,14 @@ class UserController extends Controller
             ], 403);
         }
 
+        // Get current roles for logging
+        $oldRoles = $user->getRoleNames()->toArray();
+        
         // Sync roles
         $user->syncRoles($validated['roles']);
+        
+        // Log activity
+        ActivityLogService::logRoleAssignment($user, $validated['roles']);
 
         return response()->json([
             'message' => 'User roles updated successfully',

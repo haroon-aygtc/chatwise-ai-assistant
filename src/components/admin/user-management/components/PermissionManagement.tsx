@@ -38,7 +38,7 @@ export function PermissionManagement({
     const filtered = permissionCategories.map((category) => {
       const matchingPermissions = category.permissions.filter(
         (permission) =>
-          permission.displayName.toLowerCase().includes(lowercaseQuery) ||
+          permission.displayName?.toLowerCase().includes(lowercaseQuery) ||
           permission.description?.toLowerCase().includes(lowercaseQuery) ||
           permission.name.toLowerCase().includes(lowercaseQuery)
       );
