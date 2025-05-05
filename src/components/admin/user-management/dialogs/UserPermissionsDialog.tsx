@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { User } from "@/types/user";
-import { PermissionCategory } from "@/types/ai-configuration";
+import { PermissionCategory } from "@/types";
 import { PermissionManagement } from "../components/PermissionManagement";
 import {
   Dialog,

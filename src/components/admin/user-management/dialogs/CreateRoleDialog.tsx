@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -25,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { PermissionManagement } from "../components/PermissionManagement";
-import { PermissionCategory } from "@/types/ai-configuration";
+import { PermissionCategory } from "@/types";
 
 // Form schema
 const formSchema = z.object({

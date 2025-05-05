@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Permission } from "@/types/ai-configuration";
+import { Permission } from "@/types";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { 
   Collapsible,
