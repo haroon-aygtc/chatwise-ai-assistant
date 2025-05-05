@@ -5,6 +5,7 @@ use App\Http\Controllers\API\ActivityLogController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\KnowledgeBaseController;
 use App\Http\Controllers\API\PermissionController;
+use App\Http\Controllers\API\PromptTemplateController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\UserController;
 use Illuminate\Http\Request;
@@ -80,5 +81,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Settings
         Route::get('/settings', [KnowledgeBaseController::class, 'getSettings']);
         Route::put('/settings', [KnowledgeBaseController::class, 'updateSettings']);
+    });
+    
+    // Prompt Templates routes
+    Route::prefix('prompt-templates')->group(function () {
+        Route::get('/', [PromptTemplateController::class, 'index']);
+        Route::post('/', [PromptTemplateController::class, 'store']);
+        Route::get('/{id}', [PromptTemplateController::class, 'show']);
+        Route::put('/{id}', [PromptTemplateController::class, 'update']);
+        Route::delete('/{id}', [PromptTemplateController::class, 'destroy']);
+        Route::get('/categories/list', [PromptTemplateController::class, 'getCategories']);
+        Route::post('/{id}/increment-usage', [PromptTemplateController::class, 'incrementUsage']);
     });
 });

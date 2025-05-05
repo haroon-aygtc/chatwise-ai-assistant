@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Card,
@@ -21,6 +22,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import AIModelManager from "./ai-configuration/AIModelManager";
+import PromptTemplateManager from "./ai-configuration/PromptTemplateManager";
 
 const AIConfiguration = () => {
   const [testPrompt, setTestPrompt] = useState("How can you help me?");
@@ -103,21 +105,7 @@ const AIConfiguration = () => {
 
         {/* Prompt Templates Tab */}
         <TabsContent value="prompts" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Prompt Template System</CardTitle>
-              <CardDescription>
-                Create and manage prompt templates for different scenarios
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center h-40">
-                <p className="text-muted-foreground">
-                  Prompt Template Manager Coming Soon
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <PromptTemplateManager />
         </TabsContent>
 
         {/* Response Formatting Tab */}
