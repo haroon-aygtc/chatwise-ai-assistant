@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, ArrowRight, Github } from "lucide-react";
+import { Mail, Lock, ArrowRight, Github, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FormField } from "@/components/ui/form-field";
 import { validateEmail, validateRequired } from "@/lib/validations";
@@ -18,6 +18,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [touchedFields, setTouchedFields] = useState({
+    email: false,
+    password: false,
+  });
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -27,21 +32,45 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    // Mark all fields as touched
+    setTouchedFields({
+      email: true,
+      password: true,
+    });
     
     // Validate fields
     const emailValidation = validateEmail(formData.email);
     const passwordValidation = validateRequired(formData.password);
     
     if (!emailValidation.isValid || !passwordValidation.isValid) {
+      // Collect all error messages
+      const errorMessages = [];
+      if (!emailValidation.isValid) errorMessages.push(`Email: ${emailValidation.error}`);
+      if (!passwordValidation.isValid) errorMessages.push(`Password: ${passwordValidation.error}`);
+      
+      // Show toast with all errors
       toast({
-        title: "Validation errors",
-        description: "Please correct the errors in the form.",
+        title: "Please fix the following errors:",
+        description: (
+          <ul className="list-disc pl-4 space-y-1">
+            {errorMessages.map((msg, i) => (
+              <li key={i}>{msg}</li>
+            ))}
+          </ul>
+        ),
         variant: "destructive",
       });
-      return;
+      return false;
     }
+    
+    return true;
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
     
     setIsLoading(true);
     
@@ -52,21 +81,21 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       // Demo login - in production, this would validate with your backend
       if (formData.email === "admin@example.com" && formData.password === "password") {
         toast({
-          title: "Login successful",
+          title: "Login Successful",
           description: "Welcome to ChatWise Admin Dashboard",
         });
         navigate("/admin/chat-sessions");
         if (onSuccess) onSuccess();
       } else {
         toast({
-          title: "Login failed",
+          title: "Login Failed",
           description: "Invalid email or password. Try admin@example.com / password",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Login error",
+        title: "Login Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });

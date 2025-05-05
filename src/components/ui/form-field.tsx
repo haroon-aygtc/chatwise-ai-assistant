@@ -82,9 +82,10 @@ export function FormField({
             icon ? "pl-10" : ""
           } h-12 bg-[#131B2E] border-[#2A3349] ${
             hasError
-              ? "border-red-500 focus:border-red-500"
+              ? "border-red-500 focus:border-red-500 ring-1 ring-red-500"
               : "focus:border-gray-500"
           } text-white ${className}`}
+          aria-invalid={hasError}
         />
       </div>
       {hasError && (

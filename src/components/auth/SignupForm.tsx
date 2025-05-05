@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, User, Lock, ArrowRight, Github } from "lucide-react";
+import { Mail, User, Lock, ArrowRight, Github, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,13 @@ export function SignupForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [touchedFields, setTouchedFields] = useState({
+    name: false,
+    email: false,
+    phone: false,
+    password: false,
+    confirmPassword: false,
+  });
   
   const [formData, setFormData] = useState({
     name: "",
@@ -35,8 +42,15 @@ export function SignupForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    // Mark all fields as touched
+    setTouchedFields({
+      name: true,
+      email: true,
+      phone: true,
+      password: true,
+      confirmPassword: true,
+    });
     
     // Validate all fields
     const nameValidation = validateRequired(formData.name);
@@ -50,11 +64,11 @@ export function SignupForm() {
     
     if (!formData.agreeTerms) {
       toast({
-        title: "Agreement required",
+        title: "Agreement Required",
         description: "You must agree to the terms and privacy policy.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
     
     // Check if any validation errors exist
@@ -65,13 +79,36 @@ export function SignupForm() {
       !passwordValidation.isValid ||
       !confirmPasswordValidation.isValid
     ) {
+      // Collect all error messages
+      const errorMessages = [];
+      if (!nameValidation.isValid) errorMessages.push(`Full Name: ${nameValidation.error}`);
+      if (!emailValidation.isValid) errorMessages.push(`Email: ${emailValidation.error}`);
+      if (!phoneValidation.isValid) errorMessages.push(`Phone Number: ${phoneValidation.error}`);
+      if (!passwordValidation.isValid) errorMessages.push(`Password: ${passwordValidation.error}`);
+      if (!confirmPasswordValidation.isValid) errorMessages.push(`Confirm Password: ${confirmPasswordValidation.error}`);
+      
+      // Show toast with all errors
       toast({
-        title: "Validation errors",
-        description: "Please correct the errors in the form.",
+        title: "Please fix the following errors:",
+        description: (
+          <ul className="list-disc pl-4 space-y-1">
+            {errorMessages.map((msg, i) => (
+              <li key={i}>{msg}</li>
+            ))}
+          </ul>
+        ),
         variant: "destructive",
       });
-      return;
+      return false;
     }
+    
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
     
     setIsLoading(true);
     
@@ -80,14 +117,14 @@ export function SignupForm() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
-        title: "Registration successful",
+        title: "Registration Successful",
         description: "Your account has been created. Please sign in.",
       });
       
       navigate("/login");
     } catch (error) {
       toast({
-        title: "Registration error",
+        title: "Registration Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
