@@ -11,6 +11,7 @@ import SignupPage from "./pages/auth/SignupPage";
 import ChatSessionsPage from "./pages/admin/ChatSessionsPage";
 import KnowledgeBasePage from "./pages/admin/KnowledgeBasePage";
 import AiConfigPage from "./pages/admin/AiConfigPage";
+import UserManagementPage from "./pages/admin/UserManagementPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +33,7 @@ const App = () => (
             <Route path="chat-sessions" element={<ChatSessionsPage />} />
             <Route path="knowledge-base" element={<KnowledgeBasePage />} />
             <Route path="ai-configuration" element={<AiConfigPage />} />
-            <Route path="user-management" element={<h1>User Management</h1>} />
+            <Route path="user-management" element={<UserManagementPage />} />
             <Route path="settings" element={<h1>Settings</h1>} />
           </Route>
           
