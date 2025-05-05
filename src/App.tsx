@@ -8,6 +8,7 @@ import SignupPage from "@/pages/auth/SignupPage";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import UserManagementPage from "@/pages/admin/UserManagementPage";
 import LandingPage from "@/pages/LandingPage";
+import ComponentShowcasePage from "@/pages/ComponentShowcasePage";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/components" element={<ComponentShowcasePage />} />
             
             {/* Protected routes */}
             <Route 
