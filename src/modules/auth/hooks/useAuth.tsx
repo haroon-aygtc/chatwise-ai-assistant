@@ -1,139 +1,116 @@
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import authService from '../services/authService';
-import TokenService from '../services/tokenService';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User } from '@/types/user';
+import AuthService from '../services/authService';
+import tokenService from '../services/tokenService';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role?: string;
-}
-
-interface LoginCredentials {
-  email: string;
-  password: string;
-  remember?: boolean;
-}
-
-interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
-
-interface AuthContextType {
+// Define the auth context type
+export interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
-  error: Error | null;
   isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => Promise<void>;
-  clearAuthError: () => void;
+  isLoading: boolean;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
+  logout: () => void;
+  hasRole: (role: string | string[]) => boolean;
+  hasPermission: (permission: string | string[]) => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// Create the auth context
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+// Auth provider props
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+// Auth provider component
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const isAuthenticated = TokenService.validateToken();
-
+  // Check if the user is authenticated on component mount
   useEffect(() => {
     const checkAuth = async () => {
-      if (isAuthenticated) {
-        try {
-          const userData = await authService.getCurrentUser();
+      setIsLoading(true);
+      try {
+        if (tokenService.validateToken()) {
+          const userData = await AuthService.getCurrentUser();
           setUser(userData);
-        } catch (err) {
-          console.error('Error fetching user data:', err);
-          TokenService.clearToken();
         }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        tokenService.clearToken();
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     checkAuth();
-  }, [isAuthenticated]);
+  }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  // Login function
+  const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     setIsLoading(true);
-    setError(null);
     try {
-      const response = await authService.login(credentials);
+      const response = await AuthService.login(email, password);
+      tokenService.setToken(response.token, rememberMe);
       setUser(response.user);
-      navigate('/dashboard');
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to login');
-      setError(error);
-      throw error;
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (data: RegisterData) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await authService.register(data);
-      setUser(response.user);
-      navigate('/dashboard');
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to register');
-      setError(error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Logout function
   const logout = async () => {
     setIsLoading(true);
     try {
-      await authService.logout();
-      setUser(null);
-      navigate('/login');
-      toast('Logged out successfully');
-    } catch (err) {
-      console.error('Logout error:', err);
+      await AuthService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
     } finally {
+      tokenService.clearToken();
+      setUser(null);
       setIsLoading(false);
     }
   };
 
-  const clearAuthError = () => {
-    setError(null);
+  // Check if user has a specific role
+  const hasRole = (role: string | string[]): boolean => {
+    if (!user || !user.roles) return false;
+    
+    const roles = Array.isArray(role) ? role : [role];
+    return user.roles.some(userRole => roles.includes(userRole.name));
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        error,
-        isAuthenticated,
-        login,
-        register,
-        logout,
-        clearAuthError,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  // Check if user has a specific permission
+  const hasPermission = (permission: string | string[]): boolean => {
+    if (!user || !user.permissions) return false;
+    
+    const permissions = Array.isArray(permission) ? permission : [permission];
+    return permissions.some(p => user.permissions?.includes(p));
+  };
+
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+    login,
+    logout,
+    hasRole,
+    hasPermission,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+// Hook to use the auth context
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

@@ -29,166 +29,104 @@ import {
   Users,
 } from 'lucide-react';
 
-interface RolesCardProps {
-  roles: Role[];
-  onCreateRole: () => void;
-  onEditRole: (role: Role) => void;
-  onDeleteRole: (roleId: string) => void;
-  isLoading?: boolean;
+interface RoleCardProps {
+  role: Role;
+  onEdit: (role: Role) => void;
+  onDelete: (role: Role) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
-export function RolesCard({
-  roles,
-  onCreateRole,
-  onEditRole,
-  onDeleteRole,
-  isLoading = false,
-}: RolesCardProps) {
-  const [expandedRoles, setExpandedRoles] = useState<string[]>([]);
-
-  const toggleRoleExpanded = (roleId: string) => {
-    setExpandedRoles((prev) =>
-      prev.includes(roleId)
-        ? prev.filter((id) => id !== roleId)
-        : [...prev, roleId]
-    );
-  };
+const RoleCard = ({
+  role,
+  onEdit,
+  onDelete,
+  canEdit,
+  canDelete,
+}: RoleCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <Card className="h-full">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle className="text-xl">Roles</CardTitle>
-            <CardDescription>
-              Manage user roles and their permissions
-            </CardDescription>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <CardTitle className="text-lg mr-2">{role.name}</CardTitle>
+            {role.isSystem && (
+              <Badge variant="secondary" className="text-xs">
+                <ShieldAlert className="h-3 w-3 mr-1" />
+                System
+              </Badge>
+            )}
           </div>
-          <Button onClick={onCreateRole} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            New Role
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[calc(100vh-320px)] pr-4">
-          {isLoading ? (
-            <div className="flex justify-center p-4">
-              <div className="animate-pulse space-y-3 w-full">
-                <div className="h-12 bg-muted rounded-md w-full"></div>
-                <div className="h-12 bg-muted rounded-md w-full"></div>
-                <div className="h-12 bg-muted rounded-md w-full"></div>
-              </div>
-            </div>
-          ) : roles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center">
-              <Users className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-1">No roles found</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                You haven't created any roles yet.
-              </p>
-              <Button onClick={onCreateRole} variant="secondary" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Role
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" disabled={role.isSystem && !canEdit}>
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {roles.map((role) => (
-                <div key={role.id} className="border rounded-md">
-                  <div className="p-3 flex items-center justify-between">
-                    <div className="flex items-center">
-                      <button
-                        className="mr-2"
-                        onClick={() => toggleRoleExpanded(role.id)}
-                      >
-                        <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${
-                            expandedRoles.includes(role.id)
-                              ? 'transform rotate-180'
-                              : ''
-                          }`}
-                        />
-                      </button>
-                      <div>
-                        <div className="flex items-center">
-                          <span className="font-medium">{role.name}</span>
-                          {role.isSystem && (
-                            <Badge variant="secondary" className="ml-2">
-                              <ShieldAlert className="h-3 w-3 mr-1" />
-                              System
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {role.description}
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={role.isSystem}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onEditRole(role)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => onDeleteRole(role.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  {expandedRoles.includes(role.id) && (
-                    <div className="p-3 pt-0 border-t">
-                      <div className="text-sm">
-                        <span className="font-medium">Permissions:</span>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {role.permissions && role.permissions.length > 0 ? (
-                            role.permissions.map((permission) => (
-                              <Badge
-                                key={permission.id}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {permission.name}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              No permissions assigned
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canEdit && (
+                <DropdownMenuItem onClick={() => onEdit(role)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {canDelete && !role.isSystem && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-destructive" 
+                    onClick={() => onDelete(role)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <CardDescription>{role.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full justify-between text-sm" 
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <span>Permissions</span>
+            <ChevronDown 
+              className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+            />
+          </Button>
+          
+          {isExpanded && (
+            <div className="border rounded-md p-2">
+              {role.permissions && role.permissions.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {role.permissions.map((permission) => (
+                    <Badge 
+                      key={permission.id} 
+                      variant="outline" 
+                      className="text-xs"
+                    >
+                      {permission.displayName || permission.name}
+                    </Badge>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p className="text-sm text-muted-foreground">No permissions assigned</p>
+              )}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </CardContent>
-      <CardFooter className="border-t py-3 flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
-          {roles.length} {roles.length === 1 ? 'role' : 'roles'}
-        </span>
-      </CardFooter>
     </Card>
   );
-}
+};
+
+export default RoleCard;
+export { RoleCard };

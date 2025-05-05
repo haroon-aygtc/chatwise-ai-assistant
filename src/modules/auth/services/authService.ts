@@ -1,143 +1,60 @@
 
 import ApiService from '@/services/api/base';
-import TokenService from './tokenService';
-
-interface LoginCredentials {
-  email: string;
-  password: string;
-  remember?: boolean;
-}
-
-interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  };
-}
-
-interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
-
-interface RegisterResponse {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
-interface PasswordResetRequestData {
-  email: string;
-}
-
-interface PasswordResetData {
-  email: string;
-  token: string;
-  password: string;
-  password_confirmation: string;
-}
+import { User } from '@/types/user';
+import { LoginResponse, PasswordResetRequestData, SignupData } from '../types';
 
 /**
- * Service for authentication operations
+ * Service for handling authentication related API calls
  */
-const authService = {
+const AuthService = {
   /**
-   * Login with email and password
+   * Login a user
    */
-  login: async (credentials: LoginCredentials) => {
-    try {
-      const response = await ApiService.post<LoginResponse>('/login', credentials);
-      if (response.token) {
-        TokenService.setToken(response.token, credentials.remember || false);
-      }
-      return response;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Register a new user
-   */
-  register: async (data: RegisterData) => {
-    try {
-      const response = await ApiService.post<RegisterResponse>('/register', data);
-      if (response.token) {
-        TokenService.setToken(response.token);
-      }
-      return response;
-    } catch (error) {
-      console.error('Register error:', error);
-      throw error;
-    }
+  login: async (email: string, password: string): Promise<LoginResponse> => {
+    return ApiService.post<LoginResponse>('/auth/login', { email, password });
   },
 
   /**
    * Logout the current user
    */
-  logout: async () => {
-    try {
-      // Call the API to invalidate the token on the server
-      await ApiService.post('/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Always clear the token from local storage/cookies
-      TokenService.clearToken();
-    }
+  logout: async (): Promise<void> => {
+    return ApiService.post('/auth/logout');
   },
 
   /**
-   * Force logout without API call (for session timeouts, etc.)
+   * Register a new user
    */
-  forceLogout: () => {
-    TokenService.clearToken();
+  signup: async (data: SignupData): Promise<User> => {
+    return ApiService.post<User>('/auth/register', data);
   },
 
   /**
-   * Get the authenticated user's information
+   * Get the current authenticated user
    */
-  getCurrentUser: async () => {
-    try {
-      const response = await ApiService.get('/user');
-      return response;
-    } catch (error) {
-      console.error('Get current user error:', error);
-      throw error;
-    }
+  getCurrentUser: async (): Promise<User> => {
+    return ApiService.get<User>('/auth/user');
   },
 
   /**
-   * Check if the user is authenticated
+   * Request a password reset
    */
-  isAuthenticated: () => {
-    return TokenService.validateToken();
-  },
-
-  /**
-   * Request a password reset link
-   */
-  requestPasswordReset: async (data: PasswordResetRequestData) => {
-    const response = await ApiService.post('/password/reset-request', data);
-    return response;
+  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
+    return ApiService.post<{ message: string }>('/auth/forgot-password', { email });
   },
 
   /**
    * Reset password with token
    */
-  resetPassword: async (data: PasswordResetData) => {
-    const response = await ApiService.post('/password/reset', data);
-    return response;
+  resetPassword: async (data: PasswordResetRequestData): Promise<{ message: string }> => {
+    return ApiService.post<{ message: string }>('/auth/reset-password', data);
+  },
+
+  /**
+   * Verify email with token
+   */
+  verifyEmail: async (token: string): Promise<{ message: string }> => {
+    return ApiService.post<{ message: string }>('/auth/verify-email', { token });
   },
 };
 
-export default authService;
+export default AuthService;
