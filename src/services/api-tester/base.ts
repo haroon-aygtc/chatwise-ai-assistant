@@ -120,7 +120,7 @@ export class BaseApiService {
       this.setAuthToken(token);
     }
     const url = this.buildUrl(endpoint, params);
-    const cacheKey = apiCache.generateKey(url, {});
+    const cacheKey = `${url}:${JSON.stringify(params)}`;
 
     // Check cache if enabled and method is cacheable
     if (ENABLE_CACHING && useCache) {
@@ -259,7 +259,7 @@ export class BaseApiService {
   ): Promise<T> {
     const endpointDef = getEndpointDefinition(category, endpoint);
     const url = getApiUrl(category, endpoint, pathParams);
-    const cacheKey = apiCache.generateKey(url, queryParams);
+    const cacheKey = `${url}:${JSON.stringify(queryParams)}`;
 
     // Check cache if enabled and method is GET and endpoint is cacheable
     if (

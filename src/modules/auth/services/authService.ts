@@ -1,130 +1,143 @@
 
 import ApiService from '@/services/api/base';
-import { tokenService } from './tokenService';
-import { 
-  LoginRequest, 
-  LoginResponse, 
-  RegisterRequest, 
-  RegisterResponse, 
-  PasswordResetConfirmRequest 
-} from '../types';
+import TokenService from './tokenService';
 
-class AuthService {
+interface LoginCredentials {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
+
+interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+}
+
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+interface RegisterResponse {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+interface PasswordResetRequestData {
+  email: string;
+}
+
+interface PasswordResetData {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
+}
+
+/**
+ * Service for authentication operations
+ */
+const authService = {
   /**
-   * Login a user
-   * @param credentials Login credentials
+   * Login with email and password
    */
-  static async login(credentials: LoginRequest): Promise<LoginResponse> {
+  login: async (credentials: LoginCredentials) => {
     try {
-      const response = await ApiService.post<LoginResponse>(
-        '/login',
-        credentials,
-        { withAuth: false }
-      );
-
-      // Store the token
+      const response = await ApiService.post<LoginResponse>('/login', credentials);
       if (response.token) {
-        tokenService.setToken(response.token, credentials.remember || false);
+        TokenService.setToken(response.token, credentials.remember || false);
       }
-
       return response;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
     }
-  }
+  },
 
   /**
    * Register a new user
-   * @param userData User registration data
    */
-  static async register(userData: RegisterRequest): Promise<RegisterResponse> {
+  register: async (data: RegisterData) => {
     try {
-      const response = await ApiService.post<RegisterResponse>(
-        '/register',
-        userData,
-        { withAuth: false }
-      );
-
-      // Store the token if provided
+      const response = await ApiService.post<RegisterResponse>('/register', data);
       if (response.token) {
-        tokenService.setToken(response.token, false);
+        TokenService.setToken(response.token);
       }
-
       return response;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Register error:', error);
       throw error;
     }
-  }
-
-  /**
-   * Get current user profile
-   */
-  static async getCurrentUser(): Promise<any> {
-    try {
-      return await ApiService.get<any>('/user');
-    } catch (error) {
-      console.error('Get user error:', error);
-      throw error;
-    }
-  }
+  },
 
   /**
    * Logout the current user
    */
-  static async logout(): Promise<void> {
+  logout: async () => {
     try {
-      await ApiService.post('/logout', {});
-      tokenService.clearToken();
+      // Call the API to invalidate the token on the server
+      await ApiService.post('/logout');
     } catch (error) {
       console.error('Logout error:', error);
-      // Always clear token even if API call fails
-      tokenService.clearToken();
-      throw error;
+    } finally {
+      // Always clear the token from local storage/cookies
+      TokenService.clearToken();
     }
-  }
+  },
 
   /**
-   * Request a password reset
-   * @param email User email
+   * Force logout without API call (for session timeouts, etc.)
    */
-  static async requestPasswordReset(email: string): Promise<{ message: string }> {
-    try {
-      return await ApiService.post<{ message: string }>(
-        '/password/reset-request',
-        { email },
-        { withAuth: false }
-      );
-    } catch (error) {
-      console.error('Password reset request error:', error);
-      throw error;
-    }
-  }
+  forceLogout: () => {
+    TokenService.clearToken();
+  },
 
   /**
-   * Reset password with token
-   * @param data Password reset data
+   * Get the authenticated user's information
    */
-  static async resetPassword(data: PasswordResetConfirmRequest): Promise<{ message: string }> {
+  getCurrentUser: async () => {
     try {
-      return await ApiService.post<{ message: string }>(
-        '/password/reset',
-        data,
-        { withAuth: false }
-      );
+      const response = await ApiService.get('/user');
+      return response;
     } catch (error) {
-      console.error('Password reset error:', error);
+      console.error('Get current user error:', error);
       throw error;
     }
-  }
+  },
 
   /**
    * Check if the user is authenticated
    */
-  static isAuthenticated(): boolean {
-    return tokenService.validateToken();
-  }
-}
+  isAuthenticated: () => {
+    return TokenService.validateToken();
+  },
 
-export default AuthService;
+  /**
+   * Request a password reset link
+   */
+  requestPasswordReset: async (data: PasswordResetRequestData) => {
+    const response = await ApiService.post('/password/reset-request', data);
+    return response;
+  },
+
+  /**
+   * Reset password with token
+   */
+  resetPassword: async (data: PasswordResetData) => {
+    const response = await ApiService.post('/password/reset', data);
+    return response;
+  },
+};
+
+export default authService;

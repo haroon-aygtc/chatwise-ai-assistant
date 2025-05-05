@@ -1,62 +1,58 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Play, Loader2 } from "lucide-react";
+import { Dispatch, SetStateAction } from "react";
+import { Loader2 } from "lucide-react";
 
-interface TestPromptCardProps {
+export interface TestPromptCardProps {
   testPrompt: string;
-  setTestPrompt: React.Dispatch<React.SetStateAction<string>>;
-  handleTest: () => void;
+  setTestPrompt: Dispatch<SetStateAction<string>>;
+  handleTest: () => Promise<void>;
   isTesting: boolean;
+  disabled?: boolean;
 }
 
-export const TestPromptCard = ({
+export function TestPromptCard({
   testPrompt,
   setTestPrompt,
   handleTest,
-  isTesting
-}: TestPromptCardProps) => {
+  isTesting,
+  disabled = false
+}: TestPromptCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Format Preview</CardTitle>
-        <CardDescription>
-          Test your formatting settings with a sample prompt
-        </CardDescription>
+        <CardTitle className="text-lg">Test Format</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Test Prompt</Label>
-            <Textarea
-              placeholder="Enter a test prompt"
-              value={testPrompt}
-              onChange={(e) => setTestPrompt(e.target.value)}
-            />
-          </div>
-          <div className="flex justify-end">
-            <Button
-              onClick={handleTest}
-              disabled={isTesting || !testPrompt.trim()}
-            >
-              {isTesting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Testing...
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4" /> Test Format
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+        <Textarea
+          placeholder="Enter a sample prompt to test the format..."
+          value={testPrompt}
+          onChange={(e) => setTestPrompt(e.target.value)}
+          rows={5}
+          disabled={isTesting || disabled}
+        />
+        <p className="text-xs text-muted-foreground mt-2">
+          Enter a prompt that you'd like to see formatted according to the current settings.
+        </p>
       </CardContent>
+      <CardFooter>
+        <Button 
+          onClick={handleTest} 
+          disabled={!testPrompt || isTesting || disabled}
+          className="w-full"
+        >
+          {isTesting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Formatting...
+            </>
+          ) : (
+            'Test Format'
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   );
-};
-
-export default TestPromptCard;
+}

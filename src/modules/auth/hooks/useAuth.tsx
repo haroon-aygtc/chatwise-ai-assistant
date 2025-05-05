@@ -1,114 +1,129 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import AuthService from "../services/authService";
-import { tokenService } from "../services/tokenService";
-import { UserResponse } from "../types";
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
+import TokenService from '../services/tokenService';
+import { toast } from 'sonner';
 
-interface AuthContextType {
-  user: UserResponse | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string, remember?: boolean) => Promise<void>;
-  signup: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>;
-  logout: () => Promise<void>;
-  hasRole: (role: string | string[]) => boolean;
-  hasPermission: (permission: string | string[]) => boolean;
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role?: string;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  login: async () => {},
-  signup: async () => {},
-  logout: async () => {},
-  hasRole: () => false,
-  hasPermission: () => false,
-});
+interface LoginCredentials {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
+
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  error: Error | null;
+  isAuthenticated: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+  clearAuthError: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<UserResponse | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const navigate = useNavigate();
+
+  const isAuthenticated = TokenService.validateToken();
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (tokenService.validateToken()) {
+      if (isAuthenticated) {
         try {
-          const userData = await AuthService.getCurrentUser();
+          const userData = await authService.getCurrentUser();
           setUser(userData);
-        } catch (error) {
-          console.error("Auth check failed:", error);
-          tokenService.clearToken();
+        } catch (err) {
+          console.error('Error fetching user data:', err);
+          TokenService.clearToken();
         }
       }
       setIsLoading(false);
     };
 
     checkAuth();
-  }, []);
+  }, [isAuthenticated]);
 
-  const login = async (email: string, password: string, remember = false) => {
+  const login = async (credentials: LoginCredentials) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await AuthService.login({ email, password, remember });
+      const response = await authService.login(credentials);
       setUser(response.user);
-    } catch (error) {
-      console.error("Login failed:", error);
+      navigate('/dashboard');
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to login');
+      setError(error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const signup = async (name: string, email: string, password: string, password_confirmation: string) => {
+  const register = async (data: RegisterData) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await AuthService.register({ name, email, password, password_confirmation });
+      const response = await authService.register(data);
       setUser(response.user);
-    } catch (error) {
-      console.error("Signup failed:", error);
+      navigate('/dashboard');
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to register');
+      setError(error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
+    setIsLoading(true);
     try {
-      await AuthService.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
+      await authService.logout();
       setUser(null);
-      tokenService.clearToken();
+      navigate('/login');
+      toast('Logged out successfully');
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const hasRole = (role: string | string[]) => {
-    if (!user) return false;
-    
-    if (Array.isArray(role)) {
-      return role.some(r => user.roles.includes(r));
-    }
-    
-    return user.roles.includes(role);
-  };
-
-  const hasPermission = (permission: string | string[]) => {
-    if (!user) return false;
-    
-    if (Array.isArray(permission)) {
-      return permission.some(p => user.permissions.includes(p));
-    }
-    
-    return user.permissions.includes(permission);
+  const clearAuthError = () => {
+    setError(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
         isLoading,
+        error,
+        isAuthenticated,
         login,
-        signup,
+        register,
         logout,
-        hasRole,
-        hasPermission,
+        clearAuthError,
       }}
     >
       {children}
@@ -116,4 +131,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

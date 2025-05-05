@@ -1,152 +1,86 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Check, Play } from "lucide-react";
 import { ResponseFormat } from "@/types/ai-configuration";
+import { ArrowLeft } from "lucide-react";
 
-interface FormatPreviewTabProps {
+export interface FormatPreviewTabProps {
   testPrompt: string;
   testResponse: string;
   formatSettings: ResponseFormat;
   onGoToSettings: () => void;
 }
 
-export const FormatPreviewTab = ({ 
-  testPrompt, 
-  testResponse, 
+export function FormatPreviewTab({
+  testPrompt,
+  testResponse,
   formatSettings,
   onGoToSettings
-}: FormatPreviewTabProps) => {
+}: FormatPreviewTabProps) {
   return (
-    <div className="space-y-4 pt-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Format Preview</CardTitle>
-          <CardDescription>
-            See how your AI responses will be formatted
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {testResponse ? (
-            <div className="space-y-4">
-              <div className="p-4 border rounded-md bg-muted/20">
-                <div className="text-sm text-muted-foreground mb-2">
-                  Prompt: {testPrompt}
-                </div>
-                <Separator className="my-2" />
-                <div className="whitespace-pre-wrap">{testResponse}</div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">
-                    Format Settings
-                  </h4>
-                  <ul className="text-sm space-y-1">
-                    <li>
-                      <span className="font-medium">Format:</span>{" "}
-                      {formatSettings.format}
-                    </li>
-                    <li>
-                      <span className="font-medium">Length:</span>{" "}
-                      {formatSettings.length}
-                    </li>
-                    <li>
-                      <span className="font-medium">Tone:</span>{" "}
-                      {formatSettings.tone}
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium mb-2">
-                    Enabled Options
-                  </h4>
-                  <ul className="text-sm space-y-1">
-                    {Object.entries(formatSettings.options).map(
-                      ([key, value]) =>
-                        value && (
-                          <li key={key}>
-                            <Check className="inline h-3 w-3 mr-1 text-green-500" />
-                            {key
-                              .replace(/([A-Z])/g, " $1")
-                              .replace(/^./, (str) => str.toUpperCase())}
-                          </li>
-                        ),
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Play className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>
-                No preview available. Run a test to see the formatted
-                response.
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={onGoToSettings}
-              >
-                Go to Settings
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onGoToSettings}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Settings
+        </Button>
+        <span className="text-sm font-medium">
+          Previewing: {formatSettings.name}
+        </span>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Markdown Support</CardTitle>
-          <CardDescription>
-            Your AI responses support these Markdown elements
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Original Prompt</h3>
+          <div className="bg-muted/50 p-4 rounded-md text-sm">
+            {testPrompt || "No prompt provided"}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Formatted Response</h3>
+          <div className="bg-muted/50 p-4 rounded-md text-sm whitespace-pre-wrap">
+            {testResponse || "No response generated yet"}
+          </div>
+        </div>
+
+        <div className="bg-muted/20 p-4 rounded-md space-y-2">
+          <h3 className="text-sm font-medium">Format Settings Used</h3>
+          <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <h4 className="text-sm font-medium mb-2">Text Formatting</h4>
-              <ul className="text-sm space-y-1">
-                <li>
-                  <code>**Bold**</code> - <strong>Bold</strong>
-                </li>
-                <li>
-                  <code>*Italic*</code> - <em>Italic</em>
-                </li>
-                <li>
-                  <code>~~Strikethrough~~</code> - <s>Strikethrough</s>
-                </li>
-                <li>
-                  <code>`Code`</code> - <code>Code</code>
-                </li>
-              </ul>
+              <span className="text-muted-foreground">Format Type:</span>{" "}
+              {formatSettings.format}
             </div>
             <div>
-              <h4 className="text-sm font-medium mb-2">Structure</h4>
-              <ul className="text-sm space-y-1">
-                <li>
-                  <code># Heading 1</code> - Heading 1
-                </li>
-                <li>
-                  <code>## Heading 2</code> - Heading 2
-                </li>
-                <li>
-                  <code>* Bullet point</code> - Bullet point
-                </li>
-                <li>
-                  <code>1. Numbered list</code> - Numbered list
-                </li>
-                <li>
-                  <code>[Link](url)</code> - Link
-                </li>
-              </ul>
+              <span className="text-muted-foreground">Length:</span>{" "}
+              {formatSettings.length}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Tone:</span>{" "}
+              {formatSettings.tone}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Use Headings:</span>{" "}
+              {formatSettings.options.useHeadings ? "Yes" : "No"}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Use Bullet Points:</span>{" "}
+              {formatSettings.options.useBulletPoints ? "Yes" : "No"}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Include Links:</span>{" "}
+              {formatSettings.options.includeLinks ? "Yes" : "No"}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Format Code Blocks:</span>{" "}
+              {formatSettings.options.formatCodeBlocks ? "Yes" : "No"}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default FormatPreviewTab;
+}
