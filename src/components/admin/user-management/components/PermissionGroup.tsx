@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Permission } from "@/types/ai-configuration";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { 
@@ -82,7 +82,6 @@ export const PermissionGroup = ({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center gap-2 mb-2">
           <CustomCheckbox
-            id={`group-${name}`}
             checked={groupState.checked}
             indeterminate={groupState.indeterminate}
             onCheckedChange={handleGroupToggle}
@@ -101,7 +100,6 @@ export const PermissionGroup = ({
             {permissions.map((permission) => (
               <div key={permission.id} className="flex items-start gap-2">
                 <CustomCheckbox
-                  id={permission.id}
                   checked={selectedPermissions.includes(permission.id)}
                   onCheckedChange={(checked) => 
                     handlePermissionToggle(permission.id, !!checked)
