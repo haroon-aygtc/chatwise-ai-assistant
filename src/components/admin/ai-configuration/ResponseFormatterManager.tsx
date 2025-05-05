@@ -1,4 +1,6 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -26,16 +28,26 @@ import {
   RefreshCw,
   Save,
   Play,
-  AlertCircle,
   Check,
   List,
   Heading,
   Link as LinkIcon,
   Code,
   Type,
+  Loader2,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/components/ui/use-toast";
 import { ResponseFormat } from "@/types/ai-configuration";
+import {
+  getAllResponseFormats,
+  createResponseFormat,
+  updateResponseFormat,
+  deleteResponseFormat,
+  setDefaultResponseFormat,
+  getDefaultResponseFormat,
+  testResponseFormat,
+} from "@/services/response-format";
 
 export interface ResponseFormatterManagerProps {
   standalone?: boolean;
@@ -44,17 +56,17 @@ export interface ResponseFormatterManagerProps {
 export const ResponseFormatterManager = ({
   standalone = false,
 }: ResponseFormatterManagerProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [testPrompt, setTestPrompt] = useState(
-    "Tell me about your product features",
+    "Tell me about your product features"
   );
   const [testResponse, setTestResponse] = useState("");
-  const [isTesting, setIsTesting] = useState(false);
   const [activeTab, setActiveTab] = useState("settings");
 
   const [formatSettings, setFormatSettings] = useState<ResponseFormat>({
-    id: "default",
+    id: "",
     name: "Default Format",
     format: "conversational",
     length: "medium",
@@ -67,36 +79,154 @@ export const ResponseFormatterManager = ({
     },
   });
 
+  // Fetch response formats
+  const { 
+    data: formats, 
+    isLoading: isLoadingFormats,
+    refetch 
+  } = useQuery({
+    queryKey: ['responseFormats'],
+    queryFn: getAllResponseFormats
+  });
+
+  // Fetch default format on initial load
+  useEffect(() => {
+    if (formats && formats.length > 0) {
+      const defaultFormat = formats.find(format => format.isDefault);
+      if (defaultFormat) {
+        setFormatSettings(defaultFormat);
+      } else if (formats.length > 0) {
+        setFormatSettings(formats[0]);
+      }
+    }
+  }, [formats]);
+
+  // Create format mutation
+  const createFormatMutation = useMutation({
+    mutationFn: createResponseFormat,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
+      toast({
+        title: "Format created",
+        description: "Response format has been created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create response format",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update format mutation
+  const updateFormatMutation = useMutation({
+    mutationFn: (format: ResponseFormat) => updateResponseFormat(format.id, format),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
+      toast({
+        title: "Format updated",
+        description: "Response format has been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update response format",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete format mutation
+  const deleteFormatMutation = useMutation({
+    mutationFn: deleteResponseFormat,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
+      toast({
+        title: "Format deleted",
+        description: "Response format has been deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete response format",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Set default format mutation
+  const setDefaultMutation = useMutation({
+    mutationFn: setDefaultResponseFormat,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
+      toast({
+        title: "Default updated",
+        description: "Default response format has been set successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set default format",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Test format mutation
+  const testFormatMutation = useMutation({
+    mutationFn: ({ formatId, prompt }: { formatId: string, prompt: string }) => 
+      testResponseFormat(formatId, prompt),
+    onSuccess: (data) => {
+      setTestResponse(data);
+      setActiveTab("preview");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to test format",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleRefresh = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    refetch();
   };
 
   const handleSave = () => {
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 1000);
+    if (!formatSettings.id || formatSettings.id === "") {
+      // Create new format
+      createFormatMutation.mutate(formatSettings);
+    } else {
+      // Update existing format
+      updateFormatMutation.mutate(formatSettings);
+    }
   };
 
   const handleTest = () => {
-    setIsTesting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setTestResponse(
-        formatSettings.format === "bullet-points"
-          ? "Our product features include:\n\n• **AI-Powered Chat**: Intelligent responses based on your business knowledge\n• **Multi-Channel Support**: Seamless integration with your website, mobile app, and social media\n• **Knowledge Base Integration**: Connect your existing documentation for more accurate responses\n• **Analytics Dashboard**: Track user interactions and identify common questions\n• **Customizable Interface**: Match your brand's look and feel\n\nWould you like more details about any specific feature?"
-          : formatSettings.format === "structured"
-            ? "# Product Features Overview\n\n## AI-Powered Chat\nIntelligent responses based on your business knowledge and customer context.\n\n## Multi-Channel Support\nSeamless integration with your website, mobile app, and social media platforms.\n\n## Knowledge Base Integration\nConnect your existing documentation for more accurate and consistent responses.\n\n## Analytics Dashboard\nTrack user interactions and identify common questions and pain points.\n\n## Customizable Interface\nMatch your brand's look and feel with our flexible design options.\n\nWould you like more details about any specific feature?"
-            : "Our product offers several powerful features designed to enhance your customer experience. The AI-powered chat provides intelligent responses based on your business knowledge. We also offer multi-channel support, allowing seamless integration with your website, mobile app, and social media platforms. With our knowledge base integration, you can connect your existing documentation for more accurate responses. The analytics dashboard helps you track user interactions and identify common questions. Finally, our customizable interface ensures the chat widget matches your brand's look and feel. Would you like more details about any specific feature?",
-      );
-      setIsTesting(false);
-      setActiveTab("preview");
-    }, 1500);
+    if (!formatSettings.id) {
+      // Save first if this is a new format
+      createFormatMutation.mutate(formatSettings, {
+        onSuccess: (newFormat) => {
+          setFormatSettings(newFormat);
+          testFormatMutation.mutate({ 
+            formatId: newFormat.id, 
+            prompt: testPrompt 
+          });
+        }
+      });
+    } else {
+      // Test with existing format
+      testFormatMutation.mutate({ 
+        formatId: formatSettings.id, 
+        prompt: testPrompt 
+      });
+    }
   };
 
   const handleFormatChange = (
@@ -142,17 +272,20 @@ export const ResponseFormatterManager = ({
             <Button
               variant="outline"
               onClick={handleRefresh}
-              disabled={isLoading}
+              disabled={isLoadingFormats}
             >
               <RefreshCw
-                className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                className={`mr-2 h-4 w-4 ${isLoadingFormats ? "animate-spin" : ""}`}
               />
               Refresh
             </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
+            <Button 
+              onClick={handleSave} 
+              disabled={createFormatMutation.isPending || updateFormatMutation.isPending}
+            >
+              {(createFormatMutation.isPending || updateFormatMutation.isPending) ? (
                 <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
                 </>
               ) : (
@@ -185,6 +318,24 @@ export const ResponseFormatterManager = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Format Name</Label>
+                  <Input 
+                    value={formatSettings.name} 
+                    onChange={(e) => setFormatSettings({...formatSettings, name: e.target.value})}
+                    placeholder="Enter a name for this format"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea 
+                    value={formatSettings.description || ''} 
+                    onChange={(e) => setFormatSettings({...formatSettings, description: e.target.value})}
+                    placeholder="Enter a description for this format"
+                  />
+                </div>
+                
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Default Format</Label>
@@ -320,15 +471,50 @@ export const ResponseFormatterManager = ({
                     </div>
                   </div>
                 </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is-default"
+                    checked={formatSettings.isDefault || false}
+                    onCheckedChange={(checked) =>
+                      setFormatSettings({...formatSettings, isDefault: checked})
+                    }
+                  />
+                  <Label htmlFor="is-default" className="font-medium">
+                    Set as Default Format
+                  </Label>
+                </div>
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex justify-between">
+              {formatSettings.id && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to delete this format?")) {
+                      deleteFormatMutation.mutate(formatSettings.id);
+                    }
+                  }}
+                  disabled={deleteFormatMutation.isPending || formatSettings.isDefault}
+                >
+                  {deleteFormatMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Delete Format
+                </Button>
+              )}
               <Button
-                className="ml-auto"
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={createFormatMutation.isPending || updateFormatMutation.isPending}
               >
-                {isSaving ? "Saving..." : "Save Settings"}
+                {(createFormatMutation.isPending || updateFormatMutation.isPending) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Settings"
+                )}
               </Button>
             </CardFooter>
           </Card>
@@ -353,11 +539,11 @@ export const ResponseFormatterManager = ({
                 <div className="flex justify-end">
                   <Button
                     onClick={handleTest}
-                    disabled={isTesting || !testPrompt.trim()}
+                    disabled={testFormatMutation.isPending || !testPrompt.trim()}
                   >
-                    {isTesting ? (
+                    {testFormatMutation.isPending ? (
                       <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Testing...
                       </>
                     ) : (
@@ -370,6 +556,57 @@ export const ResponseFormatterManager = ({
               </div>
             </CardContent>
           </Card>
+          
+          {formats && formats.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Saved Formats</CardTitle>
+                <CardDescription>
+                  Select a format to edit or test
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {formats.map((format) => (
+                    <Card key={format.id} className={format.isDefault ? "border-primary" : ""}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{format.name}</CardTitle>
+                        <CardDescription className="text-xs">{format.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="pb-2">
+                        <div className="text-sm">
+                          <div><span className="font-medium">Format:</span> {format.format}</div>
+                          <div><span className="font-medium">Length:</span> {format.length}</div>
+                          <div><span className="font-medium">Tone:</span> {format.tone}</div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-0">
+                        <div className="flex justify-between w-full">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setFormatSettings(format)}
+                          >
+                            Edit
+                          </Button>
+                          {!format.isDefault && (
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => setDefaultMutation.mutate(format.id)}
+                              disabled={setDefaultMutation.isPending}
+                            >
+                              Set Default
+                            </Button>
+                          )}
+                        </div>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="preview" className="space-y-4 pt-4">
