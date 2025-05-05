@@ -1,12 +1,10 @@
 
 import ApiService from '../api/base';
-import type { ResponseFormat } from '@/types/ai-configuration';
+import { ResponseFormat } from '@/types/ai-configuration';
 
-const BASE_URL = 'response-formats';
-
-export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
+export const getAllFormats = async (options?: { search?: string; type?: string; }): Promise<ResponseFormat[]> => {
   try {
-    const response = await ApiService.get<{ data: ResponseFormat[] }>(`${BASE_URL}`);
+    const response = await ApiService.get<{ data: ResponseFormat[] }>('/ai/response-formats', { params: options });
     return response.data;
   } catch (error) {
     console.error('Error fetching response formats:', error);
@@ -14,9 +12,9 @@ export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
   }
 };
 
-export const getResponseFormatById = async (id: string): Promise<ResponseFormat> => {
+export const getFormatById = async (id: string): Promise<ResponseFormat> => {
   try {
-    const response = await ApiService.get<{ data: ResponseFormat }>(`${BASE_URL}/${id}`);
+    const response = await ApiService.get<{ data: ResponseFormat }>(`/ai/response-formats/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching response format ${id}:`, error);
@@ -24,19 +22,9 @@ export const getResponseFormatById = async (id: string): Promise<ResponseFormat>
   }
 };
 
-export const getDefaultResponseFormat = async (): Promise<ResponseFormat> => {
+export const createFormat = async (format: Omit<ResponseFormat, 'id'>): Promise<ResponseFormat> => {
   try {
-    const response = await ApiService.get<{ data: ResponseFormat }>(`${BASE_URL}/default`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching default response format:', error);
-    throw error;
-  }
-};
-
-export const createResponseFormat = async (format: Partial<ResponseFormat>): Promise<ResponseFormat> => {
-  try {
-    const response = await ApiService.post<{ data: ResponseFormat }>(`${BASE_URL}`, format);
+    const response = await ApiService.post<{ data: ResponseFormat }>('/ai/response-formats', format);
     return response.data;
   } catch (error) {
     console.error('Error creating response format:', error);
@@ -44,9 +32,9 @@ export const createResponseFormat = async (format: Partial<ResponseFormat>): Pro
   }
 };
 
-export const updateResponseFormat = async (id: string, format: Partial<ResponseFormat>): Promise<ResponseFormat> => {
+export const updateFormat = async (id: string, format: Partial<ResponseFormat>): Promise<ResponseFormat> => {
   try {
-    const response = await ApiService.put<{ data: ResponseFormat }>(`${BASE_URL}/${id}`, format);
+    const response = await ApiService.put<{ data: ResponseFormat }>(`/ai/response-formats/${id}`, format);
     return response.data;
   } catch (error) {
     console.error(`Error updating response format ${id}:`, error);
@@ -54,34 +42,35 @@ export const updateResponseFormat = async (id: string, format: Partial<ResponseF
   }
 };
 
-export const deleteResponseFormat = async (id: string): Promise<void> => {
+export const deleteFormat = async (id: string): Promise<void> => {
   try {
-    await ApiService.delete(`${BASE_URL}/${id}`);
+    await ApiService.delete<{ success: boolean }>(`/ai/response-formats/${id}`);
   } catch (error) {
     console.error(`Error deleting response format ${id}:`, error);
     throw error;
   }
 };
 
-export const setDefaultResponseFormat = async (id: string): Promise<ResponseFormat> => {
+export const previewFormat = async (formatId: string, prompt: string): Promise<string> => {
   try {
-    const response = await ApiService.post<{ data: ResponseFormat }>(`${BASE_URL}/${id}/set-default`);
-    return response.data;
+    const response = await ApiService.post<{ data: { result: string } }>(
+      `/ai/response-formats/${formatId}/preview`, 
+      { prompt }
+    );
+    return response.data.result;
   } catch (error) {
-    console.error(`Error setting default response format ${id}:`, error);
+    console.error(`Error previewing format ${formatId}:`, error);
     throw error;
   }
 };
 
-export const testResponseFormat = async (formatId: string, prompt: string): Promise<string> => {
-  try {
-    const response = await ApiService.post<{ data: string }>(`${BASE_URL}/test`, {
-      formatId,
-      prompt
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error testing response format:`, error);
-    throw error;
-  }
+const responseFormatService = {
+  getAllFormats,
+  getFormatById,
+  createFormat,
+  updateFormat,
+  deleteFormat,
+  previewFormat,
 };
+
+export default responseFormatService;
