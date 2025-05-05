@@ -1,1 +1,4 @@
-export * from "./aiModelService";
+
+import aiModelService from './aiModelService';
+
+export { aiModelService };

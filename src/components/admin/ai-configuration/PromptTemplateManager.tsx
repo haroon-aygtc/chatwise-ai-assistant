@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -43,6 +43,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import promptTemplateService from "@/services/prompt-template/promptTemplateService";
 
 export interface PromptTemplateManagerProps {
   standalone?: boolean;
@@ -51,7 +54,9 @@ export interface PromptTemplateManagerProps {
 export const PromptTemplateManager = ({
   standalone = false,
 }: PromptTemplateManagerProps) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -67,63 +72,130 @@ export const PromptTemplateManager = ({
     variables: [],
     isActive: true,
   });
+  const [systemPrompt, setSystemPrompt] = useState(
+    "You are a helpful AI assistant for our company. Your goal is to provide accurate, helpful information to users in a friendly and professional tone."
+  );
 
-  const [templates, setTemplates] = useState<PromptTemplate[]>([
-    {
-      id: "template1",
-      name: "Welcome Message",
-      description: "Initial greeting for new users",
-      template: "Hello {user_name}, welcome to {company_name}! I'm your AI assistant and I'm here to help you with any questions about our products and services.",
-      variables: [
-        { name: "user_name", description: "User's name", required: true, defaultValue: "" },
-        { name: "company_name", description: "Company name", required: true, defaultValue: "" }
-      ],
-      category: "general",
-      isActive: true,
-      isDefault: true,
-    },
-    {
-      id: "template2",
-      name: "Product Information",
-      description: "Details about products and services",
-      template: "Our {product_name} offers the following features: {features}. The pricing starts at {price}. Would you like more specific information about any of these features?",
-      variables: [
-        { name: "product_name", description: "Product name", required: true, defaultValue: "" },
-        { name: "features", description: "Product features", required: true, defaultValue: "" },
-        { name: "price", description: "Product price", required: true, defaultValue: "" }
-      ],
-      category: "products",
-      isActive: true,
-      isDefault: false,
-    },
-    {
-      id: "template3",
-      name: "Technical Support",
-      description: "Handling technical questions",
-      template: "I understand you're having an issue with {issue_description}. Let me help you troubleshoot this. First, could you tell me if you've tried {troubleshooting_step}?",
-      variables: [
-        { name: "issue_description", description: "Description of the issue", required: true, defaultValue: "" },
-        { name: "troubleshooting_step", description: "Initial troubleshooting step", required: true, defaultValue: "" }
-      ],
-      category: "support",
-      isActive: true,
-      isDefault: false,
-    },
-  ]);
+  // Fetch templates
+  const { 
+    data: templatesData, 
+    isLoading, 
+    refetch 
+  } = useQuery({
+    queryKey: ['promptTemplates', { search: searchQuery, category: selectedCategory }],
+    queryFn: () => promptTemplateService.getAllTemplates({
+      search: searchQuery || undefined,
+      category: selectedCategory !== 'all' ? selectedCategory : undefined,
+    }),
+  });
 
-  const categories = [
+  // Fetch categories
+  const { data: categoriesData } = useQuery({
+    queryKey: ['promptTemplateCategories'],
+    queryFn: () => promptTemplateService.getCategories(),
+  });
+
+  // Create template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: (template: any) => promptTemplateService.createTemplate(template),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
+      queryClient.invalidateQueries({ queryKey: ['promptTemplateCategories'] });
+      setShowAddDialog(false);
+      toast({
+        title: "Success",
+        description: "Template created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      promptTemplateService.updateTemplate(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
+      setShowEditDialog(false);
+      setCurrentTemplate(null);
+      toast({
+        title: "Success",
+        description: "Template updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: string) => promptTemplateService.deleteTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
+      toast({
+        title: "Success",
+        description: "Template deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Save system prompt mutation (this would be in a separate service in a real app)
+  const saveSystemPromptMutation = useMutation({
+    mutationFn: (prompt: string) => {
+      // This would call an API endpoint in a real app
+      return new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 500);
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "System prompt saved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save system prompt",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const templates = templatesData?.data || [];
+  const categories = categoriesData || [];
+
+  // Map categories to format expected by component
+  const categoryOptions = [
     { id: "general", name: "General" },
     { id: "products", name: "Products" },
     { id: "support", name: "Support" },
     { id: "sales", name: "Sales" },
+    ...categories
+      .filter((cat) => !["general", "products", "support", "sales"].includes(cat))
+      .map((cat) => ({ id: cat, name: cat.charAt(0).toUpperCase() + cat.slice(1) })),
   ];
 
   const handleRefresh = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    refetch();
   };
 
   const handleAddTemplate = () => {
@@ -144,7 +216,7 @@ export const PromptTemplateManager = ({
   };
 
   const handleDeleteTemplate = (id: string) => {
-    setTemplates(templates.filter((template) => template.id !== id));
+    deleteTemplateMutation.mutate(id);
   };
 
   const handleSaveNewTemplate = () => {
@@ -157,30 +229,36 @@ export const PromptTemplateManager = ({
         defaultValue: "",
       }));
 
-      const template: PromptTemplate = {
-        id: `template${templates.length + 1}`,
+      const templateData = {
         name: newTemplate.name,
         description: newTemplate.description || "",
         template: newTemplate.template,
         variables: extractedVariables,
         category: newTemplate.category || "general",
-        isActive: true,
-        isDefault: false,
+        is_active: true,
+        is_default: false,
       };
 
-      setTemplates([...templates, template]);
-      setShowAddDialog(false);
+      createTemplateMutation.mutate(templateData);
     }
   };
 
   const handleSaveEditedTemplate = () => {
     if (currentTemplate) {
-      const updatedTemplates = templates.map((template) =>
-        template.id === currentTemplate.id ? currentTemplate : template,
-      );
-      setTemplates(updatedTemplates);
-      setShowEditDialog(false);
-      setCurrentTemplate(null);
+      const templateData = {
+        name: currentTemplate.name,
+        description: currentTemplate.description,
+        template: currentTemplate.template,
+        variables: currentTemplate.variables,
+        category: currentTemplate.category,
+        is_active: currentTemplate.isActive,
+        is_default: currentTemplate.isDefault,
+      };
+
+      updateTemplateMutation.mutate({
+        id: currentTemplate.id,
+        data: templateData,
+      });
     }
   };
 
@@ -202,15 +280,11 @@ export const PromptTemplateManager = ({
     }
   };
 
-  const filteredTemplates = templates.filter((template) => {
-    const matchesCategory =
-      selectedCategory === "all" || template.category === selectedCategory;
-    const matchesSearch =
-      searchQuery === "" ||
-      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const handleSaveSystemPrompt = () => {
+    saveSystemPromptMutation.mutate(systemPrompt);
+  };
+
+  const filteredTemplates = templates;
 
   return (
     <div className="space-y-6">
@@ -257,7 +331,7 @@ export const PromptTemplateManager = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
+              {categoryOptions.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
                 </SelectItem>
@@ -270,7 +344,11 @@ export const PromptTemplateManager = ({
         </div>
       </div>
 
-      {filteredTemplates.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredTemplates.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
@@ -317,11 +395,11 @@ export const PromptTemplateManager = ({
                         // Clone template logic
                         const clonedTemplate = {
                           ...template,
-                          id: `template${templates.length + 1}`,
                           name: `${template.name} (Copy)`,
                           isDefault: false,
                         };
-                        setTemplates([...templates, clonedTemplate]);
+                        delete clonedTemplate.id;
+                        createTemplateMutation.mutate(clonedTemplate);
                       }}
                     >
                       <Copy className="h-4 w-4" />
@@ -342,15 +420,15 @@ export const PromptTemplateManager = ({
                 <div className="space-y-4">
                   <div className="p-4 bg-muted rounded-md">
                     <pre className="whitespace-pre-wrap text-sm">
-                      {template.content}
+                      {template.template}
                     </pre>
                   </div>
                   <div>
                     <Label>Variables</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {template.variables.map((variable) => (
-                        <Badge key={variable} variant="outline">
-                          {variable}
+                      {template.variables && template.variables.map((variable) => (
+                        <Badge key={variable.name} variant="outline">
+                          {variable.name}
                         </Badge>
                       ))}
                     </div>
@@ -360,7 +438,7 @@ export const PromptTemplateManager = ({
               <CardFooter>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Tag className="mr-2 h-4 w-4" />
-                  {categories.find((c) => c.id === template.category)?.name ||
+                  {categoryOptions.find((c) => c.id === template.category)?.name ||
                     "General"}
                 </div>
               </CardFooter>
@@ -380,18 +458,32 @@ export const PromptTemplateManager = ({
           <div className="space-y-4">
             <Textarea
               rows={6}
-              defaultValue="You are a helpful AI assistant for our company. Your goal is to provide accurate, helpful information to users in a friendly and professional tone."
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>
                 Use variables like {"{company_name}"} or {"{user_name}"}
               </span>
-              <span>Characters: 142</span>
+              <span>Characters: {systemPrompt.length}</span>
             </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button className="ml-auto">Save System Prompt</Button>
+          <Button 
+            className="ml-auto" 
+            onClick={handleSaveSystemPrompt}
+            disabled={saveSystemPromptMutation.isPending}
+          >
+            {saveSystemPromptMutation.isPending ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save System Prompt'
+            )}
+          </Button>
         </CardFooter>
       </Card>
 
@@ -448,7 +540,7 @@ export const PromptTemplateManager = ({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
+                  {categoryOptions.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
@@ -457,16 +549,16 @@ export const PromptTemplateManager = ({
               </Select>
             </div>
             <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="content" className="text-right pt-2">
+              <Label htmlFor="template" className="text-right pt-2">
                 Content
               </Label>
               <div className="col-span-3 space-y-2">
                 <Textarea
-                  id="content"
+                  id="template"
                   rows={6}
-                  value={newTemplate.content}
+                  value={newTemplate.template}
                   onChange={(e) =>
-                    setNewTemplate({ ...newTemplate, content: e.target.value })
+                    setNewTemplate({ ...newTemplate, template: e.target.value })
                   }
                   placeholder="Enter your prompt template here. Use {variable_name} for variables."
                 />
@@ -487,9 +579,16 @@ export const PromptTemplateManager = ({
             <Button
               type="button"
               onClick={handleSaveNewTemplate}
-              disabled={!newTemplate.name || !newTemplate.content}
+              disabled={!newTemplate.name || !newTemplate.template || createTemplateMutation.isPending}
             >
-              Save Template
+              {createTemplateMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Template'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -553,7 +652,7 @@ export const PromptTemplateManager = ({
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
+                    {categoryOptions.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
                       </SelectItem>
@@ -562,22 +661,22 @@ export const PromptTemplateManager = ({
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="edit-content" className="text-right pt-2">
+                <Label htmlFor="edit-template" className="text-right pt-2">
                   Content
                 </Label>
                 <div className="col-span-3 space-y-2">
                   <Textarea
-                    id="edit-content"
+                    id="edit-template"
                     rows={6}
-                    value={currentTemplate.content}
+                    value={currentTemplate.template}
                     onChange={(e) => handleVariableChange(e.target.value)}
                   />
                   <div>
                     <Label>Variables (automatically detected)</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {currentTemplate.variables.map((variable) => (
-                        <Badge key={variable} variant="outline">
-                          {variable}
+                      {currentTemplate.variables && currentTemplate.variables.map((variable) => (
+                        <Badge key={variable.name} variant="outline">
+                          {variable.name}
                         </Badge>
                       ))}
                     </div>
@@ -600,10 +699,18 @@ export const PromptTemplateManager = ({
               disabled={
                 !currentTemplate ||
                 !currentTemplate.name ||
-                !currentTemplate.content
+                !currentTemplate.template ||
+                updateTemplateMutation.isPending
               }
             >
-              Save Changes
+              {updateTemplateMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

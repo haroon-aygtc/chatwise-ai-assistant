@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             ActivityLogSeeder::class,
             KnowledgeBaseSeeder::class,
+            PromptTemplateSeeder::class,
         ]);
     }
 }
