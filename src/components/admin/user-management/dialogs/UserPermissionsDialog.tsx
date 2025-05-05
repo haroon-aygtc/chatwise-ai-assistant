@@ -1,103 +1,101 @@
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { User } from "@/types/user";
+import { PermissionCategory } from "@/types/ai-configuration";
+import { PermissionManagement } from "../components/PermissionManagement";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import PermissionManagement from "../components/PermissionManagement";
-import { PermissionCategory } from "@/types";
-import PermissionService from "@/services/permission/permissionService";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface UserPermissionsDialogProps {
+  user: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userId: string;
-  userName: string;
+  onSave: (userId: string, permissions: string[]) => Promise<void>;
+  permissionCategories: PermissionCategory[];
 }
 
 export function UserPermissionsDialog({
+  user,
   open,
   onOpenChange,
-  userId,
-  userName,
+  onSave,
+  permissionCategories,
 }: UserPermissionsDialogProps) {
-  const [loading, setLoading] = useState(false);
-  const [permissionCategories, setPermissionCategories] = useState<PermissionCategory[]>([]);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
+  // Set initial permissions when dialog opens
   useEffect(() => {
-    if (open) {
-      loadPermissionsData();
+    if (open && user.permissions) {
+      setSelectedPermissions(user.permissions);
     }
-  }, [open, userId]);
-
-  const loadPermissionsData = async () => {
-    setLoading(true);
-    try {
-      // Load permission categories
-      const categories = await PermissionService.getPermissionsByCategory();
-      setPermissionCategories(categories);
-      
-      // TODO: Load user's current permissions when endpoint is available
-      // const userPermissions = await userService.getUserPermissions(userId);
-      // setSelectedPermissions(userPermissions);
-      
-    } catch (error) {
-      console.error("Failed to load permissions:", error);
-      toast.error("Failed to load permissions");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [open, user]);
 
   const handleSave = async () => {
-    setLoading(true);
+    setIsLoading(true);
     try {
-      // TODO: Implement save permissions API call when endpoint is available
-      // await userService.updateUserPermissions(userId, selectedPermissions);
-      toast.success("User permissions updated successfully");
+      await onSave(user.id, selectedPermissions);
+      toast({
+        title: "Permissions updated",
+        description: `Permissions for ${user.name} have been updated successfully.`,
+      });
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to update permissions:", error);
-      toast.error("Failed to update permissions");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update permissions. Please try again.",
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Manage Permissions for {userName}</DialogTitle>
+          <DialogTitle>Edit User Permissions</DialogTitle>
+          <DialogDescription>
+            Manage permissions for <span className="font-medium">{user.name}</span>
+          </DialogDescription>
         </DialogHeader>
-        
-        <ScrollArea className="h-[60vh] mt-4">
-          {loading ? (
-            <div className="flex items-center justify-center h-40">
-              Loading permissions...
-            </div>
-          ) : (
-            <PermissionManagement
-              permissionCategories={permissionCategories}
-              selectedPermissions={selectedPermissions}
-              onChange={setSelectedPermissions}
-            />
-          )}
-        </ScrollArea>
-        
+
+        <div className="py-4 max-h-[60vh] overflow-y-auto">
+          <PermissionManagement
+            permissionCategories={permissionCategories}
+            selectedPermissions={selectedPermissions}
+            onChange={setSelectedPermissions}
+          />
+        </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Saving..." : "Save Changes"}
+          <Button onClick={handleSave} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
