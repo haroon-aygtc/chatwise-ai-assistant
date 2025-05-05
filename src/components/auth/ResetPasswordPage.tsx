@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { resetPassword } from "@/services/auth";
-import { ApiError } from "@/services/api/base";
+import { ApiError } from "@/services/api/errors";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";

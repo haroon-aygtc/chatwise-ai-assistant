@@ -1,44 +1,37 @@
 
 import * as React from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { cn } from "@/lib/utils";
-import { type CheckedState } from "@radix-ui/react-checkbox";
+import { Check, Minus } from "lucide-react";
 
-export interface CustomCheckboxProps {
-  checked?: CheckedState;
-  onCheckedChange?: (checked: CheckedState) => void;
-  disabled?: boolean;
-  className?: string;
+export interface CustomCheckboxProps
+  extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
   indeterminate?: boolean;
 }
 
 export const CustomCheckbox = React.forwardRef<
-  HTMLButtonElement,
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
   CustomCheckboxProps
 >(({ className, indeterminate, ...props }, ref) => {
-  const innerRef = React.useRef<HTMLButtonElement>(null);
-  const resolvedRef = (ref || innerRef) as React.RefObject<HTMLButtonElement>;
-
-  React.useEffect(() => {
-    if (
-      resolvedRef.current &&
-      typeof indeterminate === "boolean" &&
-      "indeterminate" in resolvedRef.current
-    ) {
-      // This is a bit hacky, but it's the only way to set the indeterminate property
-      (resolvedRef.current as any).indeterminate = indeterminate;
-    }
-  }, [resolvedRef, indeterminate]);
-
   return (
-    <Checkbox
-      ref={resolvedRef}
+    <CheckboxPrimitive.Root
+      ref={ref}
       className={cn(
-        indeterminate && "bg-primary/50 text-primary-foreground",
+        "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
         className
       )}
       {...props}
-    />
+    >
+      <CheckboxPrimitive.Indicator
+        className={cn("flex items-center justify-center text-current")}
+      >
+        {indeterminate ? (
+          <Minus className="h-3 w-3" />
+        ) : (
+          <Check className="h-3 w-3" />
+        )}
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
   );
 });
 

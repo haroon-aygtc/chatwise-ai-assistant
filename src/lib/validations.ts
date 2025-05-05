@@ -1,5 +1,7 @@
 
-// Validation result interface
+/**
+ * Result of a validation check
+ */
 export interface ValidationResult {
   isValid: boolean;
   message: string;
@@ -7,62 +9,132 @@ export interface ValidationResult {
 }
 
 /**
- * Validates that a value is not empty
- */
-export const validateRequired = (value: any): ValidationResult => {
-  const isValid = value !== undefined && value !== null && value !== '';
-  return {
-    isValid,
-    message: isValid ? '' : 'This field is required',
-    error: isValid ? undefined : 'This field is required'
-  };
-};
-
-/**
- * Validates that a value is a valid email
+ * Validate an email address
  */
 export const validateEmail = (email: string): ValidationResult => {
+  if (!email) {
+    return {
+      isValid: false,
+      message: "Email is required",
+      error: "Email is required"
+    };
+  }
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const isValid = emailRegex.test(email);
+  if (!emailRegex.test(email)) {
+    return {
+      isValid: false,
+      message: "Please enter a valid email address",
+      error: "Invalid email format"
+    };
+  }
+
   return {
-    isValid,
-    message: isValid ? '' : 'Please enter a valid email address',
-    error: isValid ? undefined : 'Please enter a valid email address'
+    isValid: true,
+    message: ""
   };
 };
 
 /**
- * Validates that a password meets minimum requirements
+ * Validate a password
  */
 export const validatePassword = (password: string): ValidationResult => {
-  const isValid = password.length >= 8;
+  if (!password) {
+    return {
+      isValid: false,
+      message: "Password is required",
+      error: "Password is required"
+    };
+  }
+
+  if (password.length < 8) {
+    return {
+      isValid: false,
+      message: "Password must be at least 8 characters",
+      error: "Password too short"
+    };
+  }
+
   return {
-    isValid,
-    message: isValid ? '' : 'Password must be at least 8 characters long',
-    error: isValid ? undefined : 'Password must be at least 8 characters long'
+    isValid: true,
+    message: ""
   };
 };
 
 /**
- * Validates that passwords match
+ * Validate password confirmation
  */
-export const validatePasswordMatch = (password: string, confirmPassword: string): ValidationResult => {
-  const isValid = password === confirmPassword;
+export const validatePasswordConfirmation = (password: string, confirmation: string): ValidationResult => {
+  if (!confirmation) {
+    return {
+      isValid: false,
+      message: "Please confirm your password",
+      error: "Confirmation required"
+    };
+  }
+
+  if (password !== confirmation) {
+    return {
+      isValid: false,
+      message: "Passwords do not match",
+      error: "Passwords don't match"
+    };
+  }
+
   return {
-    isValid,
-    message: isValid ? '' : 'Passwords do not match',
-    error: isValid ? undefined : 'Passwords do not match'
+    isValid: true,
+    message: ""
   };
 };
 
 /**
- * Validates a phone number
+ * Validate a name
  */
-export const validatePhoneNumber = (phone: string, isValid: boolean): ValidationResult => {
+export const validateName = (name: string): ValidationResult => {
+  if (!name) {
+    return {
+      isValid: false,
+      message: "Name is required",
+      error: "Name is required"
+    };
+  }
+
+  if (name.length < 2) {
+    return {
+      isValid: false,
+      message: "Name must be at least 2 characters",
+      error: "Name too short"
+    };
+  }
+
   return {
-    isValid: isValid && phone.length > 0,
-    message: (isValid && phone.length > 0) ? '' : 'Please enter a valid phone number',
-    error: (isValid && phone.length > 0) ? undefined : 'Please enter a valid phone number'
+    isValid: true,
+    message: ""
   };
 };
 
+/**
+ * Validate a URL
+ */
+export const validateUrl = (url: string): ValidationResult => {
+  if (!url) {
+    return {
+      isValid: true, // URLs can be optional
+      message: ""
+    };
+  }
+
+  try {
+    new URL(url);
+    return {
+      isValid: true,
+      message: ""
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      message: "Please enter a valid URL",
+      error: "Invalid URL format"
+    };
+  }
+};

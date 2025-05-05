@@ -234,8 +234,8 @@ const RolesPermissions = () => {
     }
   };
 
-  // Delete a role
-  const handleDeleteRole = async (id: string) => {
+  // Execute role deletion
+  const executeRoleDeletion = async (id: string) => {
     try {
       await RoleService.deleteRole(id);
       
@@ -442,7 +442,7 @@ const RolesPermissions = () => {
           open={showDeleteRoleDialog}
           onOpenChange={setShowDeleteRoleDialog}
           role={selectedRole}
-          onSuccess={() => handleDeleteRole(selectedRole.id)}
+          onSuccess={() => executeRoleDeletion(selectedRole.id)}
         />
       )}
     </>
