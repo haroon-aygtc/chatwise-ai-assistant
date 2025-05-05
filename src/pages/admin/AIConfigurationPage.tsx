@@ -7,7 +7,8 @@ import {
   FollowUpManager, 
   KnowledgeBaseManager, 
   RoutingRules, 
-  PromptTemplateManager 
+  PromptTemplateManager,
+  DataSourcesManager
 } from "../../components/admin/ai-configuration";
 import { ResponseFormatterManager } from "../../components/admin/ai-configuration/response-formats";
 import { useToast } from "@/components/ui/use-toast";
@@ -100,8 +101,9 @@ const AIConfigurationPage = () => {
           <TabsTrigger value="formatter">Response Formatter</TabsTrigger>
           <TabsTrigger value="branding">Branding Engine</TabsTrigger>
           <TabsTrigger value="followup">Follow-Up Suggestions</TabsTrigger>
-          <TabsTrigger value="routing">Routing Rules</TabsTrigger>
+          <TabsTrigger value="data-sources">Data Sources</TabsTrigger>
           <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+          <TabsTrigger value="routing">Routing Rules</TabsTrigger>
         </TabsList>
         <TabsContent value="models" className="space-y-4">
           <AIModelManager />
@@ -118,6 +120,12 @@ const AIConfigurationPage = () => {
         <TabsContent value="followup" className="space-y-4">
           <FollowUpManager />
         </TabsContent>
+        <TabsContent value="data-sources" className="space-y-4">
+          <DataSourcesManager />
+        </TabsContent>
+        <TabsContent value="knowledge" className="space-y-4">
+          <KnowledgeBaseManager />
+        </TabsContent>
         <TabsContent value="routing" className="space-y-4">
           <RoutingRules 
             models={models}
@@ -126,9 +134,6 @@ const AIConfigurationPage = () => {
             onUpdateRules={handleUpdateRules}
             onDeleteRule={handleDeleteRule}
           />
-        </TabsContent>
-        <TabsContent value="knowledge" className="space-y-4">
-          <KnowledgeBaseManager />
         </TabsContent>
       </Tabs>
     </div>

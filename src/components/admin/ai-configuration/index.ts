@@ -1,16 +1,8 @@
 
-import AIModelManager from './AIModelManager';
-import BrandingEngineManager from './BrandingEngineManager';
-import FollowUpManager from './FollowUpManager';
-import KnowledgeBaseManager from './KnowledgeBaseManager';
-import { RoutingRules } from './RoutingRules';
-import { PromptTemplateManager } from './prompt-templates';
-
-export {
-  AIModelManager,
-  BrandingEngineManager,
-  FollowUpManager,
-  KnowledgeBaseManager,
-  RoutingRules,
-  PromptTemplateManager,
-};
+export { default as AIModelManager } from "./AIModelManager";
+export { default as BrandingEngineManager } from "./BrandingEngineManager";
+export { default as FollowUpManager } from "./FollowUpManager";
+export { default as KnowledgeBaseManager } from "./KnowledgeBaseManager";
+export { default as RoutingRules } from "./RoutingRules";
+export { default as PromptTemplateManager } from "./prompt-templates/PromptTemplateManager";
+export { default as DataSourcesManager } from "./data-sources/DataSourcesManager";
