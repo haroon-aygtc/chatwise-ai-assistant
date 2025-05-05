@@ -60,13 +60,13 @@ export function FormField({
     <div className="space-y-2">
       <Label
         htmlFor={id}
-        className={`text-gray-300 ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ""}`}
+        className={`text-foreground ${required ? "after:content-['*'] after:ml-0.5 after:text-destructive" : ""}`}
       >
         {label}
       </Label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
             {icon}
           </div>
         )}
@@ -80,15 +80,15 @@ export function FormField({
           autoComplete={autoComplete}
           className={`${
             icon ? "pl-10" : ""
-          } h-12 bg-[#131B2E] border-[#2A3349] ${
+          } h-12 bg-background border-input ${
             hasError
-              ? "border-red-500 focus:border-red-500"
-              : "focus:border-gray-500"
-          } text-white ${className}`}
+              ? "border-destructive focus:border-destructive"
+              : "focus:border-primary"
+          } text-foreground ${className}`}
         />
       </div>
       {hasError && (
-        <p className="text-red-500 text-xs mt-1">{validationResult.error}</p>
+        <p className="text-destructive text-xs mt-1">{validationResult.error}</p>
       )}
     </div>
   );
