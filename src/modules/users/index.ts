@@ -1,4 +1,5 @@
 
-// Public exports from the users module
-export * from './types';
-export * from './services/userService';
+import userService from './services/userService';
+
+export { userService };
+export default userService;

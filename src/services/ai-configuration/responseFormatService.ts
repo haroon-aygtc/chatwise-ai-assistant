@@ -7,7 +7,7 @@ import { ResponseFormat } from "@/types/ai-configuration";
  */
 export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
   try {
-    const response = await ApiService.get('/response-formats');
+    const response = await ApiService.get<{ data: ResponseFormat[] }>('/response-formats');
     return response.data || [];
   } catch (error) {
     console.error('Error fetching response formats:', error);
@@ -19,16 +19,16 @@ export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
  * Create a new response format
  */
 export const createResponseFormat = async (format: Omit<ResponseFormat, 'id'>): Promise<ResponseFormat> => {
-  const response = await ApiService.post('/response-formats', format);
-  return response.data;
+  const response = await ApiService.post<ResponseFormat>('/response-formats', format);
+  return response;
 };
 
 /**
  * Update an existing response format
  */
 export const updateResponseFormat = async (id: string, format: Partial<ResponseFormat>): Promise<ResponseFormat> => {
-  const response = await ApiService.put(`/response-formats/${id}`, format);
-  return response.data;
+  const response = await ApiService.put<ResponseFormat>(`/response-formats/${id}`, format);
+  return response;
 };
 
 /**
@@ -42,7 +42,7 @@ export const deleteResponseFormat = async (id: string): Promise<void> => {
  * Set a response format as default
  */
 export const setDefaultResponseFormat = async (id: string): Promise<void> => {
-  await ApiService.post(`/response-formats/${id}/set-default`);
+  await ApiService.post(`/response-formats/${id}/set-default`, {});
 };
 
 /**
@@ -52,8 +52,8 @@ export const testResponseFormat = async (
   formatId: string,
   content: string
 ): Promise<{ formatted: string }> => {
-  const response = await ApiService.post(`/response-formats/${formatId}/test`, { content });
-  return response.data;
+  const response = await ApiService.post<{ formatted: string }>(`/response-formats/${formatId}/test`, { content });
+  return response;
 };
 
 const responseFormatService = {

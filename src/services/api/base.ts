@@ -1,147 +1,128 @@
 
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { tokenService } from '../auth/tokenService';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import TokenService from '@/modules/auth/services/tokenService';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Create a custom Axios instance
+const api: AxiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  withCredentials: true,
+});
 
-interface ApiConfig {
-  baseURL?: string;
-  timeout?: number;
-  withCredentials?: boolean;
-}
-
-interface RequestOptions {
-  withAuth?: boolean;
-}
-
-class ApiService {
-  private static instance = axios.create({
-    baseURL: API_URL,
-    timeout: 30000,
-    withCredentials: true,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-  });
-
-  /**
-   * Initialize API service
-   */
-  static init(config: ApiConfig = {}) {
-    this.instance = axios.create({
-      baseURL: config.baseURL || API_URL,
-      timeout: config.timeout || 30000,
-      withCredentials: config.withCredentials !== undefined ? config.withCredentials : true,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    });
-
-    // Add request interceptor to include auth token
-    this.instance.interceptors.request.use(
-      async (config) => {
-        // Check if token is expired before making the request
-        if (tokenService.isTokenExpired()) {
-          console.log("Token is expired or will expire soon, attempting to refresh");
-          
-          // For now we just clear the token and redirect to login
-          // In a more advanced implementation, you could add a token refresh mechanism here
-          tokenService.clearToken();
-          window.location.href = '/login';
-          
-          // Reject the request
-          return Promise.reject(new Error('Token expired'));
-        }
-        
-        const token = tokenService.getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    // Add response interceptor to handle common errors
-    this.instance.interceptors.response.use(
-      (response) => response.data,
-      (error) => {
-        if (error.response) {
-          // Handle unauthorized errors (401)
-          if (error.response.status === 401) {
-            tokenService.clearToken();
-            // Redirect to login page or dispatch logout action
-            window.location.href = '/login';
-          }
-          
-          // Return the error data from the API
-          return Promise.reject(error.response.data);
-        }
-        
-        // Network errors or other issues
-        return Promise.reject({
-          message: error.message || 'Network error occurred',
-        });
-      }
-    );
-  }
-
-  /**
-   * GET request
-   */
-  static async get<T>(endpoint: string, params: Record<string, any> = {}, options: RequestOptions = { withAuth: true }): Promise<T> {
-    const config: AxiosRequestConfig = {
-      params,
-    };
+// Add a request interceptor
+api.interceptors.request.use(
+  (config) => {
+    // Add token to request headers if it exists
+    const token = TokenService.getToken();
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     
-    return this.instance.get<any, T>(endpoint, config);
-  }
-
-  /**
-   * GET request that returns a Blob (for file downloads)
-   */
-  static async getBlob(endpoint: string, params: Record<string, any> = {}, options: RequestOptions = { withAuth: true }): Promise<Blob> {
-    const config: AxiosRequestConfig = {
-      params,
-      responseType: 'blob',
-    };
+    // Add CSRF token for non-GET requests if using Laravel
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken && config.method !== 'get') {
+      config.headers['X-CSRF-TOKEN'] = csrfToken;
+    }
     
-    const response = await this.instance.get(endpoint, config);
-    return response as unknown as Blob;
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
+
+// Add a response interceptor
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    // Handle 401 Unauthorized errors
+    if (error.response && error.response.status === 401) {
+      // Clear token and redirect to login
+      TokenService.clearToken();
+      window.location.href = '/login';
+    }
+    
+    // Handle 419 CSRF token mismatch (Laravel)
+    if (error.response && error.response.status === 419) {
+      // Refresh the page to get a new CSRF token
+      window.location.reload();
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Generic API service functions
+const ApiService = {
+  /**
+   * Make a GET request
+   */
+  get: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response: AxiosResponse = await api.get(url, config);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   /**
-   * POST request
+   * Make a POST request
    */
-  static async post<T>(endpoint: string, data: any, options: RequestOptions = { withAuth: true }): Promise<T> {
-    return this.instance.post<any, T>(endpoint, data);
-  }
+  post: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response: AxiosResponse = await api.post(url, data, config);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   /**
-   * PUT request
+   * Make a PUT request
    */
-  static async put<T>(endpoint: string, data: any, options: RequestOptions = { withAuth: true }): Promise<T> {
-    return this.instance.put<any, T>(endpoint, data);
-  }
+  put: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response: AxiosResponse = await api.put(url, data, config);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   /**
-   * PATCH request
+   * Make a DELETE request
    */
-  static async patch<T>(endpoint: string, data: any, options: RequestOptions = { withAuth: true }): Promise<T> {
-    return this.instance.patch<any, T>(endpoint, data);
-  }
+  delete: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response: AxiosResponse = await api.delete(url, config);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   /**
-   * DELETE request
+   * Make a PATCH request
    */
-  static async delete<T>(endpoint: string, options: RequestOptions = { withAuth: true }): Promise<T> {
-    return this.instance.delete<any, T>(endpoint);
-  }
-}
+  patch: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response: AxiosResponse = await api.patch(url, data, config);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
-// Initialize the API service
-ApiService.init();
+  /**
+   * Get the underlying Axios instance
+   */
+  getAxiosInstance: () => api,
+};
 
 export default ApiService;

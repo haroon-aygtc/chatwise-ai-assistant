@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -75,6 +74,33 @@ const RolesPermissions = () => {
     await deleteRole(id);
   };
 
+  // Update only the onCreateRole function to make it return void:
+  const handleCreateRole = async (
+    name: string,
+    description: string,
+    permissions: string[]
+  ): Promise<void> => {
+    try {
+      setIsCreating(true);
+      await roleService.createRole(name, description, permissions);
+      toast({
+        title: 'Role created',
+        description: `Role "${name}" has been created successfully.`,
+      });
+      fetchRoles();
+      setShowCreateDialog(false);
+    } catch (error) {
+      console.error('Error creating role:', error);
+      toast({
+        title: 'Failed to create role',
+        description: 'There was an error creating the role. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <>
       <Card>
@@ -129,7 +155,7 @@ const RolesPermissions = () => {
       <CreateRoleDialog
         open={showCreateRoleDialog}
         onOpenChange={setShowCreateRoleDialog}
-        onCreateRole={createRole}
+        onCreateRole={handleCreateRole}
         permissionCategories={permissionCategories}
       />
 

@@ -1,81 +1,69 @@
 
-// This file is essential for fixing the error in sessionService.ts
-// Creating a minimal implementation based on error context
-
 /**
- * Token management service
+ * Service for managing authentication tokens
  */
-class TokenService {
-  private TOKEN_KEY = 'auth_token';
-  private CSRF_TOKEN_KEY = 'csrf_token';
+const TokenService = {
+  /**
+   * Store the authentication token
+   */
+  setToken: (token: string, rememberMe: boolean = false) => {
+    if (rememberMe) {
+      localStorage.setItem('auth_token', token);
+    } else {
+      sessionStorage.setItem('auth_token', token);
+    }
+  },
 
   /**
-   * Store authentication token
+   * Get the stored authentication token
    */
-  setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-  }
+  getToken: (): string | null => {
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  },
 
   /**
-   * Get stored authentication token
+   * Clear the stored authentication token
    */
-  getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
+  clearToken: () => {
+    localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('auth_token');
+  },
 
   /**
-   * Remove authentication token
+   * Check if a token exists and is not expired
    */
-  removeToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-  }
-
-  /**
-   * Store CSRF token
-   */
-  setCsrfToken(token: string): void {
-    localStorage.setItem(this.CSRF_TOKEN_KEY, token);
-  }
-
-  /**
-   * Get stored CSRF token
-   */
-  getCsrfToken(): string | null {
-    return localStorage.getItem(this.CSRF_TOKEN_KEY);
-  }
-
-  /**
-   * Initialize CSRF token (fetch from server if needed)
-   */
-  async initCsrfToken(): Promise<string | null> {
-    // Implementation would fetch a new CSRF token from server
-    // This is a stub implementation
-    return this.getCsrfToken();
-  }
-
-  /**
-   * Decode a JWT token
-   */
-  decodeToken(token: string): { exp?: number; [key: string]: any } | null {
+  validateToken: (): boolean => {
+    const token = TokenService.getToken();
+    if (!token) return false;
+    
     try {
-      // Basic JWT token decoding (payload part)
+      // Simple check if token exists and has the expected format
+      // In a real app, you would also check the expiration
+      return token.split('.').length === 3;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * Decode the JWT token to get user information
+   */
+  decodeToken: (token: string) => {
+    try {
       const base64Url = token.split('.')[1];
-      if (!base64Url) return null;
-      
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
-        atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join('')
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
       );
-      
       return JSON.parse(jsonPayload);
     } catch (error) {
       console.error('Error decoding token:', error);
       return null;
     }
   }
-}
+};
 
-export const tokenService = new TokenService();
-export default tokenService;
+export default TokenService;

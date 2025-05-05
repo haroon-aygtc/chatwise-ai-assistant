@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Search, Calendar, Download, RefreshCw, User, Filter } from "lucide-react";
@@ -82,7 +81,10 @@ const ActivityLog = () => {
   const [lastPage, setLastPage] = useState(1);
   const [actionTypes, setActionTypes] = useState<string[]>([]);
   const [isLoadingActionTypes, setIsLoadingActionTypes] = useState(false);
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(),
+    to: undefined
+  });
 
   // Fetch activity logs
   const fetchLogs = async () => {
