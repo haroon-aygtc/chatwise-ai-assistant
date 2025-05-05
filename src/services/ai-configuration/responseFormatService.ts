@@ -56,7 +56,7 @@ export const testResponseFormat = async (
   return response;
 };
 
-const responseFormatService = {
+export const responseFormatService = {
   getAllResponseFormats,
   createResponseFormat,
   updateResponseFormat,

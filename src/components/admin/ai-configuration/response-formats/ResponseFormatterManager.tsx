@@ -7,7 +7,7 @@ import { SavedFormatsCard } from './SavedFormatsCard';
 import { TestPromptCard } from './TestPromptCard';
 import { PreviewCard } from './PreviewCard';
 import { FormatPreviewTab } from './FormatPreviewTab';
-import { responseFormatService } from '@/services/response-format';
+import { responseFormatService } from '@/services/ai-configuration/responseFormatService';
 import { ResponseFormat } from '@/types/ai-configuration';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -232,6 +232,7 @@ export const ResponseFormatterManager = () => {
             onSelectFormat={handleSelectFormat}
             onSetDefault={handleSetDefault}
             isSettingDefault={isSettingDefault}
+            isLoading={isLoading}
           />
         </div>
 
@@ -276,3 +277,5 @@ export const ResponseFormatterManager = () => {
     </div>
   );
 };
+
+export default ResponseFormatterManager;

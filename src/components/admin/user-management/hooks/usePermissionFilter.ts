@@ -1,42 +1,46 @@
 
-import { useState, useMemo } from 'react';
-import { Permission } from '@/types/user';
+import { useState, useEffect, useMemo } from 'react';
+import { PermissionCategory, Permission } from '@/types';
 
-export function usePermissionFilter(permissions: Permission[]) {
+export function usePermissionFilter(categories: PermissionCategory[]) {
   const [searchQuery, setSearchQuery] = useState('');
-
-  const filteredPermissions = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return permissions;
-    }
-
-    const query = searchQuery.toLowerCase();
-    return permissions.filter(
-      (permission) =>
-        permission.name.toLowerCase().includes(query) ||
-        permission.category.toLowerCase().includes(query) ||
-        permission.description.toLowerCase().includes(query)
-    );
-  }, [permissions, searchQuery]);
-
-  // Group filtered permissions by category
+  const [activeCategory, setActiveCategory] = useState('all');
+  
   const permissionsByCategory = useMemo(() => {
-    return filteredPermissions.reduce<Record<string, Permission[]>>(
-      (acc, permission) => {
-        if (!acc[permission.category]) {
-          acc[permission.category] = [];
-        }
-        acc[permission.category].push(permission);
-        return acc;
-      },
-      {}
-    );
-  }, [filteredPermissions]);
-
+    const result: Record<string, Permission[]> = {};
+    
+    // Filter permissions based on search query
+    const filterPermissions = (permissions: Permission[]) => {
+      if (!searchQuery) return permissions;
+      return permissions.filter(p => 
+        p.displayName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    };
+    
+    // Process each category
+    categories.forEach(category => {
+      const filteredPermissions = filterPermissions(category.permissions);
+      if (filteredPermissions.length > 0) {
+        result[category.name] = filteredPermissions;
+      }
+    });
+    
+    return result;
+  }, [categories, searchQuery]);
+  
+  // Reset active category if it no longer exists after filtering
+  useEffect(() => {
+    if (activeCategory !== 'all' && !Object.keys(permissionsByCategory).includes(activeCategory)) {
+      setActiveCategory('all');
+    }
+  }, [permissionsByCategory, activeCategory]);
+  
   return {
     searchQuery,
     setSearchQuery,
-    filteredPermissions,
     permissionsByCategory,
+    activeCategory,
+    setActiveCategory
   };
 }

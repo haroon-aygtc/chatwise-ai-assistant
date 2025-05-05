@@ -15,7 +15,8 @@ export interface User {
 export interface Permission {
   id: string;
   name: string;
-  description: string;
+  displayName: string;
+  description?: string;
   category: string;
   createdAt?: string;
   updatedAt?: string;
@@ -48,6 +49,6 @@ export interface EditedUser {
 }
 
 export interface DateRange {
-  from: Date;
-  to?: Date;
+  from: Date | undefined;
+  to?: Date | undefined;
 }

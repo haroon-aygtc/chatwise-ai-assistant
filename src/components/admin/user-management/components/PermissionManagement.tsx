@@ -24,9 +24,9 @@ export function PermissionManagement({
   const {
     searchQuery,
     setSearchQuery,
-    filteredCategories,
-    activeTab,
-    setActiveTab
+    permissionsByCategory,
+    activeCategory,
+    setActiveCategory
   } = usePermissionFilter(permissionCategories);
 
   const {
@@ -54,20 +54,24 @@ export function PermissionManagement({
       {tabs ? (
         <>
           <PermissionTabs 
-            permissionCategories={permissionCategories}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            permissionCategories={Object.keys(permissionsByCategory).map(key => ({
+              id: key,
+              name: key,
+              permissions: permissionsByCategory[key]
+            }))}
+            activeTab={activeCategory}
+            setActiveTab={setActiveCategory}
           />
           <PermissionsList
-            activeTab={activeTab}
-            filteredCategories={filteredCategories}
+            activeTab={activeCategory}
+            permissionsByCategory={permissionsByCategory}
             selectedPermissions={selectedPermissions}
             onChange={onChange}
           />
         </>
       ) : (
         <SimplePermissionsList
-          filteredCategories={filteredCategories}
+          permissionsByCategory={permissionsByCategory}
           selectedPermissions={selectedPermissions}
           onChange={onChange}
         />

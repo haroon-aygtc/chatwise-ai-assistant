@@ -1,61 +1,90 @@
 
 import React from "react";
-import { PermissionCategory } from "@/types";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { PermissionGroup } from "../PermissionGroup";
-import { TabsContent } from "@/components/ui/tabs";
+import { Permission } from "@/types";
 
 interface PermissionsListProps {
   activeTab: string;
-  filteredCategories: PermissionCategory[];
+  permissionsByCategory: Record<string, Permission[]>;
   selectedPermissions: string[];
-  onChange: (permissionIds: string[]) => void;
+  onChange: (selectedPermissions: string[]) => void;
 }
 
-export const PermissionsList = ({
+export function PermissionsList({
   activeTab,
-  filteredCategories,
+  permissionsByCategory,
   selectedPermissions,
   onChange,
-}: PermissionsListProps) => {
+}: PermissionsListProps) {
+  if (Object.keys(permissionsByCategory).length === 0) {
+    return (
+      <div className="text-center p-6 text-muted-foreground">
+        No permissions found that match your criteria.
+      </div>
+    );
+  }
+
   return (
-    <TabsContent value={activeTab} className="mt-4 space-y-4">
-      {filteredCategories.map((category) => (
+    <div>
+      {activeTab === "all" ? (
+        Object.keys(permissionsByCategory).map((categoryName) => (
+          <PermissionGroup
+            key={categoryName}
+            categoryId={categoryName}
+            categoryName={categoryName}
+            permissions={permissionsByCategory[categoryName]}
+            selectedPermissions={selectedPermissions}
+            onChange={onChange}
+          />
+        ))
+      ) : permissionsByCategory[activeTab] ? (
         <PermissionGroup
-          key={category.category}
-          name={category.category}
-          permissions={category.permissions}
+          categoryId={activeTab}
+          categoryName={activeTab}
+          permissions={permissionsByCategory[activeTab]}
+          selectedPermissions={selectedPermissions}
+          onChange={onChange}
+        />
+      ) : (
+        <div className="text-center p-6 text-muted-foreground">
+          No permissions found in this category.
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SimplePermissionsListProps {
+  permissionsByCategory: Record<string, Permission[]>;
+  selectedPermissions: string[];
+  onChange: (selectedPermissions: string[]) => void;
+}
+
+export function SimplePermissionsList({
+  permissionsByCategory,
+  selectedPermissions,
+  onChange,
+}: SimplePermissionsListProps) {
+  if (Object.keys(permissionsByCategory).length === 0) {
+    return (
+      <div className="text-center p-6 text-muted-foreground">
+        No permissions found that match your criteria.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {Object.keys(permissionsByCategory).map((categoryName) => (
+        <PermissionGroup
+          key={categoryName}
+          categoryId={categoryName}
+          categoryName={categoryName}
+          permissions={permissionsByCategory[categoryName]}
           selectedPermissions={selectedPermissions}
           onChange={onChange}
         />
       ))}
-    </TabsContent>
+    </div>
   );
-};
-
-export const SimplePermissionsList = ({
-  filteredCategories,
-  selectedPermissions,
-  onChange,
-}: Omit<PermissionsListProps, 'activeTab'>) => {
-  return (
-    <Card>
-      <CardContent className="pt-6 space-y-6">
-        {filteredCategories.map((category, index) => (
-          <React.Fragment key={category.category}>
-            <PermissionGroup
-              name={category.category}
-              permissions={category.permissions}
-              selectedPermissions={selectedPermissions}
-              onChange={onChange}
-            />
-            {index < filteredCategories.length - 1 && (
-              <Separator className="my-4" />
-            )}
-          </React.Fragment>
-        ))}
-      </CardContent>
-    </Card>
-  );
-};
+}
