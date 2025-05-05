@@ -1,18 +1,18 @@
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { DocumentCategory, CreateCategoryRequest } from "@/types/knowledge-base";
+import { FolderOpen, Plus, Trash2, Tag, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { FolderIcon, Plus, Tag, Trash2 } from "lucide-react";
 import KnowledgeBaseService from "@/services/knowledge-base/knowledgeBaseService";
-import { DocumentCategory } from "@/types/knowledge-base";
 
 interface CategoryListProps {
   categories: DocumentCategory[];
@@ -20,37 +20,25 @@ interface CategoryListProps {
 }
 
 export const CategoryList = ({ categories, isLoading }: CategoryListProps) => {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<DocumentCategory | null>(null);
+  
   const queryClient = useQueryClient();
 
-  // Add category mutation
-  const addCategoryMutation = useMutation({
-    mutationFn: (data: { name: string; description: string }) => 
-      KnowledgeBaseService.createCategory(data),
+  // Create category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: (data: CreateCategoryRequest) => KnowledgeBaseService.createCategory(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledgeBase', 'categories'] });
+      toast.success("Category created successfully");
+      setIsAddDialogOpen(false);
       resetForm();
-      toast.success("Category added successfully");
     },
     onError: (error: any) => {
-      toast.error(`Failed to add category: ${error.message || "Unknown error"}`);
-    }
-  });
-
-  // Update category mutation
-  const updateCategoryMutation = useMutation({
-    mutationFn: (data: { id: string; name: string; description: string }) => 
-      KnowledgeBaseService.updateCategory(data.id, { name: data.name, description: data.description }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledgeBase', 'categories'] });
-      resetForm();
-      toast.success("Category updated successfully");
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to update category: ${error.message || "Unknown error"}`);
+      toast.error(`Failed to create category: ${error.message || "Unknown error"}`);
     }
   });
 
@@ -60,85 +48,72 @@ export const CategoryList = ({ categories, isLoading }: CategoryListProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledgeBase', 'categories'] });
       toast.success("Category deleted successfully");
+      setIsDeleteDialogOpen(false);
+      setSelectedCategoryId(null);
     },
     onError: (error: any) => {
       toast.error(`Failed to delete category: ${error.message || "Unknown error"}`);
     }
   });
 
-  // Reset form
   const resetForm = () => {
     setNewCategoryName("");
     setNewCategoryDescription("");
-    setEditingCategory(null);
-    setIsDialogOpen(false);
   };
 
-  // Handle category submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newCategoryName.trim()) {
-      toast.error("Category name is required");
-      return;
-    }
-    
-    if (editingCategory) {
-      updateCategoryMutation.mutate({
-        id: editingCategory.id,
-        name: newCategoryName,
-        description: newCategoryDescription
-      });
-    } else {
-      addCategoryMutation.mutate({
-        name: newCategoryName,
-        description: newCategoryDescription
-      });
+  const handleAddCategory = () => {
+    createCategoryMutation.mutate({
+      name: newCategoryName,
+      description: newCategoryDescription
+    });
+  };
+
+  const handleDeleteCategory = () => {
+    if (selectedCategoryId) {
+      deleteCategoryMutation.mutate(selectedCategoryId);
     }
   };
 
-  // Handle edit category
-  const handleEditCategory = (category: DocumentCategory) => {
-    setEditingCategory(category);
-    setNewCategoryName(category.name);
-    setNewCategoryDescription(category.description || "");
-    setIsDialogOpen(true);
-  };
-
-  // Handle delete category
-  const handleDeleteCategory = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this category?")) {
-      deleteCategoryMutation.mutate(id);
-    }
+  const openDeleteDialog = (id: string) => {
+    setSelectedCategoryId(id);
+    setIsDeleteDialogOpen(true);
   };
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="flex justify-end mb-4">
-        <Button onClick={() => setIsDialogOpen(true)}>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Categories</h2>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Category
         </Button>
       </div>
 
       {categories.length === 0 ? (
-        <Card className="py-8">
-          <CardContent className="flex flex-col items-center justify-center text-center">
-            <FolderIcon className="h-12 w-12 text-muted-foreground mb-4" />
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No Categories Found</h3>
-            <p className="text-muted-foreground mb-6">
-              Create your first category to organize your knowledge base documents
+            <p className="text-muted-foreground text-center mb-6">
+              You haven't created any categories yet. Create your first
+              category to organize your documents.
             </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Add Category
             </Button>
           </CardContent>
@@ -149,32 +124,30 @@ export const CategoryList = ({ categories, isLoading }: CategoryListProps) => {
             <Card key={category.id}>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FolderIcon className="mr-2 h-5 w-5" />
+                  <FolderOpen className="mr-2 h-5 w-5" />
                   {category.name}
                 </CardTitle>
                 <CardDescription>
-                  {category.documentCount} document{category.documentCount !== 1 ? "s" : ""}
+                  {category.documentCount} document
+                  {category.documentCount !== 1 ? "s" : ""}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {category.description || "No description provided"}
-                </p>
-              </CardContent>
+              {category.description && (
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    {category.description}
+                  </p>
+                </CardContent>
+              )}
               <CardFooter className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleEditCategory(category)}
-                >
+                <Button variant="outline" size="sm">
                   <Tag className="mr-2 h-4 w-4" /> Rename
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   className="text-destructive"
-                  onClick={() => handleDeleteCategory(category.id)}
-                  disabled={category.documentCount > 0}
+                  onClick={() => openDeleteDialog(category.id)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -184,61 +157,86 @@ export const CategoryList = ({ categories, isLoading }: CategoryListProps) => {
         </div>
       )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Add Category Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
+            <DialogTitle>Add Category</DialogTitle>
             <DialogDescription>
-              {editingCategory 
-                ? "Update the category details below"
-                : "Create a new category to organize your knowledge base documents"}
+              Create a new category to organize your documents
             </DialogDescription>
           </DialogHeader>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Category Name</Label>
-                <Input
-                  id="name"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Enter category name"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={newCategoryDescription}
-                  onChange={(e) => setNewCategoryDescription(e.target.value)}
-                  placeholder="Enter category description"
-                  rows={3}
-                />
-              </div>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="Category name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+              />
             </div>
-            
-            <DialogFooter className="mt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={resetForm}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={!newCategoryName.trim() || 
-                  addCategoryMutation.isPending || 
-                  updateCategoryMutation.isPending}
-              >
-                {editingCategory ? "Update Category" : "Add Category"}
-              </Button>
-            </DialogFooter>
-          </form>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                placeholder="Brief description of the category"
+                value={newCategoryDescription}
+                onChange={(e) => setNewCategoryDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddDialogOpen(false);
+                resetForm();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddCategory}
+              disabled={!newCategoryName.trim() || createCategoryMutation.isPending}
+            >
+              {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+
+      {/* Delete Category Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Category</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this category? This action cannot be undone.
+              {selectedCategoryId && categories.find(c => c.id === selectedCategoryId)?.documentCount > 0 && (
+                <div className="mt-2 flex items-center text-amber-600">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  <span>
+                    This category contains {categories.find(c => c.id === selectedCategoryId)?.documentCount} document(s).
+                    They will remain in the system but will no longer be categorized.
+                  </span>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedCategoryId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCategory}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 };
