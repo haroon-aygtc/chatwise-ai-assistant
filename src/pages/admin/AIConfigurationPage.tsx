@@ -1,13 +1,13 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, RefreshCw } from "lucide-react";
-import AIConfigSidebar from "./AIConfigSidebar";
-import AIModelManager from "./ai-configuration/AIModelManager";
-import KnowledgeBaseManager from "./ai-configuration/KnowledgeBaseManager";
-import PromptTemplateManager from "./ai-configuration/PromptTemplateManager";
-import ResponseFormatterManager from "./ai-configuration/ResponseFormatterManager";
-import BrandingEngineManager from "./ai-configuration/BrandingEngineManager";
-import FollowUpManager from "./ai-configuration/FollowUpManager";
+import AIConfigSidebar from "../../components/admin/AIConfigSidebar";
+import AIModelManager from "../../components/admin/ai-configuration/AIModelManager";
+import KnowledgeBaseManager from "../../components/admin/ai-configuration/KnowledgeBaseManager";
+import PromptTemplateManager from "../../components/admin/ai-configuration/PromptTemplateManager";
+import ResponseFormatterManager from "../../components/admin/ai-configuration/ResponseFormatterManager";
+import BrandingEngineManager from "../../components/admin/ai-configuration/BrandingEngineManager";
+import FollowUpManager from "../../components/admin/ai-configuration/FollowUpManager";
 
 const AIConfigurationPage = () => {
   const [activeModule, setActiveModule] = useState("models");

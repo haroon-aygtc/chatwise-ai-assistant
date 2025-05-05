@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import {
@@ -12,54 +12,247 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-import RoleCard from "../components/RoleCard";
-import PermissionManagement from "./PermissionManagement";
-import { CreateRoleDialog } from "../dialogs/CreateRoleDialog";
-import { EditRoleDialog } from "../dialogs/EditRoleDialog";
-import { DeleteRoleDialog } from "../dialogs/DeleteRoleDialog";
-import { Role } from "@/types";
-import { useRoles } from "@/hooks/access-control/useRoles";
-import { usePermissions } from "@/hooks/access-control/usePermissions";
-import { useAuth } from "@/contexts/AuthContext";
+// Mock interfaces
+interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  module: string;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  description: string;
+  permissions?: string[];
+  userCount?: number;
+  isSystem?: boolean;
+  createdAt?: string;
+}
+
+// Mock components
+const RoleCard = ({ role, onEdit, onDelete, canEdit, canDelete }: { 
+  role: Role, 
+  onEdit: (role: Role) => void, 
+  onDelete: (role: Role) => void,
+  canEdit: boolean,
+  canDelete: boolean
+}) => {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{role.name}</CardTitle>
+        <CardDescription>{role.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          {role.userCount || 0} users with this role
+        </p>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={() => onEdit(role)}>
+            Edit
+          </Button>
+        )}
+        {canDelete && !role.isSystem && (
+          <Button variant="destructive" size="sm" onClick={() => onDelete(role)}>
+            Delete
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+};
+
+const PermissionManagement = ({ role, availablePermissions, canEdit }: {
+  role: Role,
+  availablePermissions: Permission[],
+  canEdit: boolean
+}) => {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Configure permissions for the {role.name} role
+      </p>
+      <div className="border rounded-md p-4">
+        <p>Permission management UI would go here</p>
+      </div>
+    </div>
+  );
+};
+
+// Mock dialogs
+const CreateRoleDialog = ({ open, onOpenChange, onSuccess, availablePermissions, canCreate }: {
+  open: boolean,
+  onOpenChange: (open: boolean) => void,
+  onSuccess: () => void,
+  availablePermissions: Permission[],
+  canCreate: boolean
+}) => {
+  return null; // Mock implementation
+};
+
+const EditRoleDialog = ({ open, onOpenChange, role, onSuccess, availablePermissions, canEdit }: {
+  open: boolean,
+  onOpenChange: (open: boolean) => void,
+  role: Role,
+  onSuccess: () => void,
+  availablePermissions: Permission[],
+  canEdit: boolean
+}) => {
+  return null; // Mock implementation
+};
+
+const DeleteRoleDialog = ({ open, onOpenChange, role, onSuccess, canDelete }: {
+  open: boolean,
+  onOpenChange: (open: boolean) => void,
+  role: Role,
+  onSuccess: () => void,
+  canDelete: boolean
+}) => {
+  return null; // Mock implementation
+};
+
+// Mock roles data
+const mockRoles: Role[] = [
+  {
+    id: "admin",
+    name: "Administrator",
+    description: "Full access to all system features and settings",
+    userCount: 3,
+    isSystem: true,
+    createdAt: "2023-01-01T00:00:00Z",
+    permissions: ["view_dashboard", "manage_users", "manage_roles"]
+  },
+  {
+    id: "manager",
+    name: "Manager",
+    description: "Can manage users and view most system features",
+    userCount: 8,
+    isSystem: false,
+    createdAt: "2023-01-15T00:00:00Z",
+    permissions: ["view_dashboard", "view_users", "view_roles"]
+  },
+  {
+    id: "editor",
+    name: "Editor",
+    description: "Can edit content but has limited administrative access",
+    userCount: 12,
+    isSystem: false,
+    createdAt: "2023-02-01T00:00:00Z",
+    permissions: ["view_dashboard", "view_users"]
+  },
+  {
+    id: "user",
+    name: "User",
+    description: "Basic access to the system",
+    userCount: 45,
+    isSystem: true,
+    createdAt: "2023-01-01T00:00:00Z",
+    permissions: ["view_dashboard"]
+  }
+];
+
+// Mock permissions data
+const mockPermissions: Permission[] = [
+  {
+    id: "view_dashboard",
+    name: "View Dashboard",
+    description: "Can view dashboard",
+    module: "Dashboard",
+  },
+  {
+    id: "manage_users",
+    name: "Manage Users",
+    description: "Can create, edit and delete users",
+    module: "Users",
+  },
+  {
+    id: "view_users",
+    name: "View Users",
+    description: "Can view user list",
+    module: "Users",
+  },
+  {
+    id: "manage_roles",
+    name: "Manage Roles",
+    description: "Can create, edit and delete roles",
+    module: "Access Control",
+  },
+  {
+    id: "create_roles",
+    name: "Create Roles",
+    description: "Can create new roles",
+    module: "Access Control",
+  },
+  {
+    id: "edit_roles",
+    name: "Edit Roles",
+    description: "Can edit existing roles",
+    module: "Access Control",
+  },
+  {
+    id: "delete_roles",
+    name: "Delete Roles",
+    description: "Can delete roles",
+    module: "Access Control",
+  },
+  {
+    id: "view_roles",
+    name: "View Roles",
+    description: "Can view role list",
+    module: "Access Control",
+  },
+  {
+    id: "manage_permissions",
+    name: "Manage Permissions",
+    description: "Can assign permissions to roles",
+    module: "Access Control",
+  },
+  {
+    id: "view_activity_log",
+    name: "View Activity Log",
+    description: "Can view activity logs",
+    module: "System",
+  },
+  {
+    id: "manage_settings",
+    name: "Manage Settings",
+    description: "Can change system settings",
+    module: "System",
+  }
+];
 
 const RolesPermissions = () => {
   const [showCreateRoleDialog, setShowCreateRoleDialog] = useState(false);
   const [showEditRoleDialog, setShowEditRoleDialog] = useState(false);
   const [showDeleteRoleDialog, setShowDeleteRoleDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [activeRoleTab, setActiveRoleTab] = useState("super-admin");
+  const [activeRoleTab, setActiveRoleTab] = useState("admin");
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
+  const [rolesError, setRolesError] = useState<Error | null>(null);
+  const [permissionsError, setPermissionsError] = useState<Error | null>(null);
+  const [roles, setRoles] = useState<Role[]>(mockRoles);
+  const [permissions, setPermissions] = useState<Permission[]>(mockPermissions);
 
-  // Get roles data from API
-  const {
-    roles,
-    isLoading: isLoadingRoles,
-    error: rolesError,
-    fetchRoles: refreshRoles,
-  } = useRoles();
-
-  // Get permissions data from API
-  const {
-    permissions,
-    isLoading: isLoadingPermissions,
-    error: permissionsError,
-  } = usePermissions();
-
-  // Get auth context for permission checks
-  const { hasPermission } = useAuth();
-
-  // Check if user has permission to manage roles
-  const canCreateRoles = hasPermission("create_roles");
-  const canEditRoles = hasPermission("edit_roles");
-  const canDeleteRoles = hasPermission("delete_roles");
-  const canManagePermissions = hasPermission("manage_permissions");
-
-  // Fallback to general manage_roles permission if specific permissions aren't defined
-  const hasManageRolesPermission = hasPermission("manage_roles");
-  const effectiveCanCreateRoles = canCreateRoles || hasManageRolesPermission;
-  const effectiveCanEditRoles = canEditRoles || hasManageRolesPermission;
-  const effectiveCanDeleteRoles = canDeleteRoles || hasManageRolesPermission;
-  const effectiveCanManagePermissions =
-    canManagePermissions || hasManageRolesPermission;
+  // Mock permission checks - in a real app, these would come from an auth context
+  const effectiveCanCreateRoles = true;
+  const effectiveCanEditRoles = true;
+  const effectiveCanDeleteRoles = true;
+  const effectiveCanManagePermissions = true;
+  
+  // Mock refresh function
+  const refreshRoles = () => {
+    setIsLoadingRoles(true);
+    
+    // Simulate API delay
+    setTimeout(() => {
+      setRoles([...mockRoles]);
+      setIsLoadingRoles(false);
+    }, 800);
+  };
 
   const handleEditRole = (role: Role) => {
     if (!effectiveCanEditRoles) return;

@@ -1,4 +1,5 @@
 import { ReactNode, useState, useEffect } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar } from "@/components/ui/avatar";
@@ -50,21 +51,37 @@ import {
 } from "lucide-react";
 
 interface AdminLayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
   activePage?: string;
   onNavigate?: (page: string) => void;
 }
 
 const AdminLayout = ({
   children,
-  activePage = "Dashboard",
-  onNavigate,
+  activePage: propActivePage,
+  onNavigate: propOnNavigate,
 }: AdminLayoutProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [activeTenant, setActiveTenant] = useState("Company Name");
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  
+  // Determine active page from URL path
+  const getActivePageFromPath = () => {
+    const path = location.pathname.split('/').pop() || '';
+    if (path === 'admin' || path === '') return 'Dashboard';
+    if (path === 'chat-sessions') return 'Conversations';
+    if (path === 'knowledge-base') return 'Knowledge Base';
+    if (path === 'ai-configuration') return 'AI Configuration';
+    if (path === 'user-management') return 'User Management';
+    if (path === 'settings') return 'Settings';
+    return path.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+  
+  const activePage = propActivePage || getActivePageFromPath();
 
   // Handle responsive behavior
   useEffect(() => {
@@ -84,61 +101,61 @@ const AdminLayout = ({
     {
       icon: <LayoutDashboard size={20} />,
       label: "Dashboard",
-      href: "#",
+      href: "/admin",
       active: activePage === "Dashboard",
     },
     {
       icon: <MessageSquare size={20} />,
       label: "Conversations",
-      href: "#",
+      href: "/admin/chat-sessions",
       active: activePage === "Conversations",
     },
     {
       icon: <Bot size={20} />,
       label: "AI Configuration",
-      href: "#",
+      href: "/admin/ai-configuration",
       active: activePage === "AI Configuration",
     },
     {
       icon: <Palette size={20} />,
       label: "Widget Builder",
-      href: "#",
+      href: "/admin/widget-builder",
       active: activePage === "Widget Builder",
     },
     {
       icon: <Database size={20} />,
       label: "Knowledge Base",
-      href: "#",
+      href: "/admin/knowledge-base",
       active: activePage === "Knowledge Base",
     },
     {
       icon: <Users size={20} />,
       label: "User Management",
-      href: "#",
+      href: "/admin/user-management",
       active: activePage === "User Management",
     },
     {
       icon: <BarChart3 size={20} />,
       label: "Analytics",
-      href: "#",
+      href: "/admin/analytics",
       active: activePage === "Analytics",
     },
     {
       icon: <Code size={20} />,
       label: "Embedding",
-      href: "#",
+      href: "/admin/embedding",
       active: activePage === "Embedding",
     },
     {
       icon: <Webhook size={20} />,
       label: "Integrations",
-      href: "#",
+      href: "/admin/integrations",
       active: activePage === "Integrations",
     },
     {
       icon: <Settings size={20} />,
       label: "Settings",
-      href: "#",
+      href: "/admin/settings",
       active: activePage === "Settings",
     },
   ];
@@ -258,20 +275,23 @@ const AdminLayout = ({
                   <TooltipTrigger asChild>
                     <Button
                       variant={item.active ? "secondary" : "ghost"}
-                      className={`w-full justify-start mb-0.5 ${collapsed && !isMobile ? "px-2" : ""} ${item.active ? "bg-secondary font-medium" : ""} h-10`}
+                      className={`w-full justify-start mb-0.5 ${collapsed && !isMobile ? "px-2" : ""} ${
+                        item.active ? "bg-amber-50 dark:bg-amber-950/30 font-medium" : ""
+                      } h-10 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 hover:text-amber-600 dark:hover:text-amber-400`}
                       onClick={() => {
-                        if (typeof onNavigate === "function") {
-                          onNavigate(item.label);
+                        if (typeof propOnNavigate === "function") {
+                          propOnNavigate(item.label);
                         }
+                        navigate(item.href);
                       }}
                     >
                       <span
-                        className={`${item.active ? "text-primary" : "text-muted-foreground"} mr-3`}
+                        className={`${item.active ? "text-amber-500" : "text-muted-foreground"} mr-3`}
                       >
                         {item.icon}
                       </span>
                       {(!collapsed || isMobile) && (
-                        <span className={item.active ? "text-primary" : ""}>
+                        <span className={item.active ? "text-amber-500" : ""}>
                           {item.label}
                         </span>
                       )}
@@ -430,7 +450,7 @@ const AdminLayout = ({
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6 animate-fade-in">
-          {children}
+          {children || <Outlet />}
         </main>
       </div>
     </div>
