@@ -365,16 +365,6 @@ export class BaseApiService {
     requestId: string = Math.random().toString(36).substring(2, 9),
     retryCount: number = 0,
   ): Promise<T> {
-    // Check if we're in a storyboard context
-    const isStoryboard =
-      window.location.pathname.includes("/tempobook/") ||
-      window.location.pathname.includes("/storyboards/");
-
-    // In storyboard context, return mock data instead of making real API calls
-    if (isStoryboard) {
-      console.log(`[Storyboard] Mock API request to: ${url}`);
-      return this.getMockResponse(url, options.method || "GET") as T;
-    }
     // Check if the request requires authentication by examining the URL
     const isAuthEndpoint =
       url.includes("/login") ||
@@ -393,7 +383,7 @@ export class BaseApiService {
       url.includes("/health");
 
     // Validate token for authenticated endpoints
-    if (requiresAuth && !isStoryboard && !isPublicEndpoint) {
+    if (requiresAuth && !isPublicEndpoint) {
       // Get the token
       let token = tokenService.getToken();
 
@@ -516,7 +506,7 @@ export class BaseApiService {
           // In development, provide mock data instead of failing
           if (isDevelopment) {
             console.warn(`Development mode: Returning mock data for ${url}`);
-            return this.getMockResponse(url, options.method || "GET") as T;
+            return {} as T;
           }
 
           throw new ApiError(
@@ -646,7 +636,7 @@ export class BaseApiService {
           `Development mode: Returning mock data for ${url} after error:`,
           error,
         );
-        return this.getMockResponse(url, options.method || "GET") as T;
+        return {} as T;
       }
 
       throw new ApiError(
@@ -656,140 +646,6 @@ export class BaseApiService {
         true,
       );
     }
-  }
-
-  /**
-   * Generate mock response data based on the URL and method
-   * This is used in storyboard and development environments when real API calls fail
-   */
-  private getMockResponse(url: string, method: string): any {
-    console.log(`Generating mock response for ${method} ${url}`);
-
-    // Mock users data
-    if (url.includes("/users") || url.includes("/user")) {
-      if (method === "GET") {
-        return {
-          data: [
-            {
-              id: "1",
-              name: "John Doe",
-              email: "john@example.com",
-              role: "admin",
-              status: "active",
-              lastActive: new Date().toISOString(),
-              avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
-            },
-            {
-              id: "2",
-              name: "Jane Smith",
-              email: "jane@example.com",
-              role: "moderator",
-              status: "active",
-              lastActive: new Date().toISOString(),
-              avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane",
-            },
-            {
-              id: "3",
-              name: "Bob Johnson",
-              email: "bob@example.com",
-              role: "user",
-              status: "inactive",
-              lastActive: new Date().toISOString(),
-              avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=bob",
-            },
-          ],
-          meta: {
-            current_page: 1,
-            from: 1,
-            last_page: 1,
-            per_page: 10,
-            to: 3,
-            total: 3,
-          },
-        };
-      }
-      return { success: true, message: "Operation successful" };
-    }
-
-    // Mock roles data
-    if (url.includes("/roles")) {
-      if (method === "GET") {
-        return {
-          data: [
-            { id: "1", name: "admin", description: "Administrator" },
-            { id: "2", name: "moderator", description: "Moderator" },
-            { id: "3", name: "user", description: "Regular User" },
-          ],
-          meta: {
-            current_page: 1,
-            from: 1,
-            last_page: 1,
-            per_page: 10,
-            to: 3,
-            total: 3,
-          },
-        };
-      }
-      return { success: true, message: "Operation successful" };
-    }
-
-    // Mock permissions data
-    if (url.includes("/permissions")) {
-      return {
-        data: [
-          { id: "1", name: "view_users", description: "View Users" },
-          { id: "2", name: "edit_users", description: "Edit Users" },
-          { id: "3", name: "delete_users", description: "Delete Users" },
-        ],
-        meta: {
-          current_page: 1,
-          from: 1,
-          last_page: 1,
-          per_page: 10,
-          to: 3,
-          total: 3,
-        },
-      };
-    }
-
-    // Mock activity logs
-    if (url.includes("/activity")) {
-      return {
-        data: [
-          {
-            id: "1",
-            user_id: "1",
-            user_name: "John Doe",
-            action: "login",
-            description: "User logged in",
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            user_id: "1",
-            user_name: "John Doe",
-            action: "update",
-            description: "Updated user profile",
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-          },
-        ],
-        meta: {
-          current_page: 1,
-          from: 1,
-          last_page: 1,
-          per_page: 10,
-          to: 2,
-          total: 2,
-        },
-      };
-    }
-
-    // Default mock response
-    return {
-      success: true,
-      message: "Mock response generated",
-      data: { mock: true, timestamp: new Date().toISOString() },
-    };
   }
 }
 
