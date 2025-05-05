@@ -20,7 +20,6 @@ const ComponentShowcasePage = () => {
     name: "John Doe",
     email: "john@example.com",
     isAiActive: true,
-    createdAt: new Date().toISOString(),
     lastMessageAt: new Date().toISOString(),
     status: "active",
     unreadCount: 0
