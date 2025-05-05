@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -53,12 +54,15 @@ export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
   }, [hsva.h]);
 
   // Handle canvas mouse events
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    
     setIsDragging(true);
     handleMouseMove(e);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging && e.type !== "mousedown") return;
     
     const canvas = canvasRef.current;
