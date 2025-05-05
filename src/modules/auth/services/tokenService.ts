@@ -46,6 +46,23 @@ const TokenService = {
   },
 
   /**
+   * Check if a token is expired
+   */
+  isTokenExpired: (token: string): boolean => {
+    try {
+      const payload = TokenService.decodeToken(token);
+      if (!payload || !payload.exp) return true;
+      
+      // Convert expiration time to milliseconds and compare with current time
+      const expTimestamp = payload.exp * 1000; // Convert to milliseconds
+      return Date.now() >= expTimestamp;
+    } catch (error) {
+      console.error('Error checking token expiration:', error);
+      return true;
+    }
+  },
+
+  /**
    * Decode the JWT token to get user information
    */
   decodeToken: (token: string) => {
@@ -61,6 +78,26 @@ const TokenService = {
       return JSON.parse(jsonPayload);
     } catch (error) {
       console.error('Error decoding token:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Initialize CSRF token for API requests
+   */
+  initCsrfToken: async (): Promise<string | null> => {
+    try {
+      const response = await fetch('/sanctum/csrf-cookie', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        return csrfToken;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error initializing CSRF token:', error);
       return null;
     }
   }

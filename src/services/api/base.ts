@@ -1,6 +1,6 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import TokenService from '@/modules/auth/services/tokenService';
+import { tokenService as TokenService } from '@/modules/auth';
 
 // Create a custom Axios instance
 const api: AxiosInstance = axios.create({
