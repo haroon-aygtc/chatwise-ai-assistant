@@ -1,297 +1,229 @@
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Save, Wand2, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/use-toast";
-import { ResponseFormat } from "@/types/ai-configuration";
-import {
-  getAllResponseFormats,
-  createResponseFormat,
-  updateResponseFormat,
-  deleteResponseFormat,
-  setDefaultResponseFormat,
-  testResponseFormat,
-} from "@/services/response-format";
-import { FormatSettingsCard } from "./FormatSettingsCard";
-import { TestPromptCard } from "./TestPromptCard";
-import { SavedFormatsCard } from "./SavedFormatsCard";
-import { FormatPreviewTab } from "./FormatPreviewTab";
+import React, { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FormatSettingsCard } from './FormatSettingsCard';
+import { SavedFormatsCard } from './SavedFormatsCard';
+import { TestPromptCard } from './TestPromptCard';
+import { PreviewCard } from './PreviewCard';
+import { FormatPreviewTab } from './FormatPreviewTab';
+import { responseFormatService } from '@/services/response-format';
+import { ResponseFormat } from '@/types/ai-configuration';
+import { useToast } from '@/components/ui/use-toast';
 
-export interface ResponseFormatterManagerProps {
-  standalone?: boolean;
-}
-
-const ResponseFormatterManager = ({
-  standalone = false,
-}: ResponseFormatterManagerProps) => {
+const ResponseFormatterManager = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const [testPrompt, setTestPrompt] = useState(
-    "Tell me about your product features"
-  );
-  const [testResponse, setTestResponse] = useState("");
-  const [activeTab, setActiveTab] = useState("settings");
+  const [formatList, setFormatList] = useState<ResponseFormat[]>([]);
+  const [selectedFormat, setSelectedFormat] = useState<ResponseFormat | null>(null);
+  const [testInput, setTestInput] = useState('');
+  const [formattedOutput, setFormattedOutput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('settings');
 
-  const [formatSettings, setFormatSettings] = useState<ResponseFormat>({
-    id: "",
-    name: "Default Format",
-    format: "conversational",
-    length: "medium",
-    tone: "professional",
-    options: {
-      useHeadings: true,
-      useBulletPoints: true,
-      includeLinks: true,
-      formatCodeBlocks: false,
-    },
-  });
-
-  // Fetch response formats
-  const { 
-    data: formats, 
-    isLoading: isLoadingFormats,
-    refetch 
-  } = useQuery({
-    queryKey: ['responseFormats'],
-    queryFn: getAllResponseFormats
-  });
-
-  // Fetch default format on initial load
   useEffect(() => {
-    if (formats && formats.length > 0) {
+    fetchFormats();
+  }, []);
+
+  const fetchFormats = async () => {
+    setIsLoading(true);
+    try {
+      const formats = await responseFormatService.getAllResponseFormats();
+      setFormatList(formats);
+      
+      // Select the default format if available
       const defaultFormat = formats.find(format => format.isDefault);
       if (defaultFormat) {
-        setFormatSettings(defaultFormat);
+        setSelectedFormat(defaultFormat);
       } else if (formats.length > 0) {
-        setFormatSettings(formats[0]);
+        setSelectedFormat(formats[0]);
       }
-    }
-  }, [formats]);
-
-  // Create format mutation
-  const createFormatMutation = useMutation({
-    mutationFn: createResponseFormat,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
+    } catch (error) {
+      console.error('Error fetching response formats:', error);
       toast({
-        title: "Format created",
-        description: "Response format has been created successfully",
+        title: 'Error',
+        description: 'Failed to load response formats',
+        variant: 'destructive',
       });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create response format",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update format mutation
-  const updateFormatMutation = useMutation({
-    mutationFn: (format: ResponseFormat) => updateResponseFormat(format.id, format),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      toast({
-        title: "Format updated",
-        description: "Response format has been updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update response format",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Delete format mutation
-  const deleteFormatMutation = useMutation({
-    mutationFn: deleteResponseFormat,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      toast({
-        title: "Format deleted",
-        description: "Response format has been deleted successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete response format",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Set default format mutation
-  const setDefaultMutation = useMutation({
-    mutationFn: setDefaultResponseFormat,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      toast({
-        title: "Default updated",
-        description: "Default response format has been set successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to set default format",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Test format mutation
-  const testFormatMutation = useMutation({
-    mutationFn: ({ formatId, prompt }: { formatId: string, prompt: string }) => 
-      testResponseFormat(formatId, prompt),
-    onSuccess: (data) => {
-      setTestResponse(data);
-      setActiveTab("preview");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to test format",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleRefresh = () => {
-    refetch();
-  };
-
-  const handleSave = () => {
-    if (!formatSettings.id || formatSettings.id === "") {
-      // Create new format
-      createFormatMutation.mutate(formatSettings);
-    } else {
-      // Update existing format
-      updateFormatMutation.mutate(formatSettings);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleTest = () => {
-    if (!formatSettings.id) {
-      // Save first if this is a new format
-      createFormatMutation.mutate(formatSettings, {
-        onSuccess: (newFormat) => {
-          setFormatSettings(newFormat);
-          testFormatMutation.mutate({ 
-            formatId: newFormat.id, 
-            prompt: testPrompt 
-          });
-        }
+  const handleFormatSelect = (format: ResponseFormat) => {
+    setSelectedFormat(format);
+  };
+
+  const handleFormatChange = async (updatedFormat: ResponseFormat) => {
+    try {
+      await responseFormatService.updateResponseFormat(updatedFormat.id, updatedFormat);
+      setFormatList(prev => 
+        prev.map(format => format.id === updatedFormat.id ? updatedFormat : format)
+      );
+      setSelectedFormat(updatedFormat);
+      toast({
+        title: 'Success',
+        description: 'Response format updated successfully',
       });
-    } else {
-      // Test with existing format
-      testFormatMutation.mutate({ 
-        formatId: formatSettings.id, 
-        prompt: testPrompt 
+    } catch (error) {
+      console.error('Error updating format:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update response format',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleDeleteFormat = () => {
-    if (window.confirm("Are you sure you want to delete this format?")) {
-      deleteFormatMutation.mutate(formatSettings.id);
+  const handleCreateFormat = async (newFormat: Omit<ResponseFormat, 'id'>) => {
+    try {
+      const createdFormat = await responseFormatService.createResponseFormat(newFormat);
+      setFormatList(prev => [...prev, createdFormat]);
+      setSelectedFormat(createdFormat);
+      toast({
+        title: 'Success',
+        description: 'New response format created',
+      });
+    } catch (error) {
+      console.error('Error creating format:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create response format',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteFormat = async (id: string) => {
+    try {
+      await responseFormatService.deleteResponseFormat(id);
+      const updatedFormats = formatList.filter(format => format.id !== id);
+      setFormatList(updatedFormats);
+      
+      if (selectedFormat?.id === id) {
+        setSelectedFormat(updatedFormats.length > 0 ? updatedFormats[0] : null);
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Response format deleted',
+      });
+    } catch (error) {
+      console.error('Error deleting format:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete response format',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      await responseFormatService.setDefaultResponseFormat(id);
+      setFormatList(prev => 
+        prev.map(format => ({
+          ...format,
+          isDefault: format.id === id
+        }))
+      );
+      toast({
+        title: 'Success',
+        description: 'Default response format updated',
+      });
+    } catch (error) {
+      console.error('Error setting default format:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to set default response format',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleTestFormat = async () => {
+    if (!selectedFormat || !testInput) return;
+    
+    setIsLoading(true);
+    try {
+      const result = await responseFormatService.testResponseFormat(
+        selectedFormat.id,
+        testInput
+      );
+      
+      // Use the formatted response from the API
+      setFormattedOutput(result.formatted);
+      setActiveTab('preview');
+    } catch (error) {
+      console.error('Error testing format:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to test response format',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      {standalone && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Response Formatter</h1>
-            <p className="text-muted-foreground">
-              Configure how AI responses are structured and formatted
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={isLoadingFormats}
-            >
-              <RefreshCw
-                className={`mr-2 h-4 w-4 ${isLoadingFormats ? "animate-spin" : ""}`}
-              />
-              Refresh
-            </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={createFormatMutation.isPending || updateFormatMutation.isPending}
-            >
-              {(createFormatMutation.isPending || updateFormatMutation.isPending) ? (
-                <>
-                  <Save className="mr-2 h-4 w-4" /> Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" /> Save Changes
-                </>
-              )}
-            </Button>
-          </div>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight mb-2">Response Formatter</h2>
+        <p className="text-muted-foreground">
+          Customize how AI responses are structured and formatted
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1">
+          <SavedFormatsCard 
+            formats={formatList}
+            selectedFormat={selectedFormat}
+            onFormatSelect={handleFormatSelect}
+            onCreateFormat={handleCreateFormat}
+            onDeleteFormat={handleDeleteFormat}
+            onSetDefault={handleSetDefault}
+            isLoading={isLoading}
+          />
         </div>
-      )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="settings">
-            <Wand2 className="mr-2 h-4 w-4" /> Format Settings
-          </TabsTrigger>
-          <TabsTrigger value="preview">
-            <Play className="mr-2 h-4 w-4" /> Preview
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="settings" className="space-y-4 pt-4">
-          <FormatSettingsCard 
-            formatSettings={formatSettings}
-            setFormatSettings={setFormatSettings}
-            handleSave={handleSave}
-            onDelete={handleDeleteFormat}
-            isDeleting={deleteFormatMutation.isPending}
-            isSaving={createFormatMutation.isPending || updateFormatMutation.isPending}
-          />
-
-          <TestPromptCard 
-            testPrompt={testPrompt}
-            setTestPrompt={setTestPrompt}
-            handleTest={handleTest}
-            isTesting={testFormatMutation.isPending}
-          />
-          
-          {formats && formats.length > 0 && (
-            <SavedFormatsCard 
-              formats={formats}
-              onSelectFormat={setFormatSettings}
-              onSetDefault={(id) => setDefaultMutation.mutate(id)}
-              isSettingDefault={setDefaultMutation.isPending}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="preview">
-          <FormatPreviewTab 
-            testResponse={testResponse}
-            testPrompt={testPrompt}
-            formatSettings={formatSettings}
-            onGoToSettings={() => setActiveTab("settings")}
-          />
-        </TabsContent>
-      </Tabs>
+        <div className="md:col-span-2">
+          <Card className="p-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="settings" className="p-6 space-y-6">
+                <FormatSettingsCard 
+                  selectedFormat={selectedFormat}
+                  onFormatChange={handleFormatChange}
+                  isLoading={isLoading}
+                />
+                
+                <TestPromptCard 
+                  testInput={testInput}
+                  onInputChange={setTestInput}
+                  onTestFormat={handleTestFormat}
+                  isLoading={isLoading}
+                  disabled={!selectedFormat}
+                />
+              </TabsContent>
+              
+              <TabsContent value="preview" className="p-6">
+                <FormatPreviewTab
+                  originalInput={testInput}
+                  formattedOutput={formattedOutput}
+                  formatName={selectedFormat?.name || 'No format selected'}
+                />
+              </TabsContent>
+            </Tabs>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default ResponseFormatterManager;
+export { ResponseFormatterManager };
