@@ -1,0 +1,12 @@
+
+.component-showcase {
+  --chat-ai-bg: rgba(240, 240, 250, 0.8);
+  --chat-user-bg: rgba(59, 130, 246, 0.1);
+  --chat-timestamp: rgba(107, 114, 128, 1);
+}
+
+.dark .component-showcase {
+  --chat-ai-bg: rgba(55, 65, 81, 0.5);
+  --chat-user-bg: rgba(59, 130, 246, 0.2);
+  --chat-timestamp: rgba(156, 163, 175, 1);
+}
