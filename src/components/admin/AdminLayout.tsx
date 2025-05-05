@@ -1,4 +1,3 @@
-
 import { Outlet, Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -17,10 +16,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/hooks/auth/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/ModeToggle";
-import { AdminNotFound } from "./AdminNotFound";
+import AdminNotFound from "./AdminNotFound";
 
 type SidebarItem = {
   icon: React.ReactNode;
