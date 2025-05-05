@@ -7,7 +7,8 @@ import { ResponseFormat } from "@/types/ai-configuration";
  */
 export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
   try {
-    return await ApiService.get('/response-formats');
+    const response = await ApiService.get('/response-formats');
+    return response.data || [];
   } catch (error) {
     console.error('Error fetching response formats:', error);
     return [];
@@ -18,14 +19,16 @@ export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
  * Create a new response format
  */
 export const createResponseFormat = async (format: Omit<ResponseFormat, 'id'>): Promise<ResponseFormat> => {
-  return await ApiService.post('/response-formats', format);
+  const response = await ApiService.post('/response-formats', format);
+  return response.data;
 };
 
 /**
  * Update an existing response format
  */
 export const updateResponseFormat = async (id: string, format: Partial<ResponseFormat>): Promise<ResponseFormat> => {
-  return await ApiService.put(`/response-formats/${id}`, format);
+  const response = await ApiService.put(`/response-formats/${id}`, format);
+  return response.data;
 };
 
 /**
@@ -49,5 +52,17 @@ export const testResponseFormat = async (
   formatId: string,
   content: string
 ): Promise<{ formatted: string }> => {
-  return await ApiService.post(`/response-formats/${formatId}/test`, { content });
+  const response = await ApiService.post(`/response-formats/${formatId}/test`, { content });
+  return response.data;
 };
+
+const responseFormatService = {
+  getAllResponseFormats,
+  createResponseFormat,
+  updateResponseFormat,
+  deleteResponseFormat,
+  setDefaultResponseFormat,
+  testResponseFormat,
+};
+
+export default responseFormatService;

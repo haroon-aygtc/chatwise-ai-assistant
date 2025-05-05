@@ -1,5 +1,4 @@
-
-import { apiRequest } from "./base";
+import ApiService from './base';
 
 interface CsrfCheckResult {
   success: boolean;
@@ -10,22 +9,18 @@ interface CsrfCheckResult {
 }
 
 export const getCsrfToken = async (): Promise<string> => {
-  const response = await apiRequest<{ csrf_token: string }>({
-    method: "GET",
-    url: "/csrf-token",
-  });
-  
-  return response.csrf_token;
+  try {
+    const response = await ApiService.get<{ csrf_token: string }>("/csrf-token");
+    return response.csrf_token || '';
+  } catch (error) {
+    console.error('Error getting CSRF token:', error);
+    return '';
+  }
 };
 
 export const testCsrfProtection = async (testData: any): Promise<CsrfCheckResult> => {
   try {
-    const response = await apiRequest<CsrfCheckResult>({
-      method: "POST",
-      url: "/csrf-test",
-      data: testData,
-    });
-    
+    const response = await ApiService.post<CsrfCheckResult>("/csrf-test", testData);
     return response;
   } catch (error: any) {
     return {
@@ -36,12 +31,13 @@ export const testCsrfProtection = async (testData: any): Promise<CsrfCheckResult
 };
 
 export const getServerConfig = async (): Promise<any> => {
-  const response = await apiRequest<any>({
-    method: "GET",
-    url: "/config",
-  });
-  
-  return response;
+  try {
+    const response = await ApiService.get<any>("/config");
+    return response;
+  } catch (error) {
+    console.error('Error getting server config:', error);
+    return {};
+  }
 };
 
 export const runCsrfDiagnostics = async (): Promise<void> => {

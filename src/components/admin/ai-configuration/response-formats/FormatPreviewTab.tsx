@@ -6,15 +6,15 @@ import { Check, Play } from "lucide-react";
 import { ResponseFormat } from "@/types/ai-configuration";
 
 interface FormatPreviewTabProps {
-  testResponse: string;
   testPrompt: string;
+  testResponse: string;
   formatSettings: ResponseFormat;
   onGoToSettings: () => void;
 }
 
 export const FormatPreviewTab = ({ 
-  testResponse, 
   testPrompt, 
+  testResponse, 
   formatSettings,
   onGoToSettings
 }: FormatPreviewTabProps) => {
