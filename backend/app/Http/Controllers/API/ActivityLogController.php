@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -20,26 +19,26 @@ class ActivityLogController extends Controller
     public function index(Request $request)
     {
         $query = ActivityLog::with('user')->latest();
-        
+
         // Filter by user if provided
         if ($request->has('user_id')) {
             $query->where('user_id', $request->user_id);
         }
-        
+
         // Filter by action type if provided
         if ($request->has('action_type')) {
             $query->where('action', $request->action_type);
         }
-        
+
         // Filter by date range if provided
         if ($request->has('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
-        
+
         if ($request->has('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         // Search in description if provided
         if ($request->has('search')) {
             $search = $request->search;
@@ -48,10 +47,10 @@ class ActivityLogController extends Controller
                   ->orWhere('action', 'like', "%{$search}%");
             });
         }
-        
+
         // Get paginated results
         $activityLogs = $query->paginate($request->per_page ?? 15);
-        
+
         return response()->json($activityLogs);
     }
 
@@ -65,7 +64,7 @@ class ActivityLogController extends Controller
         $types = ActivityLog::distinct()->pluck('action')->toArray();
         return response()->json($types);
     }
-    
+
     /**
      * Export activity logs to CSV.
      *
@@ -75,24 +74,24 @@ class ActivityLogController extends Controller
     public function export(Request $request)
     {
         $query = ActivityLog::with('user')->latest();
-        
+
         // Apply the same filters as in index method
         if ($request->has('user_id')) {
             $query->where('user_id', $request->user_id);
         }
-        
+
         if ($request->has('action_type')) {
             $query->where('action', $request->action_type);
         }
-        
+
         if ($request->has('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
-        
+
         if ($request->has('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        
+
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -100,21 +99,21 @@ class ActivityLogController extends Controller
                   ->orWhere('action', 'like', "%{$search}%");
             });
         }
-        
+
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="activity-logs.csv"',
             'Cache-Control' => 'max-age=0'
         ];
-        
+
         $activityLogs = $query->get();
-        
+
         $columns = ['ID', 'User', 'Action', 'Description', 'IP Address', 'User Agent', 'Time'];
-        
+
         $callback = function() use ($activityLogs, $columns) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
-            
+
             foreach ($activityLogs as $log) {
                 $row = [
                     $log->id,
@@ -125,13 +124,13 @@ class ActivityLogController extends Controller
                     $log->user_agent,
                     $log->created_at->toDateTimeString()
                 ];
-                
+
                 fputcsv($file, $row);
             }
-            
+
             fclose($file);
         };
-        
+
         return Response::stream($callback, 200, $headers);
     }
 }

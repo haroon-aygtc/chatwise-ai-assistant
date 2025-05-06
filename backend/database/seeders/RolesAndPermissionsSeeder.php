@@ -1,4 +1,3 @@
-
 <?php
 
 namespace Database\Seeders;
@@ -35,30 +34,52 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     private function createPermissions(): void
     {
-        // User management permissions
-        Permission::create(['name' => 'view users', 'guard_name' => 'web']);
-        Permission::create(['name' => 'create users', 'guard_name' => 'web']);
-        Permission::create(['name' => 'edit users', 'guard_name' => 'web']);
-        Permission::create(['name' => 'delete users', 'guard_name' => 'web']);
-        Permission::create(['name' => 'manage users', 'guard_name' => 'web']);
-        
-        // Role management permissions
-        Permission::create(['name' => 'view roles', 'guard_name' => 'web']);
-        Permission::create(['name' => 'create roles', 'guard_name' => 'web']);
-        Permission::create(['name' => 'edit roles', 'guard_name' => 'web']);
-        Permission::create(['name' => 'delete roles', 'guard_name' => 'web']);
-        Permission::create(['name' => 'manage roles', 'guard_name' => 'web']);
-        
-        // Permission management
-        Permission::create(['name' => 'view permissions', 'guard_name' => 'web']);
-        Permission::create(['name' => 'manage permissions', 'guard_name' => 'web']);
-        
-        // Activity Log
-        Permission::create(['name' => 'view activity log', 'guard_name' => 'web']);
-        
-        // System settings
-        Permission::create(['name' => 'view settings', 'guard_name' => 'web']);
-        Permission::create(['name' => 'edit settings', 'guard_name' => 'web']);
+        $permissions = [
+            // User management permissions
+            ['name' => 'view users', 'guard_name' => 'web', 'description' => 'View user accounts'],
+            ['name' => 'create users', 'guard_name' => 'web', 'description' => 'Create new user accounts'],
+            ['name' => 'edit users', 'guard_name' => 'web', 'description' => 'Edit existing user accounts'],
+            ['name' => 'delete users', 'guard_name' => 'web', 'description' => 'Delete user accounts'],
+            ['name' => 'manage users', 'guard_name' => 'web', 'description' => 'Full user management access'],
+
+            // Role management permissions
+            ['name' => 'view roles', 'guard_name' => 'web', 'description' => 'View roles'],
+            ['name' => 'create roles', 'guard_name' => 'web', 'description' => 'Create new roles'],
+            ['name' => 'edit roles', 'guard_name' => 'web', 'description' => 'Edit existing roles'],
+            ['name' => 'delete roles', 'guard_name' => 'web', 'description' => 'Delete roles'],
+            ['name' => 'manage roles', 'guard_name' => 'web', 'description' => 'Full role management access'],
+
+            // Permission management
+            ['name' => 'view permissions', 'guard_name' => 'web', 'description' => 'View permissions'],
+            ['name' => 'manage permissions', 'guard_name' => 'web', 'description' => 'Manage permissions'],
+
+            // Activity Log
+            ['name' => 'view activity log', 'guard_name' => 'web', 'description' => 'View activity logs'],
+
+            // System settings
+            ['name' => 'view settings', 'guard_name' => 'web', 'description' => 'View system settings'],
+            ['name' => 'edit settings', 'guard_name' => 'web', 'description' => 'Edit system settings'],
+        ];
+
+        foreach ($permissions as $permissionData) {
+            $permissionName = $permissionData['name'];
+            $guardName = $permissionData['guard_name'];
+
+            // Check if permission already exists
+            $permission = Permission::where('name', $permissionName)
+                ->where('guard_name', $guardName)
+                ->first();
+
+            if (!$permission) {
+                // Create permission if it doesn't exist
+                Permission::create($permissionData);
+                $this->command->info("Created permission: {$permissionName}");
+            } else {
+                // Update existing permission with new data
+                $permission->update($permissionData);
+                $this->command->info("Updated permission: {$permissionName}");
+            }
+        }
     }
 
     /**
@@ -66,46 +87,75 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     private function createRoles(): void
     {
-        // Create Admin role and assign all permissions
-        $adminRole = Role::create([
-            'name' => 'admin', 
-            'guard_name' => 'web',
-            'description' => 'Administrator with full system access',
-        ]);
-        $adminRole->givePermissionTo(Permission::all());
+        $roles = [
+            [
+                'name' => 'admin',
+                'guard_name' => 'web',
+                'description' => 'Administrator with full system access',
+                'permissions' => Permission::all()->pluck('name')->toArray(),
+                'status' => 'active',
+            ],
+            [
+                'name' => 'manager',
+                'guard_name' => 'web',
+                'description' => 'Manager with limited administrative access',
+                'permissions' => [
+                    'view users',
+                    'create users',
+                    'edit users',
+                    'view roles',
+                    'view permissions',
+                    'view activity log',
+                    'view settings',
+                ],
+                'status' => 'active',
+            ],
+            [
+                'name' => 'editor',
+                'guard_name' => 'web',
+                'description' => 'Editor with content management access',
+                'permissions' => [
+                    'view users',
+                    'view activity log',
+                ],
+                'status' => 'active',
+            ],
+            [
+                'name' => 'user',
+                'guard_name' => 'web',
+                'description' => 'Regular user with basic access',
+                'permissions' => [],
+                'status' => 'active',
+            ],
+        ];
 
-        // Create Manager role with selected permissions
-        $managerRole = Role::create([
-            'name' => 'manager', 
-            'guard_name' => 'web',
-            'description' => 'Manager with limited administrative access',
-        ]);
-        $managerRole->givePermissionTo([
-            'view users', 'create users', 'edit users',
-            'view roles', 
-            'view permissions',
-            'view activity log',
-            'view settings',
-        ]);
+        foreach ($roles as $roleData) {
+            $roleName = $roleData['name'];
+            $guardName = $roleData['guard_name'];
+            $permissions = $roleData['permissions'];
 
-        // Create Editor role with minimal permissions
-        $editorRole = Role::create([
-            'name' => 'editor', 
-            'guard_name' => 'web',
-            'description' => 'Editor with content management access',
-        ]);
-        $editorRole->givePermissionTo([
-            'view users',
-            'view activity log',
-        ]);
+            // Remove permissions from role data before creating/updating
+            unset($roleData['permissions']);
 
-        // Create basic User role
-        $userRole = Role::create([
-            'name' => 'user', 
-            'guard_name' => 'web',
-            'description' => 'Regular user with basic access',
-        ]);
-        // No specific permissions for basic users
+            // Check if role already exists
+            $role = Role::where('name', $roleName)
+                ->where('guard_name', $guardName)
+                ->first();
+
+            if (!$role) {
+                // Create role if it doesn't exist
+                $role = Role::create($roleData);
+                $this->command->info("Created role: {$roleName}");
+            } else {
+                // Update existing role with new data
+                $role->update($roleData);
+                $this->command->info("Updated role: {$roleName}");
+            }
+
+            // Sync permissions
+            $role->syncPermissions($permissions);
+            $this->command->info("Synced permissions for role: {$roleName}");
+        }
     }
 
     /**
@@ -113,44 +163,66 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     private function createUsers(): void
     {
-        // Create admin user
-        $admin = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-            'status' => 'active',
-            'last_active' => now(),
-        ]);
-        $admin->assignRole('admin');
+        $users = [
+            [
+                'name' => 'Admin User',
+                'email' => 'admin@example.com',
+                'password' => 'password',
+                'status' => 'active',
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'Manager User',
+                'email' => 'manager@example.com',
+                'password' => 'password',
+                'status' => 'active',
+                'role' => 'manager',
+            ],
+            [
+                'name' => 'Editor User',
+                'email' => 'editor@example.com',
+                'password' => 'password',
+                'status' => 'active',
+                'role' => 'editor',
+            ],
+            [
+                'name' => 'Regular User',
+                'email' => 'user@example.com',
+                'password' => 'password',
+                'status' => 'active',
+                'role' => 'user',
+            ],
+        ];
 
-        // Create manager user
-        $manager = User::create([
-            'name' => 'Manager User',
-            'email' => 'manager@example.com',
-            'password' => Hash::make('password'),
-            'status' => 'active',
-            'last_active' => now(),
-        ]);
-        $manager->assignRole('manager');
+        foreach ($users as $userData) {
+            $email = $userData['email'];
+            $role = $userData['role'];
+            unset($userData['role']);
 
-        // Create editor user
-        $editor = User::create([
-            'name' => 'Editor User',
-            'email' => 'editor@example.com',
-            'password' => Hash::make('password'),
-            'status' => 'active',
-            'last_active' => now(),
-        ]);
-        $editor->assignRole('editor');
+            // Check if user already exists
+            $user = User::where('email', $email)->first();
 
-        // Create regular user
-        $user = User::create([
-            'name' => 'Regular User',
-            'email' => 'user@example.com',
-            'password' => Hash::make('password'),
-            'status' => 'active',
-            'last_active' => now(),
-        ]);
-        $user->assignRole('user');
+            if (!$user) {
+                // Hash the password
+                $userData['password'] = Hash::make($userData['password']);
+                $userData['last_active'] = now();
+
+                // Create user if it doesn't exist
+                $user = User::create($userData);
+                $this->command->info("Created user: {$email}");
+            } else {
+                // Don't update password if user exists
+                unset($userData['password']);
+                $userData['last_active'] = now();
+
+                // Update existing user with new data
+                $user->update($userData);
+                $this->command->info("Updated user: {$email}");
+            }
+
+            // Assign role
+            $user->syncRoles([$role]);
+            $this->command->info("Assigned role '{$role}' to user: {$email}");
+        }
     }
 }

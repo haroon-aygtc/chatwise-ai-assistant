@@ -1,4 +1,3 @@
-
 <?php
 
 namespace Database\Seeders;
@@ -16,11 +15,12 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
-            ActivityLogSeeder::class,
             PromptTemplateSeeder::class,
             KnowledgeBaseSeeder::class,
             ResponseFormatSeeder::class,
             FollowUpSeeder::class,
+            ActivityLogSeeder::class,
+
         ]);
     }
 }

@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -21,17 +20,17 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::query();
-        
+
         // Filter by role if provided
         if ($request->has('role')) {
             $query->role($request->role);
         }
-        
+
         // Filter by status if provided
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
-        
+
         // Search by name or email
         if ($request->has('search')) {
             $search = $request->search;
@@ -40,9 +39,9 @@ class UserController extends Controller
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
-        
+
         $users = $query->with('roles')->paginate($request->per_page ?? 15);
-        
+
         return response()->json($users);
     }
 
@@ -72,7 +71,7 @@ class UserController extends Controller
 
         // Assign role
         $user->assignRole($validated['role']);
-        
+
         // Log activity
         ActivityLogService::log('User Created', "Created new user: {$user->email} with role {$validated['role']}");
 
@@ -92,10 +91,10 @@ class UserController extends Controller
     {
         // Load roles and direct permissions
         $user->load('roles', 'permissions');
-        
+
         $userData = $user->toArray();
         $userData['permissions'] = $user->getAllPermissions()->pluck('name');
-        
+
         return response()->json($userData);
     }
 
@@ -120,14 +119,14 @@ class UserController extends Controller
         $updateData = array_filter($validated, function ($value) {
             return $value !== null;
         });
-        
+
         // Hash password if provided
         if (isset($updateData['password'])) {
             $updateData['password'] = Hash::make($updateData['password']);
         }
-        
+
         $user->update($updateData);
-        
+
         // Log activity
         ActivityLogService::logUserUpdate($user, implode(', ', array_keys($updateData)));
 
@@ -151,7 +150,7 @@ class UserController extends Controller
                 'message' => 'You cannot delete your own account'
             ], 403);
         }
-        
+
         // Log before deletion to capture the user email
         ActivityLogService::log('User Deleted', "Deleted user: {$user->email}");
 
@@ -186,7 +185,7 @@ class UserController extends Controller
         $user->update([
             'status' => $validated['status']
         ]);
-        
+
         // Log activity
         ActivityLogService::log('User Status Changed', "Changed user {$user->email} status from {$oldStatus} to {$validated['status']}");
 
@@ -219,10 +218,10 @@ class UserController extends Controller
 
         // Get current roles for logging
         $oldRoles = $user->getRoleNames()->toArray();
-        
+
         // Sync roles
         $user->syncRoles($validated['roles']);
-        
+
         // Log activity
         ActivityLogService::logRoleAssignment($user, $validated['roles']);
 

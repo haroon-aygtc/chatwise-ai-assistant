@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -44,7 +43,7 @@ class PromptTemplateController extends Controller
 
         $perPage = $request->input('per_page', 15);
         $templates = $this->promptTemplateService->getAllTemplates($filters, $perPage);
-        
+
         return ResponseService::success($templates);
     }
 
@@ -57,11 +56,11 @@ class PromptTemplateController extends Controller
     public function show(int $id): JsonResponse
     {
         $template = $this->promptTemplateService->getTemplateById($id);
-        
+
         if (!$template) {
             return ResponseService::error('Prompt template not found', null, 404);
         }
-        
+
         return ResponseService::success($template);
     }
 
@@ -75,7 +74,7 @@ class PromptTemplateController extends Controller
     {
         $data = $request->validated();
         $template = $this->promptTemplateService->createTemplate($data);
-        
+
         return ResponseService::success($template, 'Prompt template created successfully', 201);
     }
 
@@ -90,11 +89,11 @@ class PromptTemplateController extends Controller
     {
         $data = $request->validated();
         $template = $this->promptTemplateService->updateTemplate($id, $data);
-        
+
         if (!$template) {
             return ResponseService::error('Prompt template not found', null, 404);
         }
-        
+
         return ResponseService::success($template, 'Prompt template updated successfully');
     }
 
@@ -107,11 +106,11 @@ class PromptTemplateController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $result = $this->promptTemplateService->deleteTemplate($id);
-        
+
         if (!$result) {
             return ResponseService::error('Prompt template not found or cannot be deleted', null, 404);
         }
-        
+
         return ResponseService::success(null, 'Prompt template deleted successfully');
     }
 
@@ -135,11 +134,11 @@ class PromptTemplateController extends Controller
     public function incrementUsage(int $id): JsonResponse
     {
         $result = $this->promptTemplateService->incrementUsageCount($id);
-        
+
         if (!$result) {
             return ResponseService::error('Prompt template not found', null, 404);
         }
-        
+
         return ResponseService::success(null, 'Usage count incremented successfully');
     }
 }
