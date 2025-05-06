@@ -1,133 +1,164 @@
+
 <?php
 
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateResponseFormatRequest;
+use App\Http\Requests\TestResponseFormatRequest;
 use App\Http\Requests\UpdateResponseFormatRequest;
 use App\Services\ResponseFormatService;
 use App\Services\ResponseService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ResponseFormatController extends Controller
 {
+    /**
+     * @var ResponseFormatService
+     */
     protected $responseFormatService;
-    protected $responseService;
 
-    public function __construct(ResponseFormatService $responseFormatService, ResponseService $responseService)
+    /**
+     * ResponseFormatController constructor.
+     *
+     * @param ResponseFormatService $responseFormatService
+     */
+    public function __construct(ResponseFormatService $responseFormatService)
     {
         $this->responseFormatService = $responseFormatService;
-        $this->responseService = $responseService;
     }
 
     /**
      * Get all response formats
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        try {
-            $formats = $this->responseFormatService->getAllFormats();
-            return $this->responseService->success($formats, 'Response formats retrieved successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->error($e->getMessage());
-        }
+        $perPage = $request->input('per_page', 15);
+        $formats = $this->responseFormatService->getAllFormats($perPage);
+
+        return ResponseService::success($formats);
     }
 
     /**
-     * Get a format by ID
+     * Get a single response format
      *
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
-        try {
-            $format = $this->responseFormatService->getFormatById($id);
-            return $this->responseService->success($format, 'Response format retrieved successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->error($e->getMessage());
+        $format = $this->responseFormatService->getFormatById($id);
+
+        if (!$format) {
+            return ResponseService::error('Response format not found', null, 404);
         }
+
+        return ResponseService::success($format);
+    }
+
+    /**
+     * Get the default response format
+     *
+     * @return JsonResponse
+     */
+    public function getDefault(): JsonResponse
+    {
+        $format = $this->responseFormatService->getDefaultFormat();
+
+        if (!$format) {
+            return ResponseService::error('No default response format found', null, 404);
+        }
+
+        return ResponseService::success($format);
     }
 
     /**
      * Create a new response format
      *
      * @param CreateResponseFormatRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function store(CreateResponseFormatRequest $request)
+    public function store(CreateResponseFormatRequest $request): JsonResponse
     {
-        try {
-            $format = $this->responseFormatService->createFormat($request->validated());
-            return $this->responseService->success($format, 'Response format created successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->error($e->getMessage());
-        }
+        $data = $request->validated();
+        $format = $this->responseFormatService->createFormat($data);
+
+        return ResponseService::success($format, 'Response format created successfully', 201);
     }
 
     /**
-     * Update an existing response format
+     * Update a response format
      *
      * @param UpdateResponseFormatRequest $request
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function update(UpdateResponseFormatRequest $request, $id)
+    public function update(UpdateResponseFormatRequest $request, int $id): JsonResponse
     {
-        try {
-            $format = $this->responseFormatService->updateFormat($id, $request->validated());
-            return $this->responseService->success($format, 'Response format updated successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->error($e->getMessage());
+        $data = $request->validated();
+        $format = $this->responseFormatService->updateFormat($id, $data);
+
+        if (!$format) {
+            return ResponseService::error('Response format not found', null, 404);
         }
+
+        return ResponseService::success($format, 'Response format updated successfully');
     }
 
     /**
      * Delete a response format
      *
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
-        try {
-            $this->responseFormatService->deleteFormat($id);
-            return $this->responseService->success(null, 'Response format deleted successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->error($e->getMessage());
+        $result = $this->responseFormatService->deleteFormat($id);
+
+        if (!$result) {
+            return ResponseService::error('Response format not found or cannot be deleted', null, 404);
         }
+
+        return ResponseService::success(null, 'Response format deleted successfully');
     }
 
     /**
-     * Set a format as the default
+     * Set a response format as default
      *
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function setDefault($id)
+    public function setDefault(int $id): JsonResponse
     {
-        try {
-            $format = $this->responseFormatService->setDefaultFormat($id);
-            return $this->responseService->success($format, 'Default response format set successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->error($e->getMessage());
+        $format = $this->responseFormatService->setDefaultFormat($id);
+
+        if (!$format) {
+            return ResponseService::error('Response format not found', null, 404);
         }
+
+        return ResponseService::success($format, 'Default response format set successfully');
     }
 
     /**
-     * Get the default response format
+     * Test a response format with a prompt
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @param TestResponseFormatRequest $request
+     * @param int $id
+     * @return JsonResponse
      */
-    public function getDefault()
+    public function test(TestResponseFormatRequest $request, int $id): JsonResponse
     {
-        try {
-            $format = $this->responseFormatService->getDefaultFormat();
-            return $this->responseService->success($format, 'Default response format retrieved successfully');
-        } catch (\Exception $e) {
-            return $this->responseService->error($e->getMessage());
+        $data = $request->validated();
+        $result = $this->responseFormatService->testFormat($id, $data['prompt']);
+
+        if (!$result) {
+            return ResponseService::error('Response format not found or testing failed', null, 404);
         }
+
+        return ResponseService::success($result);
     }
 }

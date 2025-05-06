@@ -2,8 +2,27 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import ResponseFormatService, { CreateResponseFormatRequest, UpdateResponseFormatRequest } from "@/services/ai-configuration/responseFormatService";
+import * as responseFormatService from "@/services/ai-configuration/responseFormatService";
 import { ResponseFormat } from "@/types/ai-configuration";
+
+// Define request types
+interface CreateResponseFormatRequest {
+  name: string;
+  description?: string;
+  content: string;
+  systemInstructions?: string;
+  parameters?: Record<string, any>;
+  isDefault?: boolean;
+}
+
+interface UpdateResponseFormatRequest {
+  name?: string;
+  description?: string;
+  content?: string;
+  systemInstructions?: string;
+  parameters?: Record<string, any>;
+  isDefault?: boolean;
+}
 
 export function useResponseFormats() {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -11,15 +30,15 @@ export function useResponseFormats() {
   const [currentFormat, setCurrentFormat] = useState<ResponseFormat | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch formats
+  // Fetch response formats
   const { 
-    data: formatsData = { data: [], total: 0 },
+    data: formats = [],
     isLoading,
     isError,
     refetch
   } = useQuery({
     queryKey: ['responseFormats'],
-    queryFn: () => ResponseFormatService.getFormats(),
+    queryFn: responseFormatService.getAllFormats,
   });
 
   // Fetch default format
@@ -27,16 +46,17 @@ export function useResponseFormats() {
     data: defaultFormat,
   } = useQuery({
     queryKey: ['defaultResponseFormat'],
-    queryFn: ResponseFormatService.getDefaultFormat,
+    queryFn: responseFormatService.getDefaultFormat,
   });
 
   // Create format mutation
   const createFormatMutation = useMutation({
-    mutationFn: ResponseFormatService.createFormat,
+    mutationFn: (data: CreateResponseFormatRequest) => 
+      responseFormatService.createFormat(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
       setShowAddDialog(false);
-      toast.success("Format created successfully");
+      toast.success("Response format created successfully");
     },
     onError: (error: any) => {
       toast.error(`Failed to create format: ${error.message || "Unknown error"}`);
@@ -46,11 +66,11 @@ export function useResponseFormats() {
   // Update format mutation
   const updateFormatMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: UpdateResponseFormatRequest }) => 
-      ResponseFormatService.updateFormat(id, data),
+      responseFormatService.updateFormat(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
       setShowEditDialog(false);
-      toast.success("Format updated successfully");
+      toast.success("Response format updated successfully");
     },
     onError: (error: any) => {
       toast.error(`Failed to update format: ${error.message || "Unknown error"}`);
@@ -59,10 +79,10 @@ export function useResponseFormats() {
 
   // Delete format mutation
   const deleteFormatMutation = useMutation({
-    mutationFn: ResponseFormatService.deleteFormat,
+    mutationFn: responseFormatService.deleteFormat,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      toast.success("Format deleted successfully");
+      toast.success("Response format deleted successfully");
     },
     onError: (error: any) => {
       toast.error(`Failed to delete format: ${error.message || "Unknown error"}`);
@@ -71,22 +91,29 @@ export function useResponseFormats() {
 
   // Set default format mutation
   const setDefaultFormatMutation = useMutation({
-    mutationFn: ResponseFormatService.setDefaultFormat,
+    mutationFn: responseFormatService.setDefaultFormat,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      queryClient.invalidateQueries({ queryKey: ['defaultResponseFormat'] });
-      toast.success("Default format updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['responseFormats', 'defaultResponseFormat'] });
+      toast.success("Default response format set successfully");
     },
     onError: (error: any) => {
       toast.error(`Failed to set default format: ${error.message || "Unknown error"}`);
     }
   });
 
-  // Handlers
-  const handleRefresh = () => {
-    refetch();
-  };
+  // Test format mutation
+  const testFormatMutation = useMutation({
+    mutationFn: ({ formatId, prompt }: { formatId: string, prompt: string }) => 
+      responseFormatService.testFormat(formatId, prompt),
+    onSuccess: () => {
+      toast.success("Test completed successfully");
+    },
+    onError: (error: any) => {
+      toast.error(`Test failed: ${error.message || "Unknown error"}`);
+    }
+  });
 
+  // Handlers
   const handleAddFormat = () => {
     setShowAddDialog(true);
   };
@@ -102,40 +129,34 @@ export function useResponseFormats() {
     }
   };
 
-  const handleSaveNewFormat = (formatData: CreateResponseFormatRequest) => {
-    createFormatMutation.mutate(formatData);
-  };
-
-  const handleSaveEditedFormat = (formatData: UpdateResponseFormatRequest) => {
-    if (!currentFormat) return;
-    updateFormatMutation.mutate({ id: currentFormat.id, data: formatData });
-  };
-
   const handleSetDefaultFormat = (id: string) => {
     setDefaultFormatMutation.mutate(id);
   };
 
+  const handleTestFormat = (formatId: string, prompt: string) => {
+    return testFormatMutation.mutateAsync({ formatId, prompt });
+  };
+
   return {
-    formats: formatsData.data,
-    totalFormats: formatsData.total,
+    formats,
     defaultFormat,
+    isLoading,
+    isError,
+    currentFormat,
     showAddDialog,
     setShowAddDialog,
     showEditDialog,
     setShowEditDialog,
-    currentFormat,
-    isLoading,
-    isError,
-    handleRefresh,
+    refetch,
     handleAddFormat,
     handleEditFormat,
     handleDeleteFormat,
-    handleSaveNewFormat,
-    handleSaveEditedFormat,
     handleSetDefaultFormat,
+    handleTestFormat,
     createFormatMutation,
     updateFormatMutation,
     deleteFormatMutation,
-    setDefaultFormatMutation
+    setDefaultFormatMutation,
+    testFormatMutation
   };
 }

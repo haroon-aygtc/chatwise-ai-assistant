@@ -1,67 +1,85 @@
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Loader2, Save, Trash } from 'lucide-react';
-import { FormatSettingsCardProps } from './types';
+import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { ResponseFormat } from "@/types/ai-configuration";
+import { Loader2, Save, Trash } from "lucide-react";
+
+interface FormatSettingsCardProps {
+  formatSettings: Partial<ResponseFormat>;
+  setFormatSettings: React.Dispatch<React.SetStateAction<Partial<ResponseFormat>>>;
+  handleSave: () => void;
+  onDelete: () => void;
+  isNew: boolean;
+  isLoading: boolean;
+}
 
 export function FormatSettingsCard({
   formatSettings,
   setFormatSettings,
   handleSave,
   onDelete,
-  isNew = false,
-  isLoading = false
+  isNew,
+  isLoading,
 }: FormatSettingsCardProps) {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-  const updateSettings = (field: keyof typeof formatSettings, value: any) => {
-    setFormatSettings({ ...formatSettings, [field]: value });
+  const handleFieldChange = <K extends keyof ResponseFormat>(
+    field: K,
+    value: ResponseFormat[K]
+  ) => {
+    setFormatSettings((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
-        <CardTitle>{isNew ? 'Create New Format' : 'Edit Format'}</CardTitle>
-        <CardDescription>Configure how responses are formatted</CardDescription>
+        <CardTitle>Format Settings</CardTitle>
+        <CardDescription>
+          {isNew
+            ? "Create a new response format"
+            : "Edit response format settings"}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Format Name</Label>
+          <Label htmlFor="name">Name</Label>
           <Input
             id="name"
-            value={formatSettings.name || ''}
-            onChange={(e) => updateSettings('name', e.target.value)}
-            placeholder="e.g., Standard Format"
+            value={formatSettings.name || ""}
+            onChange={(e) => handleFieldChange("name", e.target.value)}
+            placeholder="Format name"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
-          <Textarea
+          <Input
             id="description"
-            value={formatSettings.description || ''}
-            onChange={(e) => updateSettings('description', e.target.value)}
-            placeholder="Describe how this format works"
-            rows={2}
+            value={formatSettings.description || ""}
+            onChange={(e) => handleFieldChange("description", e.target.value)}
+            placeholder="Format description"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="template">Response Template</Label>
+          <Label htmlFor="content">Template</Label>
           <Textarea
-            id="template"
-            value={formatSettings.template || ''}
-            onChange={(e) => updateSettings('template', e.target.value)}
-            placeholder="Template with placeholders like {{content}}"
-            rows={6}
-            className="font-mono"
+            id="content"
+            value={formatSettings.content || ""}
+            onChange={(e) => handleFieldChange("content", e.target.value)}
+            placeholder="Enter the response template..."
+            className="min-h-[150px] font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            Use variables like {{content}}, {{sources}}, etc. in your template
+            Use variables like {{content}} and {{sources}} in your template.
           </p>
         </div>
 
@@ -69,57 +87,79 @@ export function FormatSettingsCard({
           <Label htmlFor="systemInstructions">System Instructions</Label>
           <Textarea
             id="systemInstructions"
-            value={formatSettings.systemInstructions || ''}
-            onChange={(e) => updateSettings('systemInstructions', e.target.value)}
-            placeholder="Instructions for the AI to follow when using this format"
-            rows={4}
+            value={formatSettings.systemInstructions || ""}
+            onChange={(e) => handleFieldChange("systemInstructions", e.target.value)}
+            placeholder="Instructions for the AI on how to format responses..."
+            className="min-h-[80px]"
           />
         </div>
 
-        <div className="flex justify-between mt-6">
-          {!isNew && onDelete && (
-            <>
-              {showDeleteConfirm ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={onDelete}
-                    disabled={isLoading}
-                  >
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Confirm Delete
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="isDefault"
+            checked={formatSettings.isDefault || false}
+            onCheckedChange={(checked) =>
+              handleFieldChange("isDefault", checked)
+            }
+          />
+          <Label htmlFor="isDefault">Set as default format</Label>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        {!isNew ? (
+          <div>
+            {showConfirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Confirm?</span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={onDelete}
+                  disabled={isLoading || formatSettings.isDefault}
+                >
+                  Yes, Delete
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isLoading}
+                  onClick={() => setShowConfirmDelete(false)}
                 >
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete
+                  Cancel
                 </Button>
-              )}
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmDelete(true)}
+                disabled={isLoading || formatSettings.isDefault}
+              >
+                <Trash className="mr-2 h-4 w-4" /> Delete Format
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div></div>
+        )}
+        <Button
+          onClick={handleSave}
+          disabled={
+            isLoading ||
+            !formatSettings.name ||
+            !formatSettings.content
+          }
+          className="min-w-[120px]"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" /> Save Format
             </>
           )}
-
-          <Button onClick={handleSave} disabled={isLoading || !formatSettings.name}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <Save className="mr-2 h-4 w-4" />
-            {isNew ? 'Create Format' : 'Save Changes'}
-          </Button>
-        </div>
-      </CardContent>
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

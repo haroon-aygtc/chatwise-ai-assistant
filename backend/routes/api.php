@@ -1,14 +1,18 @@
+
 <?php
 
 use App\Http\Controllers\API\ActivityLogController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\ChatController;
 use App\Http\Controllers\API\FollowUpController;
 use App\Http\Controllers\API\KnowledgeBaseController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\PromptTemplateController;
 use App\Http\Controllers\API\ResponseFormatController;
 use App\Http\Controllers\API\RoleController;
+use App\Http\Controllers\API\SettingsController;
 use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\WidgetController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -103,6 +107,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [ResponseFormatController::class, 'destroy']);
         Route::get('/default', [ResponseFormatController::class, 'getDefault']);
         Route::post('/{id}/set-default', [ResponseFormatController::class, 'setDefault']);
+        Route::post('/{id}/test', [ResponseFormatController::class, 'test']);
     });
 
     // Follow-Up Suggestions routes
@@ -118,5 +123,48 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/settings', [FollowUpController::class, 'getSettings']);
         Route::put('/settings', [FollowUpController::class, 'updateSettings']);
         Route::post('/test', [FollowUpController::class, 'testSuggestions']);
+    });
+    
+    // Chat routes
+    Route::prefix('chat')->group(function () {
+        // Sessions
+        Route::get('/sessions', [ChatController::class, 'getAllSessions']);
+        Route::get('/sessions/{id}', [ChatController::class, 'getSession']);
+        Route::post('/sessions', [ChatController::class, 'createSession']);
+        Route::put('/sessions/{id}', [ChatController::class, 'updateSession']);
+        Route::post('/sessions/{id}/close', [ChatController::class, 'closeSession']);
+        
+        // Messages
+        Route::get('/sessions/{id}/messages', [ChatController::class, 'getMessages']);
+        Route::post('/sessions/{id}/messages', [ChatController::class, 'sendMessage']);
+        Route::post('/sessions/{id}/read', [ChatController::class, 'markMessagesAsRead']);
+        Route::get('/messages/unread', [ChatController::class, 'getUnreadCount']);
+    });
+    
+    // Widget routes
+    Route::prefix('widgets')->group(function () {
+        Route::get('/', [WidgetController::class, 'index']);
+        Route::get('/{id}', [WidgetController::class, 'show']);
+        Route::post('/', [WidgetController::class, 'store']);
+        Route::put('/{id}', [WidgetController::class, 'update']);
+        Route::delete('/{id}', [WidgetController::class, 'destroy']);
+        Route::get('/{id}/settings', [WidgetController::class, 'getSettings']);
+        Route::post('/{id}/settings', [WidgetController::class, 'createSetting']);
+        Route::get('/{id}/code', [WidgetController::class, 'getCode']);
+        Route::post('/test-config', [WidgetController::class, 'testConfig']);
+    });
+    
+    // Settings routes
+    Route::prefix('settings')->group(function () {
+        // User settings
+        Route::get('/user', [SettingsController::class, 'getUserSettings']);
+        Route::put('/user', [SettingsController::class, 'updateUserSettings']);
+        Route::post('/user/reset', [SettingsController::class, 'resetUserSettings']);
+        
+        // App settings (admin only)
+        Route::middleware(['can:manage settings'])->group(function () {
+            Route::get('/app', [SettingsController::class, 'getAppSettings']);
+            Route::put('/app', [SettingsController::class, 'updateAppSettings']);
+        });
     });
 });

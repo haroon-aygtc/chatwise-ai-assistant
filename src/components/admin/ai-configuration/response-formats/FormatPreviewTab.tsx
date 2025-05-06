@@ -1,8 +1,15 @@
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
-import { FormatPreviewTabProps } from './types';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, FileText } from "lucide-react";
+import { ResponseFormat } from "@/types/ai-configuration";
+
+interface FormatPreviewTabProps {
+  testPrompt: string;
+  testResponse: string;
+  formatSettings: Partial<ResponseFormat>;
+  onGoToSettings: () => void;
+}
 
 export function FormatPreviewTab({
   testPrompt,
@@ -11,42 +18,54 @@ export function FormatPreviewTab({
   onGoToSettings,
 }: FormatPreviewTabProps) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Format Preview</CardTitle>
-            <CardDescription>
-              See how your format works with the test prompt
-            </CardDescription>
+    <div className="space-y-6">
+      <Card className="h-full shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Format Preview</span>
+            <Button size="sm" variant="outline" onClick={onGoToSettings}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Settings
+            </Button>
+          </CardTitle>
+          <CardDescription>
+            {formatSettings.name ? `"${formatSettings.name}"` : "New Format"} - See how your format affects AI responses
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Original Prompt:</h3>
+            <div className="rounded-lg bg-muted p-4 text-sm">
+              {testPrompt || "No prompt provided"}
+            </div>
           </div>
-          <Button variant="outline" size="sm" onClick={onGoToSettings}>
-            <Settings className="h-4 w-4 mr-1" /> Format Settings
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <h4 className="text-sm font-medium mb-2">Input Prompt:</h4>
-          <div className="bg-muted p-3 rounded-md text-sm">
-            {testPrompt}
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="text-sm font-medium mb-2">Format Template:</h4>
-          <div className="bg-muted p-3 rounded-md font-mono text-xs overflow-x-auto">
-            {formatSettings.template || "No template defined"}
-          </div>
-        </div>
 
-        <div>
-          <h4 className="text-sm font-medium mb-2">Formatted Response:</h4>
-          <div className="bg-muted p-3 rounded-md whitespace-pre-wrap text-sm">
-            {testResponse || "No response generated yet"}
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Format Template:</h3>
+            <div className="rounded-lg bg-muted p-4 text-sm font-mono whitespace-pre-wrap overflow-auto max-h-[200px]">
+              {formatSettings.content || "No template defined"}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Formatted Response:</h3>
+            <div className="rounded-lg border p-4 bg-card text-sm whitespace-pre-wrap overflow-auto max-h-[300px]">
+              {testResponse ? (
+                testResponse
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mb-2 opacity-50" />
+                  <p>Click "Test Format" to see a preview</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm text-muted-foreground">
+            This preview shows how your format transforms AI responses.
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

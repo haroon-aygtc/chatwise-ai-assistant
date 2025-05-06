@@ -5,8 +5,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ResponseFormat extends Model
+class WidgetSetting extends Model
 {
     use HasFactory;
 
@@ -16,12 +17,10 @@ class ResponseFormat extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'description',
-        'content',
-        'system_instructions',
-        'parameters',
-        'is_default',
+        'widget_id',
+        'key',
+        'value',
+        'type',
     ];
 
     /**
@@ -30,7 +29,14 @@ class ResponseFormat extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'parameters' => 'array',
-        'is_default' => 'boolean',
+        'value' => 'array',
     ];
+
+    /**
+     * Get the widget that owns the setting.
+     */
+    public function widget(): BelongsTo
+    {
+        return $this->belongsTo(Widget::class);
+    }
 }
