@@ -1,3 +1,4 @@
+
 <?php
 
 namespace Database\Seeders;
@@ -13,48 +14,53 @@ class FollowUpSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create default settings
+        // Create default follow-up settings
         FollowUpSetting::create([
             'enabled' => true,
             'max_suggestions' => 3,
         ]);
 
-        // Create default suggestions
+        // Create sample follow-up suggestions
         $suggestions = [
             [
-                'text' => 'Need more help?',
+                'text' => 'Tell me more about that',
                 'category' => 'general',
-                'description' => 'General follow-up question',
+                'description' => 'Ask for more details about the previously mentioned topic',
                 'order' => 1,
                 'is_active' => true,
+                'trigger_conditions' => ['min_message_length' => 20],
             ],
             [
-                'text' => 'Talk to a human agent',
-                'category' => 'support',
-                'description' => 'Escalation option',
+                'text' => 'How does this compare to competitors?',
+                'category' => 'business',
+                'description' => 'Ask for competitive analysis',
                 'order' => 2,
                 'is_active' => true,
+                'trigger_conditions' => ['topic' => 'business'],
             ],
             [
-                'text' => 'Learn about our pricing',
-                'category' => 'sales',
-                'description' => 'Sales inquiry',
+                'text' => 'What are the next steps?',
+                'category' => 'general',
+                'description' => 'Ask about the action plan',
                 'order' => 3,
                 'is_active' => true,
+                'trigger_conditions' => [],
             ],
             [
-                'text' => 'View documentation',
-                'category' => 'support',
-                'description' => 'Link to documentation',
+                'text' => 'Can you provide some examples?',
+                'category' => 'general',
+                'description' => 'Request concrete examples',
                 'order' => 4,
                 'is_active' => true,
+                'trigger_conditions' => [],
             ],
             [
-                'text' => 'Submit feedback',
-                'category' => 'feedback',
-                'description' => 'Gather user feedback',
+                'text' => 'What are the potential challenges?',
+                'category' => 'business',
+                'description' => 'Ask about potential obstacles',
                 'order' => 5,
                 'is_active' => true,
+                'trigger_conditions' => ['topic' => 'business'],
             ],
         ];
 

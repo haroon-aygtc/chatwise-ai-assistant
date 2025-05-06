@@ -67,7 +67,7 @@ export function CategoryPermissionsGroup({
           <Checkbox
             id={`category-${category}`}
             checked={allSelected}
-            indeterminate={someSelected}
+            className={someSelected ? "opacity-50" : ""}
             onCheckedChange={toggleAll}
             disabled={disabled}
             aria-label={`Select all ${category} permissions`}

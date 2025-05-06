@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,13 +18,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Activity, ArrowDown, Filter, Search } from "lucide-react";
-import { ActivityLogTable } from "../components/ActivityLogTable";
-import { ActivityLog } from "@/services/activity/activityLogService";
-import activityLogService from "@/services/activity/activityLogService";
+import { ArrowDown, Filter, Search } from "lucide-react";
 import { DateRange } from "@/types/user";
+import activityLogService from "@/services/activity/activityLogService";
 
-export function ActivityLog() {
+// Temporary placeholder until ActivityLogTable is implemented
+const ActivityLogTable = ({ logs, isLoading, currentPage, totalPages, totalItems, onPageChange }: { 
+  logs: any[], 
+  isLoading: boolean,
+  currentPage: number,
+  totalPages: number,
+  totalItems: number,
+  onPageChange: (page: number) => void
+}) => {
+  return (
+    <div className="p-4 border rounded-md">
+      <p className="text-center">Activity Log Table Placeholder</p>
+      {isLoading && <p className="text-center">Loading...</p>}
+      {!isLoading && logs.length === 0 && <p className="text-center">No logs found</p>}
+    </div>
+  );
+};
+
+// Temporary DatePicker component
+const DatePicker = ({ selected, onSelect }: { selected?: Date, onSelect: (date: Date | undefined) => void }) => {
+  return (
+    <Input 
+      type="date" 
+      value={selected ? selected.toISOString().split('T')[0] : ''} 
+      onChange={(e) => onSelect(e.target.value ? new Date(e.target.value) : undefined)}
+    />
+  );
+};
+
+// Define ActivityLog type
+interface ActivityLog {
+  id: string;
+  user_id: string;
+  action: string;
+  description: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+}
+
+const ActivityLog = () => {
   const { toast } = useToast();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,7 +204,6 @@ export function ActivityLog() {
           >
             <Filter className="mr-2 h-4 w-4" />
             Filters
-            {showFilters ? <Activity className="ml-2 h-4 w-4" /> : null}
           </Button>
         </div>
         
@@ -217,4 +257,6 @@ export function ActivityLog() {
       </CardContent>
     </Card>
   );
-}
+};
+
+export default ActivityLog;
