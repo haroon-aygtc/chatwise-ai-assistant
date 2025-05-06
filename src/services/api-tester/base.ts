@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig } from "axios";
-import tokenService from "@/modules/auth/services/tokenService";
+import tokenService from "@/services/auth/tokenService";
 
 // Fixed API endpoint for API tests
 const BASE_URL = "/api";

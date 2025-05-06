@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { cn } from "@/lib/utils";
-import { AuthProvider } from "../hooks/useAuth";
+import { AuthProvider } from "@/hooks/auth/useAuth";
 
 interface AuthLayoutProps {
   children: ReactNode;

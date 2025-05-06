@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useSignupValidation } from "../hooks/useSignupValidation";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 const formSchema = z.object({
   name: z.string().min(2, {

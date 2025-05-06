@@ -33,7 +33,7 @@ import { JsonViewer } from "@/components/ui/json-viewer";
 import { getAllEndpoints } from "@/services/api-tester/registry";
 import apiTester from "@/services/api-tester/base";
 import { API_BASE_URL } from "@/services/api-tester/config";
-import tokenService from "@/modules/auth/services/tokenService";
+import tokenService from "@/services/auth/tokenService";
 import {
   Check,
   Copy,
