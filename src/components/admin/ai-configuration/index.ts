@@ -6,7 +6,7 @@ export * from './EditRuleDialog';
 export * from './FollowUpManager';
 export * from './KnowledgeBaseManager';
 export * from './ModelCard';
-export * from './PromptTemplateManager';
+export { default as PromptTemplateManager } from './PromptTemplateManager';
 export * from './RoutingRules';
 // Correct the ResponseFormatterManager import
 export { default as ResponseFormatterManager } from './response-formats/ResponseFormatterManager';
