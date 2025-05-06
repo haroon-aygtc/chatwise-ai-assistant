@@ -1,102 +1,38 @@
 
-import ApiService from "../api/base";
-import { PromptTemplate } from "@/types/ai-configuration";
-import { PaginatedResponse } from "../api/types";
+import ApiService from '../api/base';
+import { PromptTemplate, PromptTemplateCategory } from '@/types/ai-configuration';
 
-export interface CreatePromptTemplateRequest {
-  name: string;
-  description: string;
-  template: string;
-  variables: any[];
-  category?: string;
-  is_default?: boolean;
-  is_active?: boolean;
-}
+// Get all templates
+export const getAllTemplates = async (): Promise<PromptTemplate[]> => {
+  return ApiService.get<PromptTemplate[]>('/prompt-templates');
+};
 
-export interface UpdatePromptTemplateRequest {
-  name?: string;
-  description?: string;
-  template?: string;
-  variables?: any[];
-  category?: string;
-  is_default?: boolean;
-  is_active?: boolean;
-}
+// Get template by ID
+export const getTemplateById = async (id: string): Promise<PromptTemplate> => {
+  return ApiService.get<PromptTemplate>(`/prompt-templates/${id}`);
+};
 
-export interface PromptTemplateFilters {
-  search?: string;
-  category?: string;
-  is_active?: boolean;
-}
+// Get all template categories
+export const getCategories = async (): Promise<PromptTemplateCategory[]> => {
+  return ApiService.get<PromptTemplateCategory[]>('/prompt-templates/categories/list');
+};
 
-class PromptTemplateService {
-  /**
-   * Get all prompt templates with filtering
-   */
-  static async getTemplates(
-    filters: PromptTemplateFilters = {},
-    page: number = 1,
-    perPage: number = 20
-  ): Promise<PaginatedResponse<PromptTemplate>> {
-    const params = {
-      page,
-      per_page: perPage,
-      ...filters
-    };
-    return await ApiService.get<PaginatedResponse<PromptTemplate>>("/prompt-templates", { params });
-  }
+// Create new template
+export const createTemplate = async (data: Omit<PromptTemplate, 'id'>): Promise<PromptTemplate> => {
+  return ApiService.post<PromptTemplate>('/prompt-templates', data);
+};
 
-  /**
-   * Get a template by ID
-   */
-  static async getTemplate(id: string): Promise<PromptTemplate> {
-    return await ApiService.get<PromptTemplate>(`/prompt-templates/${id}`);
-  }
+// Update template
+export const updateTemplate = async (id: string, data: Partial<PromptTemplate>): Promise<PromptTemplate> => {
+  return ApiService.put<PromptTemplate>(`/prompt-templates/${id}`, data);
+};
 
-  /**
-   * Create a new prompt template
-   */
-  static async createTemplate(data: CreatePromptTemplateRequest): Promise<PromptTemplate> {
-    return await ApiService.post<PromptTemplate>("/prompt-templates", data);
-  }
+// Delete template
+export const deleteTemplate = async (id: string): Promise<void> => {
+  return ApiService.delete(`/prompt-templates/${id}`);
+};
 
-  /**
-   * Update an existing prompt template
-   */
-  static async updateTemplate(id: string, data: UpdatePromptTemplateRequest): Promise<PromptTemplate> {
-    return await ApiService.put<PromptTemplate>(`/prompt-templates/${id}`, data);
-  }
-
-  /**
-   * Delete a prompt template
-   */
-  static async deleteTemplate(id: string): Promise<void> {
-    await ApiService.delete(`/prompt-templates/${id}`);
-  }
-
-  /**
-   * Get all template categories
-   */
-  static async getCategories(): Promise<string[]> {
-    return await ApiService.get<string[]>("/prompt-templates/categories/list");
-  }
-
-  /**
-   * Increment usage count for a template
-   */
-  static async incrementUsage(id: string): Promise<void> {
-    await ApiService.post(`/prompt-templates/${id}/increment-usage`, {});
-  }
-
-  /**
-   * Get the default template
-   */
-  static async getDefaultTemplate(): Promise<PromptTemplate | null> {
-    const templates = await ApiService.get<PaginatedResponse<PromptTemplate>>("/prompt-templates", {
-      params: { is_default: true, per_page: 1 }
-    });
-    return templates.data.length > 0 ? templates.data[0] : null;
-  }
-}
-
-export default PromptTemplateService;
+// Increment usage count
+export const incrementUsage = async (id: string): Promise<PromptTemplate> => {
+  return ApiService.post<PromptTemplate>(`/prompt-templates/${id}/increment-usage`);
+};

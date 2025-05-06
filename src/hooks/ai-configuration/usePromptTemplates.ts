@@ -1,176 +1,127 @@
 
-import { useState } from "react";
-import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
-import { PromptTemplate } from "@/types/ai-configuration";
-import * as promptTemplateServiceImport from "@/services/ai-configuration/promptTemplateService";
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import * as promptTemplateService from '@/services/ai-configuration/promptTemplateService';
+import { PromptTemplate, PromptTemplateCategory } from '@/types/ai-configuration';
 
 export const usePromptTemplates = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [categories, setCategories] = useState<PromptTemplateCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState<PromptTemplate | null>(null);
+  const { toast } = useToast();
 
-  // Fetch templates
-  const { 
-    data: templatesData, 
-    isLoading, 
-    refetch 
-  } = useQuery({
-    queryKey: ['promptTemplates', { search: searchQuery, category: selectedCategory }],
-    queryFn: () => promptTemplateServiceImport.getAllTemplates({
-      search: searchQuery || undefined,
-      category: selectedCategory !== 'all' ? selectedCategory : undefined,
-    }),
-  });
-
-  // Fetch categories
-  const { data: categoriesData } = useQuery({
-    queryKey: ['promptTemplateCategories'],
-    queryFn: () => promptTemplateServiceImport.getCategories(),
-  });
-
-  // Create template mutation
-  const createTemplateMutation = useMutation({
-    mutationFn: (template: any) => promptTemplateServiceImport.createTemplate(template),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
-      queryClient.invalidateQueries({ queryKey: ['promptTemplateCategories'] });
-      setShowAddDialog(false);
+  const fetchTemplates = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await promptTemplateService.getAllTemplates();
+      setTemplates(data);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
       toast({
-        title: "Success",
-        description: "Template created successfully",
+        title: 'Error',
+        description: 'Failed to load prompt templates',
+        variant: 'destructive',
       });
-    },
-    onError: (error: any) => {
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = await promptTemplateService.getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
+
+  const createTemplate = useCallback(async (template: Omit<PromptTemplate, 'id'>) => {
+    try {
+      setIsSubmitting(true);
+      await promptTemplateService.createTemplate(template);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create template",
-        variant: "destructive",
+        title: 'Success',
+        description: 'Prompt template created successfully',
       });
-    },
-  });
-
-  // Update template mutation
-  const updateTemplateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
-      promptTemplateServiceImport.updateTemplate(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
-      setShowEditDialog(false);
-      setCurrentTemplate(null);
+      await fetchTemplates();
+      return true;
+    } catch (error) {
+      console.error('Error creating template:', error);
       toast({
-        title: "Success",
-        description: "Template updated successfully",
+        title: 'Error',
+        description: 'Failed to create prompt template',
+        variant: 'destructive',
       });
-    },
-    onError: (error: any) => {
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [fetchTemplates, toast]);
+
+  const updateTemplate = useCallback(async (id: string, template: Partial<PromptTemplate>) => {
+    try {
+      setIsSubmitting(true);
+      await promptTemplateService.updateTemplate(id, template);
       toast({
-        title: "Error",
-        description: error.message || "Failed to update template",
-        variant: "destructive",
+        title: 'Success',
+        description: 'Prompt template updated successfully',
       });
-    },
-  });
-
-  // Delete template mutation
-  const deleteTemplateMutation = useMutation({
-    mutationFn: (id: string) => promptTemplateServiceImport.deleteTemplate(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
+      await fetchTemplates();
+      return true;
+    } catch (error) {
+      console.error('Error updating template:', error);
       toast({
-        title: "Success",
-        description: "Template deleted successfully",
+        title: 'Error',
+        description: 'Failed to update prompt template',
+        variant: 'destructive',
       });
-    },
-    onError: (error: any) => {
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [fetchTemplates, toast]);
+
+  const deleteTemplate = useCallback(async (id: string) => {
+    try {
+      setIsSubmitting(true);
+      await promptTemplateService.deleteTemplate(id);
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete template",
-        variant: "destructive",
+        title: 'Success',
+        description: 'Prompt template deleted successfully',
       });
-    },
-  });
+      await fetchTemplates();
+      return true;
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete prompt template',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [fetchTemplates, toast]);
 
-  const templates = templatesData?.data || [];
-  const categories = categoriesData || [];
-
-  // Map categories to format expected by component
-  const categoryOptions = [
-    { id: "general", name: "General" },
-    { id: "products", name: "Products" },
-    { id: "support", name: "Support" },
-    { id: "sales", name: "Sales" },
-    ...categories
-      .filter((cat) => !["general", "products", "support", "sales"].includes(cat))
-      .map((cat) => ({ id: cat, name: cat.charAt(0).toUpperCase() + cat.slice(1) })),
-  ];
-
-  const handleRefresh = () => {
-    refetch();
-  };
-
-  const handleAddTemplate = () => {
-    setShowAddDialog(true);
-  };
-
-  const handleEditTemplate = (template: PromptTemplate) => {
-    setCurrentTemplate(template);
-    setShowEditDialog(true);
-  };
-
-  const handleDeleteTemplate = (id: string) => {
-    deleteTemplateMutation.mutate(id);
-  };
-
-  const handleSaveNewTemplate = (templateData: Partial<PromptTemplate>) => {
-    createTemplateMutation.mutate(templateData);
-  };
-
-  const handleSaveEditedTemplate = (id: string, templateData: Partial<PromptTemplate>) => {
-    updateTemplateMutation.mutate({
-      id,
-      data: templateData,
-    });
-  };
-
-  const handleCloneTemplate = (template: PromptTemplate) => {
-    const clonedTemplate = {
-      ...template,
-      name: `${template.name} (Copy)`,
-      isDefault: false,
-    };
-    // Remove the id property for create operation
-    const { id, ...templateToCreate } = clonedTemplate;
-    createTemplateMutation.mutate(templateToCreate);
-  };
+  useEffect(() => {
+    fetchTemplates();
+    fetchCategories();
+  }, [fetchTemplates, fetchCategories]);
 
   return {
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
-    showAddDialog,
-    setShowAddDialog,
-    showEditDialog,
-    setShowEditDialog,
+    templates,
+    categories,
+    isLoading,
+    isSubmitting,
     currentTemplate,
     setCurrentTemplate,
-    templates,
-    categories: categoryOptions,
-    isLoading,
-    handleRefresh,
-    handleAddTemplate,
-    handleEditTemplate,
-    handleDeleteTemplate,
-    handleSaveNewTemplate,
-    handleSaveEditedTemplate,
-    handleCloneTemplate,
-    createTemplateMutation,
-    updateTemplateMutation,
+    fetchTemplates,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
   };
 };
