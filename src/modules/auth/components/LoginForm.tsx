@@ -80,6 +80,7 @@ export function LoginForm() {
     setIsLoading(true);
     
     // Mock user data that would normally come from the backend
+    // Make sure the Role type is properly satisfied with all required fields
     const mockUser = {
       id: "mock-user-1",
       name: "Mock User",
@@ -87,7 +88,12 @@ export function LoginForm() {
       status: "active",
       avatar_url: null,
       last_active: new Date().toISOString(),
-      roles: [{ name: "user", id: 1 }],
+      roles: [{ 
+        id: "1",
+        name: "user", 
+        description: "Regular user role",
+        permissions: ["access dashboard", "view profile"]
+      }],
       permissions: ["access dashboard", "view profile"]
     };
     
