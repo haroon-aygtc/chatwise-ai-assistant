@@ -1,3 +1,4 @@
+
 import {
   Permission,
   PermissionCategory,
@@ -66,8 +67,8 @@ export interface FollowUpSuggestion {
   category: string;
   description?: string;
   order?: number;
-  isActive?: boolean;
-  triggerConditions?: string[];
+  is_active?: boolean;
+  trigger_conditions?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
