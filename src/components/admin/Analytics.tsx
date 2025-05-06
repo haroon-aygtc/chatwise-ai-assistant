@@ -1,483 +1,660 @@
-import { useState } from "react";
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { useAnalytics } from '@/hooks/analytics/useAnalytics';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  BarChart3,
-  Download,
-  Filter,
   LineChart,
-  PieChart,
-  Calendar,
-  ArrowUpRight,
-  Users,
-  MessageSquare,
-} from "lucide-react";
-import {
-  LineChart as ReLineChart,
   Line,
-  BarChart as ReBarChart,
+  BarChart,
   Bar,
-  PieChart as RePieChart,
+  PieChart,
   Pie,
-  AreaChart,
-  Area,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+  ResponsiveContainer
+} from 'recharts';
 
 const Analytics = () => {
-  const [dateRange, setDateRange] = useState("last-30-days");
-  const [exportFormat, setExportFormat] = useState("csv");
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+    to: new Date()
+  });
+  const [tab, setTab] = useState('overview');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json' | 'excel'>('csv');
+  
+  const {
+    overview, 
+    chatMetrics, 
+    usageMetrics,
+    performanceMetrics,
+    userFeedback,
+    isLoading,
+    isExporting,
+    loadAllMetrics,
+    exportAnalytics
+  } = useAnalytics(
+    format(dateRange.from, 'yyyy-MM-dd'),
+    format(dateRange.to, 'yyyy-MM-dd')
+  );
 
-  // Sample data for charts
-  const conversationData = [
-    { name: "Mon", conversations: 120, responses: 150 },
-    { name: "Tue", conversations: 180, responses: 220 },
-    { name: "Wed", conversations: 150, responses: 190 },
-    { name: "Thu", conversations: 210, responses: 240 },
-    { name: "Fri", conversations: 250, responses: 280 },
-    { name: "Sat", conversations: 190, responses: 210 },
-    { name: "Sun", conversations: 140, responses: 160 },
-  ];
+  // Colors for charts
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  const userEngagementData = [
-    { name: "Week 1", active: 400, new: 240 },
-    { name: "Week 2", active: 450, new: 210 },
-    { name: "Week 3", active: 520, new: 280 },
-    { name: "Week 4", active: 580, new: 250 },
-  ];
+  const handleDateRangeChange = (range: { from?: Date; to?: Date }) => {
+    if (range.from && range.to) {
+      setDateRange({ from: range.from, to: range.to });
+      
+      // Reload metrics with new date range
+      loadAllMetrics();
+    }
+  };
 
-  const responseTypeData = [
-    { name: "Informational", value: 40 },
-    { name: "Troubleshooting", value: 25 },
-    { name: "Product Inquiry", value: 20 },
-    { name: "Other", value: 15 },
-  ];
-
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+  const handleExport = () => {
+    exportAnalytics(exportFormat);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header with date range picker */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">
-            Monitor and analyze conversation metrics
-          </p>
+          <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+          <p className="text-muted-foreground">Monitor usage, performance and user feedback</p>
         </div>
-        <div className="flex gap-2">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-[180px]">
-              <Calendar className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Select date range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="yesterday">Yesterday</SelectItem>
-              <SelectItem value="last-7-days">Last 7 days</SelectItem>
-              <SelectItem value="last-30-days">Last 30 days</SelectItem>
-              <SelectItem value="this-month">This month</SelectItem>
-              <SelectItem value="last-month">Last month</SelectItem>
-              <SelectItem value="custom">Custom range</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" /> Export
-          </Button>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.from ? (
+                  <>
+                    {format(dateRange.from, 'PPP')} - {format(dateRange.to, 'PPP')}
+                  </>
+                ) : (
+                  <span>Select a date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={{ from: dateRange.from, to: dateRange.to }}
+                onSelect={handleDateRangeChange}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          
+          <div className="flex items-center gap-2">
+            <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as any)}>
+              <SelectTrigger className="w-[90px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="csv">CSV</SelectItem>
+                <SelectItem value="json">JSON</SelectItem>
+                <SelectItem value="excel">Excel</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Conversations
-            </CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3,842</div>
-            <p className="text-xs text-muted-foreground flex items-center">
-              <span className="text-green-500 flex items-center mr-1">
-                +18% <ArrowUpRight className="h-3 w-3" />
-              </span>
-              from last period
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Avg. Response Time
-            </CardTitle>
-            <LineChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1.2s</div>
-            <p className="text-xs text-muted-foreground flex items-center">
-              <span className="text-green-500 flex items-center mr-1">
-                -0.3s <ArrowUpRight className="h-3 w-3" />
-              </span>
-              from last period
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              User Satisfaction
-            </CardTitle>
-            <PieChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">92%</div>
-            <p className="text-xs text-muted-foreground flex items-center">
-              <span className="text-green-500 flex items-center mr-1">
-                +3% <ArrowUpRight className="h-3 w-3" />
-              </span>
-              from last period
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Users
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,583</div>
-            <p className="text-xs text-muted-foreground flex items-center">
-              <span className="text-green-500 flex items-center mr-1">
-                +12% <ArrowUpRight className="h-3 w-3" />
-              </span>
-              from last period
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">
-            <BarChart3 className="mr-2 h-4 w-4" /> Overview
-          </TabsTrigger>
-          <TabsTrigger value="conversations">
-            <MessageSquare className="mr-2 h-4 w-4" /> Conversations
-          </TabsTrigger>
-          <TabsTrigger value="users">
-            <Users className="mr-2 h-4 w-4" /> Users
-          </TabsTrigger>
-          <TabsTrigger value="performance">
-            <LineChart className="mr-2 h-4 w-4" /> Performance
-          </TabsTrigger>
+      
+      {/* Tabs */}
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="conversations">Conversations</TabsTrigger>
+          <TabsTrigger value="usage">Usage</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="overview" className="pt-6 space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+        
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Conversation Volume</CardTitle>
-                <CardDescription>
-                  Daily conversation volume over time
-                </CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
               </CardHeader>
-              <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ReBarChart
-                    data={conversationData}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                    className="animate-fade-in"
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--background)",
-                        borderColor: "var(--border)",
-                        borderRadius: "var(--radius)",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
-                    <Legend />
-                    <Bar
-                      dataKey="conversations"
-                      name="Conversations"
-                      fill="hsl(var(--primary))"
-                      radius={[4, 4, 0, 0]}
-                      animationDuration={1500}
-                    />
-                    <Bar
-                      dataKey="responses"
-                      name="AI Responses"
-                      fill="hsl(var(--primary) / 0.5)"
-                      radius={[4, 4, 0, 0]}
-                      animationDuration={1500}
-                    />
-                  </ReBarChart>
-                </ResponsiveContainer>
+              <CardContent>
+                <div className="text-2xl font-bold">{isLoading ? "Loading..." : overview?.totalUsers || "0"}</div>
+                <p className="text-xs text-muted-foreground mt-1">+12% from last month</p>
               </CardContent>
             </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Active Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{isLoading ? "Loading..." : overview?.activeUsers || "0"}</div>
+                <p className="text-xs text-muted-foreground mt-1">+5% from last month</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{isLoading ? "Loading..." : overview?.totalSessions || "0"}</div>
+                <p className="text-xs text-muted-foreground mt-1">+18% from last month</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Session Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{isLoading ? "Loading..." : `${overview?.averageSessionTime || "0"}m`}</div>
+                <p className="text-xs text-muted-foreground mt-1">-2% from last month</p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>User Activity Trend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                {!isLoading && usageMetrics?.dailyActiveUsers ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={usageMetrics.dailyActiveUsers}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        name="Active Users"
+                        stroke="#8884d8"
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    {isLoading ? "Loading data..." : "No data available"}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Conversations Tab */}
+        <TabsContent value="conversations" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Messages</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{isLoading ? "Loading..." : chatMetrics?.totalMessages || "0"}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">AI Responses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{isLoading ? "Loading..." : chatMetrics?.aiResponses || "0"}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Human Responses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{isLoading ? "Loading..." : chatMetrics?.humanResponses || "0"}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Response Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "Loading..." : `${chatMetrics?.averageResponseTime || "0"}s`}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Response Type Distribution</CardTitle>
-                <CardDescription>
-                  Breakdown of AI responses by category
-                </CardDescription>
+                <CardTitle>Top Intents</CardTitle>
               </CardHeader>
-              <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RePieChart className="animate-fade-in">
-                    <Pie
-                      data={responseTypeData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                      animationDuration={1500}
-                    >
-                      {responseTypeData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) => [`${value}%`, "Percentage"]}
-                      contentStyle={{
-                        backgroundColor: "var(--background)",
-                        borderColor: "var(--border)",
-                        borderRadius: "var(--radius)",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
-                    <Legend />
-                  </RePieChart>
-                </ResponsiveContainer>
+              <CardContent>
+                <div className="h-[300px]">
+                  {!isLoading && chatMetrics?.topIntents ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chatMetrics.topIntents}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="intent" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="count" name="Count" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      {isLoading ? "Loading data..." : "No data available"}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Message Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  {!isLoading && chatMetrics ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'AI', value: chatMetrics.aiResponses || 0 },
+                            { name: 'Human', value: chatMetrics.humanResponses || 0 }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {[
+                            { name: 'AI', value: chatMetrics.aiResponses || 0 },
+                            { name: 'Human', value: chatMetrics.humanResponses || 0 }
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      {isLoading ? "Loading data..." : "No data available"}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
-
-        <TabsContent value="conversations" className="pt-6 space-y-6">
+        
+        {/* Usage Tab */}
+        <TabsContent value="usage" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Conversation Metrics</CardTitle>
-              <CardDescription>
-                Detailed analytics about conversation performance
-              </CardDescription>
+              <CardTitle>Daily Active Users</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-3">
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Avg. Conversation Length</h3>
-                  <div className="text-2xl font-bold">4.2 messages</div>
-                  <p className="text-xs text-muted-foreground">
-                    +0.5 from last period
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Avg. Resolution Time</h3>
-                  <div className="text-2xl font-bold">3.5 minutes</div>
-                  <p className="text-xs text-muted-foreground">
-                    -0.8 from last period
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Handoff Rate</h3>
-                  <div className="text-2xl font-bold">8.3%</div>
-                  <p className="text-xs text-muted-foreground">
-                    -2.1% from last period
-                  </p>
-                </div>
-              </div>
-
+            <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ReLineChart
-                    data={[
-                      { date: "Jan", messages: 3.8, time: 4.2 },
-                      { date: "Feb", messages: 3.9, time: 4.0 },
-                      { date: "Mar", messages: 4.0, time: 3.8 },
-                      { date: "Apr", messages: 4.1, time: 3.7 },
-                      { date: "May", messages: 4.2, time: 3.5 },
-                      { date: "Jun", messages: 4.2, time: 3.5 },
-                    ]}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                    className="animate-fade-in"
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--background)",
-                        borderColor: "var(--border)",
-                        borderRadius: "var(--radius)",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="messages"
-                      name="Avg. Messages"
-                      stroke="hsl(var(--primary))"
-                      activeDot={{ r: 8 }}
-                      animationDuration={1500}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="time"
-                      name="Avg. Time (min)"
-                      stroke="hsl(var(--secondary))"
-                      activeDot={{ r: 8 }}
-                      animationDuration={1500}
-                    />
-                  </ReLineChart>
-                </ResponsiveContainer>
+                {!isLoading && usageMetrics?.dailyActiveUsers ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={usageMetrics.dailyActiveUsers}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        name="Active Users"
+                        stroke="#8884d8"
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    {isLoading ? "Loading data..." : "No data available"}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Message Volume</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                {!isLoading && usageMetrics?.messageVolume ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={usageMetrics.messageVolume}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" name="Messages" fill="#82ca9d" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    {isLoading ? "Loading data..." : "No data available"}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Peak Usage Hours</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                {!isLoading && usageMetrics?.peakUsageTimes ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={usageMetrics.peakUsageTimes}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="hour" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" name="Usage" fill="#ffc658" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    {isLoading ? "Loading data..." : "No data available"}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="users" className="pt-6 space-y-6">
+        
+        {/* Performance Tab */}
+        <TabsContent value="performance" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">System Uptime</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "Loading..." : `${performanceMetrics?.systemUptime || "0"}%`}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Average Response Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "Loading..." : `${chatMetrics?.averageResponseTime || "0"}s`}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Satisfaction Rate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "Loading..." : `${overview?.satisfactionRate || "0"}%`}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
           <Card>
             <CardHeader>
-              <CardTitle>User Engagement</CardTitle>
-              <CardDescription>
-                User activity and retention metrics
-              </CardDescription>
+              <CardTitle>Response Latency</CardTitle>
             </CardHeader>
-            <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={userEngagementData}
-                  margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                  className="animate-fade-in"
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--background)",
-                      borderColor: "var(--border)",
-                      borderRadius: "var(--radius)",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                    }}
-                  />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="active"
-                    name="Active Users"
-                    stroke="hsl(var(--primary))"
-                    fill="hsl(var(--primary) / 0.2)"
-                    activeDot={{ r: 6 }}
-                    animationDuration={1500}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="new"
-                    name="New Users"
-                    stroke="hsl(var(--secondary))"
-                    fill="hsl(var(--secondary) / 0.2)"
-                    activeDot={{ r: 6 }}
-                    animationDuration={1500}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <CardContent>
+              <div className="h-[300px]">
+                {!isLoading && performanceMetrics?.responseLatency ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={performanceMetrics.responseLatency}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="avgTime"
+                        name="Response Time (ms)"
+                        stroke="#ff7300"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    {isLoading ? "Loading data..." : "No data available"}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Error Rates</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                {!isLoading && performanceMetrics?.errorRates ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={performanceMetrics.errorRates}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis unit="%" />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="rate"
+                        name="Error Rate"
+                        stroke="#ff0000"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    {isLoading ? "Loading data..." : "No data available"}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="performance" className="pt-6 space-y-6">
+        
+        {/* Feedback Tab */}
+        <TabsContent value="feedback" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Overall Rating</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "Loading..." : `${userFeedback?.overall || "0"}/5`}
+                </div>
+                <div className="flex mt-1">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <svg 
+                      key={star} 
+                      className={cn(
+                        "h-5 w-5",
+                        star <= (userFeedback?.overall || 0) ? "text-yellow-400 fill-current" : "text-gray-300"
+                      )}
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Helpfulness Rating</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "Loading..." : `${userFeedback?.helpful || "0"}/5`}
+                </div>
+                <div className="flex mt-1">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <svg 
+                      key={star} 
+                      className={cn(
+                        "h-5 w-5",
+                        star <= (userFeedback?.helpful || 0) ? "text-yellow-400 fill-current" : "text-gray-300"
+                      )}
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Accuracy Rating</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "Loading..." : `${userFeedback?.accurate || "0"}/5`}
+                </div>
+                <div className="flex mt-1">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <svg 
+                      key={star} 
+                      className={cn(
+                        "h-5 w-5",
+                        star <= (userFeedback?.accurate || 0) ? "text-yellow-400 fill-current" : "text-gray-300"
+                      )}
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
           <Card>
             <CardHeader>
-              <CardTitle>AI Performance Metrics</CardTitle>
-              <CardDescription>
-                Response time and accuracy metrics
-              </CardDescription>
+              <CardTitle>Recent Feedback</CardTitle>
             </CardHeader>
-            <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ReLineChart
-                  data={[
-                    { date: "Jan", time: 1.8, accuracy: 88 },
-                    { date: "Feb", time: 1.6, accuracy: 89 },
-                    { date: "Mar", time: 1.4, accuracy: 90 },
-                    { date: "Apr", time: 1.3, accuracy: 91 },
-                    { date: "May", time: 1.2, accuracy: 92 },
-                    { date: "Jun", time: 1.1, accuracy: 92 },
-                  ]}
-                  margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                  className="animate-fade-in"
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis dataKey="date" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" domain={[80, 100]} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--background)",
-                      borderColor: "var(--border)",
-                      borderRadius: "var(--radius)",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="time"
-                    name="Response Time (s)"
-                    stroke="hsl(var(--primary))"
-                    activeDot={{ r: 8 }}
-                    animationDuration={1500}
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="accuracy"
-                    name="Accuracy (%)"
-                    stroke="hsl(var(--secondary))"
-                    activeDot={{ r: 8 }}
-                    animationDuration={1500}
-                  />
-                </ReLineChart>
-              </ResponsiveContainer>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading feedback...</div>
+              ) : !userFeedback?.feedback || userFeedback.feedback.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No feedback available</div>
+              ) : (
+                <div className="space-y-4">
+                  {userFeedback.feedback.map((item) => (
+                    <div key={item.id} className="border-b pb-4 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <svg 
+                              key={star} 
+                              className={cn(
+                                "h-4 w-4",
+                                star <= item.rating ? "text-yellow-400 fill-current" : "text-gray-300"
+                              )}
+                              xmlns="http://www.w3.org/2000/svg" 
+                              viewBox="0 0 20 20" 
+                              fill="currentColor"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{item.date}</span>
+                      </div>
+                      <p className="mt-2 text-sm">{item.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,36 +1,25 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+import { PreviewCardProps } from './types';
 
-interface PreviewCardProps {
-  result: string;
-  isLoading: boolean;
-}
-
-export const PreviewCard = ({ result, isLoading }: PreviewCardProps) => {
+export function PreviewCard({ formattedResponse, isLoading = false }: PreviewCardProps) {
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader>
-        <CardTitle>Preview</CardTitle>
-        <CardDescription>See how your format will look</CardDescription>
+        <CardTitle>Formatted Response Preview</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] rounded-md border p-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Loading preview...</p>
-            </div>
-          ) : result ? (
-            <div className="whitespace-pre-wrap">{result}</div>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Test a prompt to see the formatted output</p>
-            </div>
-          )}
-        </ScrollArea>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-[200px]">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="bg-muted p-4 rounded-md whitespace-pre-wrap font-mono text-sm">
+            {formattedResponse || "No response yet. Try testing a prompt."}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
-};
-
-export default PreviewCard;
+}
