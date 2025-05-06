@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       clearInterval(tokenCheckInterval);
     };
-  }, [user]);
+  }, []);
 
   // Login function
   const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
@@ -187,9 +187,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Update user data
   const updateUser = (userData: Partial<User>): void => {
-    if (user) {
-      setUser(prevUser => prevUser ? { ...prevUser, ...userData } : null);
-    }
+    setUser(prevUser => {
+      if (prevUser) {
+        // If we already have a user, update their properties
+        return { ...prevUser, ...userData };
+      } else {
+        // If we don't have a user yet (like during mock login),
+        // create a new user object with the provided data
+        return userData as User;
+      }
+    });
   };
 
   const value: AuthContextType = {
