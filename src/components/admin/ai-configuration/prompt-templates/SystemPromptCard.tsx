@@ -1,69 +1,73 @@
 
-import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Loader2, Save } from "lucide-react";
+import { SystemPrompt } from "@/types/ai-configuration";
 
 interface SystemPromptCardProps {
-  systemPrompt: string;
-  onSave: (prompt: string) => void;
+  systemPrompt: SystemPrompt | null | undefined;
+  onSave: (content: string) => void;
   isSaving: boolean;
 }
 
-export const SystemPromptCard = ({
-  systemPrompt,
+export function SystemPromptCard({ 
+  systemPrompt, 
   onSave,
   isSaving,
-}: SystemPromptCardProps) => {
-  const [prompt, setPrompt] = useState(systemPrompt);
+}: SystemPromptCardProps) {
+  const [content, setContent] = useState("");
+
+  useEffect(() => {
+    if (systemPrompt) {
+      setContent(systemPrompt.content);
+    }
+  }, [systemPrompt]);
+
+  const handleSave = () => {
+    if (content.trim()) {
+      onSave(content);
+    }
+  };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3">
         <CardTitle>System Prompt</CardTitle>
         <CardDescription>
-          Define the base behavior of your AI assistant
+          The system prompt is sent at the beginning of every conversation to instruct the AI how to behave
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="grid gap-4">
           <Textarea
-            rows={6}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Enter your system prompt..."
+            className="min-h-[150px] resize-y"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
           />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>
-              Use variables like {"{company_name}"} or {"{user_name}"}
-            </span>
-            <span>Characters: {prompt.length}</span>
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleSave} 
+              className="w-full md:w-auto"
+              disabled={!content.trim() || isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save System Prompt
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </CardContent>
-      <CardFooter>
-        <Button
-          className="ml-auto"
-          onClick={() => onSave(prompt)}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save System Prompt"
-          )}
-        </Button>
-      </CardFooter>
     </Card>
   );
-};
+}

@@ -1,209 +1,153 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as chatService from '@/services/chat/chatService';
 import { Message, Session } from '@/types/chat';
 
 export const useChat = (sessionId?: string) => {
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch all sessions
-  const fetchSessions = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await chatService.getAllSessions();
-      setSessions(data);
-      return data;
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load chat sessions',
-        variant: 'destructive',
-      });
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+  const {
+    data: sessions = [],
+    isLoading: isLoadingSessions,
+    refetch: refetchSessions
+  } = useQuery({
+    queryKey: ['chatSessions'],
+    queryFn: chatService.getAllSessions,
+    enabled: !sessionId // Only fetch all sessions if not looking at a specific one
+  });
 
   // Fetch session by ID
-  const fetchSession = useCallback(async (id: string) => {
-    try {
-      setIsLoading(true);
-      const data = await chatService.getSessionById(id);
-      setCurrentSession(data);
-      return data;
-    } catch (error) {
-      console.error('Error fetching session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load chat session',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  // Create new session
-  const createSession = useCallback(async (data: Omit<Session, 'id'>) => {
-    try {
-      setIsLoading(true);
-      const newSession = await chatService.createSession(data);
-      setSessions(prev => [newSession, ...prev]);
-      setCurrentSession(newSession);
-      return newSession;
-    } catch (error) {
-      console.error('Error creating session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create chat session',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+  const {
+    data: session,
+    isLoading: isLoadingSession,
+    refetch: refetchSession
+  } = useQuery({
+    queryKey: ['chatSession', sessionId],
+    queryFn: () => sessionId ? chatService.getSessionById(sessionId) : null,
+    enabled: !!sessionId
+  });
 
   // Fetch messages by session ID
-  const fetchMessages = useCallback(async (id: string) => {
-    try {
-      setIsLoading(true);
-      const data = await chatService.getMessagesBySessionId(id);
-      setMessages(data);
-      return data;
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load chat messages',
-        variant: 'destructive',
-      });
-      return [];
-    } finally {
-      setIsLoading(false);
+  const {
+    data: messages = [],
+    isLoading: isLoadingMessages,
+    refetch: refetchMessages
+  } = useQuery({
+    queryKey: ['chatMessages', currentSession?.id || sessionId],
+    queryFn: () => {
+      const id = currentSession?.id || sessionId;
+      return id ? chatService.getMessagesBySessionId(id) : [];
+    },
+    enabled: !!(currentSession?.id || sessionId)
+  });
+
+  // Get unread count
+  const {
+    data: unreadData,
+    refetch: refetchUnreadCount
+  } = useQuery({
+    queryKey: ['unreadMessages'],
+    queryFn: chatService.getUnreadCount
+  });
+
+  const unreadCount = unreadData?.count || 0;
+
+  // Create new session mutation
+  const createSessionMutation = useMutation({
+    mutationFn: chatService.createSession,
+    onSuccess: (newSession) => {
+      queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
+      setCurrentSession(newSession);
+      toast.success('New chat session created');
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to create chat session: ${error.message || "Unknown error"}`);
     }
-  }, [toast]);
+  });
+
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: ({ sessionId, message }: { sessionId: string, message: Omit<Message, 'id' | 'sessionId' | 'timestamp' | 'read'> }) => 
+      chatService.sendMessage(sessionId, message),
+    onSuccess: () => {
+      const id = currentSession?.id || sessionId;
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['chatMessages', id] });
+        queryClient.invalidateQueries({ queryKey: ['chatSession', id] });
+        queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
+      }
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
+    }
+  });
+
+  // Mark as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: chatService.markMessagesAsRead,
+    onSuccess: () => {
+      const id = currentSession?.id || sessionId;
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['chatSession', id] });
+        queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
+        queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+      }
+    }
+  });
+
+  // Set current session when session is loaded
+  useEffect(() => {
+    if (session) {
+      setCurrentSession(session);
+    }
+  }, [session]);
+
+  // Create a new session
+  const createSession = useCallback((data: Omit<Session, 'id'>) => {
+    return createSessionMutation.mutateAsync(data);
+  }, [createSessionMutation]);
 
   // Send a message
-  const sendMessage = useCallback(async (content: string, sessionId: string) => {
-    try {
-      setIsSending(true);
-      const messageData = {
-        content,
-        sender: 'user',
-        attachments: [],
-      } as Omit<Message, 'id' | 'sessionId' | 'timestamp' | 'read'>;
-      
-      const newMessage = await chatService.sendMessage(sessionId, messageData);
-      setMessages(prev => [...prev, newMessage]);
-      
-      // Update the session with the last message
-      if (currentSession) {
-        const updatedSession = {
-          ...currentSession,
-          lastMessage: content,
-          lastMessageTime: newMessage.timestamp,
-        };
-        setCurrentSession(updatedSession);
-        
-        // Update in the sessions list
-        setSessions(prev => prev.map(session => 
-          session.id === sessionId ? updatedSession : session
-        ));
-      }
-      
-      return newMessage;
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send message',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsSending(false);
-    }
-  }, [currentSession, toast]);
+  const sendMessage = useCallback((content: string, sessionId: string) => {
+    const messageData = {
+      content,
+      sender: 'user' as const,
+      attachments: [],
+    };
+    
+    return sendMessageMutation.mutateAsync({ sessionId, message: messageData });
+  }, [sendMessageMutation]);
 
   // Mark messages as read
-  const markAsRead = useCallback(async (sessionId: string) => {
-    try {
-      await chatService.markMessagesAsRead(sessionId);
-      
-      // Update local state
-      setMessages(prev => prev.map(message => ({
-        ...message,
-        read: true,
-      })));
-      
-      // Update the session unread count
-      if (currentSession && currentSession.id === sessionId) {
-        setCurrentSession({
-          ...currentSession,
-          unread: 0,
-        });
-      }
-      
-      // Update in the sessions list
-      setSessions(prev => prev.map(session => 
-        session.id === sessionId ? { ...session, unread: 0 } : session
-      ));
-      
-      // Fetch updated unread count
-      fetchUnreadCount();
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  }, [currentSession, fetchUnreadCount]);
+  const markAsRead = useCallback((sessionId: string) => {
+    return markAsReadMutation.mutateAsync(sessionId);
+  }, [markAsReadMutation]);
 
-  // Get unread messages count
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const data = await chatService.getUnreadCount();
-      setUnreadCount(data.count);
-      return data.count;
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-      return 0;
-    }
-  }, []);
-
-  // Initialize with sessionId if provided
+  // Initialize with sessionId if provided and mark messages as read
   useEffect(() => {
-    if (sessionId) {
-      fetchSession(sessionId);
-      fetchMessages(sessionId);
-    } else {
-      fetchSessions();
+    if (sessionId && currentSession?.unread && currentSession.unread > 0) {
+      markAsRead(sessionId);
     }
-    fetchUnreadCount();
-  }, [sessionId, fetchSession, fetchMessages, fetchSessions, fetchUnreadCount]);
+  }, [sessionId, currentSession, markAsRead]);
 
   return {
     sessions,
     currentSession,
     messages,
-    isLoading,
-    isSending,
+    isLoading: isLoadingSessions || isLoadingSession || isLoadingMessages,
+    isSending: sendMessageMutation.isPending,
     unreadCount,
-    fetchSessions,
-    fetchSession,
+    fetchSessions: refetchSessions,
+    fetchSession: refetchSession,
     createSession,
-    fetchMessages,
+    fetchMessages: refetchMessages,
     sendMessage,
     markAsRead,
-    fetchUnreadCount,
+    fetchUnreadCount: refetchUnreadCount,
     setCurrentSession,
   };
 };

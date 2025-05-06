@@ -6,7 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ResponseFormat extends Model
+class AppSetting extends Model
 {
     use HasFactory;
 
@@ -16,12 +16,17 @@ class ResponseFormat extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'description',
-        'content',
-        'system_instructions',
-        'parameters',
-        'is_default',
+        'app_name',
+        'logo',
+        'favicon',
+        'default_theme',
+        'available_languages',
+        'default_language',
+        'support_email',
+        'terms_url',
+        'privacy_url',
+        'max_upload_size',
+        'allowed_file_types',
     ];
 
     /**
@@ -30,7 +35,8 @@ class ResponseFormat extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'parameters' => 'array',
-        'is_default' => 'boolean',
+        'available_languages' => 'array',
+        'allowed_file_types' => 'array',
+        'max_upload_size' => 'integer',
     ];
 }

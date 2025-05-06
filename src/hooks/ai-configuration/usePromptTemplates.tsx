@@ -2,8 +2,29 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import PromptTemplateService, { CreatePromptTemplateRequest, UpdatePromptTemplateRequest } from "@/services/ai-configuration/promptTemplateService";
+import * as promptTemplateService from "@/services/ai-configuration/promptTemplateService";
 import { PromptTemplate } from "@/types/ai-configuration";
+
+// Define request types
+export interface CreatePromptTemplateRequest {
+  name: string;
+  description?: string;
+  template: string;
+  category: string;
+  variables: string[];
+  isActive?: boolean;
+  isDefault?: boolean;
+}
+
+export interface UpdatePromptTemplateRequest {
+  name?: string;
+  description?: string;
+  template?: string;
+  category?: string;
+  variables?: string[];
+  isActive?: boolean;
+  isDefault?: boolean;
+}
 
 export function usePromptTemplates() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,13 +42,13 @@ export function usePromptTemplates() {
 
   // Fetch templates
   const { 
-    data: templatesData = { data: [], total: 0 },
+    data: templatesData = [],
     isLoading,
     isError,
     refetch
   } = useQuery({
     queryKey: ['promptTemplates', filters],
-    queryFn: () => PromptTemplateService.getTemplates(filters),
+    queryFn: () => promptTemplateService.getAllTemplates(filters),
   });
 
   // Fetch categories
@@ -35,12 +56,13 @@ export function usePromptTemplates() {
     data: categories = [],
   } = useQuery({
     queryKey: ['promptTemplateCategories'],
-    queryFn: PromptTemplateService.getCategories,
+    queryFn: promptTemplateService.getCategories,
   });
 
   // Create template mutation
   const createTemplateMutation = useMutation({
-    mutationFn: PromptTemplateService.createTemplate,
+    mutationFn: (templateData: CreatePromptTemplateRequest) => 
+      promptTemplateService.createTemplate(templateData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       setShowAddDialog(false);
@@ -53,8 +75,8 @@ export function usePromptTemplates() {
 
   // Update template mutation
   const updateTemplateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: UpdatePromptTemplateRequest }) => 
-      PromptTemplateService.updateTemplate(id, data),
+    mutationFn: (params: { id: string, data: UpdatePromptTemplateRequest }) => 
+      promptTemplateService.updateTemplate(params.id, params.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       setShowEditDialog(false);
@@ -67,7 +89,7 @@ export function usePromptTemplates() {
 
   // Delete template mutation
   const deleteTemplateMutation = useMutation({
-    mutationFn: PromptTemplateService.deleteTemplate,
+    mutationFn: promptTemplateService.deleteTemplate,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       toast.success("Template deleted successfully");
@@ -103,7 +125,10 @@ export function usePromptTemplates() {
 
   const handleSaveEditedTemplate = (templateData: UpdatePromptTemplateRequest) => {
     if (!currentTemplate) return;
-    updateTemplateMutation.mutate({ id: currentTemplate.id, data: templateData });
+    updateTemplateMutation.mutate({ 
+      id: currentTemplate.id, 
+      data: templateData 
+    });
   };
 
   const handleCloneTemplate = (template: PromptTemplate) => {
@@ -113,15 +138,14 @@ export function usePromptTemplates() {
       template: template.template,
       variables: template.variables,
       category: template.category,
-      is_active: template.isActive,
-      is_default: false, // Clone should never be default
+      isActive: template.isActive,
+      isDefault: false, // Clone should never be default
     };
     createTemplateMutation.mutate(clonedTemplate);
   };
 
   return {
-    templates: templatesData.data,
-    totalTemplates: templatesData.total,
+    templates: templatesData,
     categories,
     searchQuery,
     setSearchQuery,

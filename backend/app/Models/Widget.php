@@ -5,8 +5,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ResponseFormat extends Model
+class Widget extends Model
 {
     use HasFactory;
 
@@ -18,10 +19,10 @@ class ResponseFormat extends Model
     protected $fillable = [
         'name',
         'description',
-        'content',
-        'system_instructions',
-        'parameters',
-        'is_default',
+        'type',
+        'status',
+        'configuration',
+        'user_id',
     ];
 
     /**
@@ -30,7 +31,15 @@ class ResponseFormat extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'parameters' => 'array',
-        'is_default' => 'boolean',
+        'configuration' => 'array',
+        'status' => 'string',
     ];
+
+    /**
+     * Get the settings for the widget.
+     */
+    public function settings(): HasMany
+    {
+        return $this->hasMany(WidgetSetting::class);
+    }
 }
