@@ -1,184 +1,134 @@
 
-import { useState, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import * as promptTemplateService from '@/services/ai-configuration/promptTemplateService';
-import { PromptTemplate, PromptTemplateCategory } from '@/types/ai-configuration';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PromptTemplate } from "@/types/ai-configuration";
+import * as PromptTemplateService from "@/services/ai-configuration/promptTemplateService";
+import { useToast } from "@/components/ui/use-toast";
 
-export const usePromptTemplates = () => {
-  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
-  const [categories, setCategories] = useState<PromptTemplateCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentTemplate, setCurrentTemplate] = useState<PromptTemplate | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+export function usePromptTemplates() {
+  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  
-  // Create mutations state for React Query compatibility
-  const createTemplateMutation = { isPending: isSubmitting };
-  const updateTemplateMutation = { isPending: isSubmitting };
-  
-  const fetchTemplates = useCallback(async () => {
+
+  // Fetch all templates
+  const { 
+    data: templates = [], 
+    isLoading: isLoadingTemplates,
+    error: templatesError,
+    refetch: refetchTemplates
+  } = useQuery({
+    queryKey: ["promptTemplates"],
+    queryFn: PromptTemplateService.getAllTemplates,
+  });
+
+  // Fetch categories
+  const { 
+    data: categories = [], 
+    isLoading: isLoadingCategories,
+  } = useQuery({
+    queryKey: ["promptTemplateCategories"],
+    queryFn: PromptTemplateService.getCategories,
+  });
+
+  // Create template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: PromptTemplateService.createTemplate,
+    onSuccess: () => {
+      toast({
+        title: "Template created",
+        description: "The prompt template has been created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["promptTemplates"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to create template: ${error.message}`,
+      });
+    },
+  });
+
+  // Update template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, template }: { id: string; template: Partial<PromptTemplate> }) => 
+      PromptTemplateService.updateTemplate(id, template),
+    onSuccess: () => {
+      toast({
+        title: "Template updated",
+        description: "The prompt template has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["promptTemplates"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to update template: ${error.message}`,
+      });
+    },
+  });
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: PromptTemplateService.deleteTemplate,
+    onSuccess: () => {
+      toast({
+        title: "Template deleted",
+        description: "The prompt template has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["promptTemplates"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to delete template: ${error.message}`,
+      });
+    },
+  });
+
+  // Helper functions
+  const createTemplate = async (template: Omit<PromptTemplate, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>) => {
     try {
-      setIsLoading(true);
-      const templatesData = await promptTemplateService.getAllTemplates();
-      setTemplates(templatesData);
-      
-      const categoriesData = await promptTemplateService.getCategories();
-      setCategories(categoriesData);
-      
-      return templatesData;
-    } catch (error) {
-      console.error('Error fetching prompt templates:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load prompt templates',
-        variant: 'destructive',
-      });
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-  
-  const createTemplate = useCallback(async (template: Omit<PromptTemplate, 'id'>) => {
-    try {
-      setIsSubmitting(true);
-      const newTemplate = await promptTemplateService.createTemplate(template);
-      setTemplates(prev => [...prev, newTemplate]);
-      toast({
-        title: 'Success',
-        description: 'Template created successfully',
-      });
-      return newTemplate;
-    } catch (error) {
-      console.error('Error creating prompt template:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create template',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [toast]);
-  
-  const updateTemplate = useCallback(async (id: string, templateData: Partial<PromptTemplate>) => {
-    try {
-      setIsSubmitting(true);
-      const updatedTemplate = await promptTemplateService.updateTemplate(id, templateData);
-      setTemplates(prev => prev.map(t => t.id === id ? updatedTemplate : t));
-      toast({
-        title: 'Success',
-        description: 'Template updated successfully',
-      });
-      return updatedTemplate;
-    } catch (error) {
-      console.error('Error updating prompt template:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update template',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [toast]);
-  
-  const deleteTemplate = useCallback(async (id: string) => {
-    try {
-      setIsSubmitting(true);
-      await promptTemplateService.deleteTemplate(id);
-      setTemplates(prev => prev.filter(t => t.id !== id));
-      toast({
-        title: 'Success',
-        description: 'Template deleted successfully',
-      });
+      await createTemplateMutation.mutateAsync(template);
       return true;
     } catch (error) {
-      console.error('Error deleting prompt template:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete template',
-        variant: 'destructive',
-      });
       return false;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [toast]);
-
-  // Handler functions for the PromptTemplateManager component
-  const handleRefresh = () => {
-    fetchTemplates();
-  };
-
-  const handleAddTemplate = () => {
-    setShowAddDialog(true);
-  };
-
-  const handleEditTemplate = (template: PromptTemplate) => {
-    setCurrentTemplate(template);
-    setShowEditDialog(true);
-  };
-
-  const handleDeleteTemplate = (id: string) => {
-    deleteTemplate(id);
-  };
-
-  const handleSaveNewTemplate = (templateData: Omit<PromptTemplate, 'id'>) => {
-    createTemplate(templateData);
-    setShowAddDialog(false);
-  };
-
-  const handleSaveEditedTemplate = (templateData: Partial<PromptTemplate>) => {
-    if (currentTemplate) {
-      updateTemplate(currentTemplate.id, templateData);
-      setShowEditDialog(false);
     }
   };
 
-  const handleCloneTemplate = (template: PromptTemplate) => {
-    const clonedTemplate = {
-      ...template,
-      name: `${template.name} (Copy)`,
-      isDefault: false
-    };
-    delete clonedTemplate.id;
-    createTemplate(clonedTemplate as Omit<PromptTemplate, 'id'>);
+  const updateTemplate = async (id: string, template: Partial<PromptTemplate>) => {
+    try {
+      await updateTemplateMutation.mutateAsync({ id, template });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const deleteTemplate = async (id: string) => {
+    try {
+      await deleteTemplateMutation.mutateAsync(id);
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
 
   return {
     templates,
     categories,
-    isLoading,
-    isSubmitting,
-    currentTemplate,
-    setCurrentTemplate,
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
-    showAddDialog, 
-    setShowAddDialog,
-    showEditDialog,
-    setShowEditDialog,
-    fetchTemplates,
+    selectedTemplate,
+    setSelectedTemplate,
+    isLoadingTemplates,
+    isLoadingCategories,
+    isSaving: createTemplateMutation.isPending || updateTemplateMutation.isPending,
+    isDeleting: deleteTemplateMutation.isPending,
+    templatesError,
     createTemplate,
     updateTemplate,
     deleteTemplate,
-    handleRefresh,
-    handleAddTemplate,
-    handleEditTemplate,
-    handleDeleteTemplate,
-    handleSaveNewTemplate,
-    handleSaveEditedTemplate,
-    handleCloneTemplate,
-    createTemplateMutation,
-    updateTemplateMutation,
+    refetchTemplates,
   };
-};
+}

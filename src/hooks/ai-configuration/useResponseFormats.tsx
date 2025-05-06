@@ -1,162 +1,187 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import * as responseFormatService from "@/services/ai-configuration/responseFormatService";
-import { ResponseFormat } from "@/types/ai-configuration";
-
-// Define request types
-interface CreateResponseFormatRequest {
-  name: string;
-  description?: string;
-  content: string;
-  systemInstructions?: string;
-  parameters?: Record<string, any>;
-  isDefault?: boolean;
-}
-
-interface UpdateResponseFormatRequest {
-  name?: string;
-  description?: string;
-  content?: string;
-  systemInstructions?: string;
-  parameters?: Record<string, any>;
-  isDefault?: boolean;
-}
+import { ResponseFormat, CreateResponseFormatRequest } from "@/types/ai-configuration";
+import * as ResponseFormatService from "@/services/ai-configuration/responseFormatService";
+import { useToast } from "@/components/ui/use-toast";
 
 export function useResponseFormats() {
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [currentFormat, setCurrentFormat] = useState<ResponseFormat | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<ResponseFormat | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  // Fetch response formats
+  // Fetch all formats
   const { 
-    data: formats = [],
-    isLoading,
-    isError,
-    refetch
+    data: formats = [], 
+    isLoading: isLoadingFormats,
+    error: formatsError,
+    refetch: refetchFormats
   } = useQuery({
-    queryKey: ['responseFormats'],
-    queryFn: responseFormatService.getAllFormats,
+    queryKey: ["responseFormats"],
+    queryFn: ResponseFormatService.getAllFormats,
   });
 
   // Fetch default format
   const { 
-    data: defaultFormat,
+    data: defaultFormat, 
+    isLoading: isLoadingDefaultFormat,
   } = useQuery({
-    queryKey: ['defaultResponseFormat'],
-    queryFn: responseFormatService.getDefaultFormat,
+    queryKey: ["defaultResponseFormat"],
+    queryFn: ResponseFormatService.getDefaultFormat,
   });
 
   // Create format mutation
   const createFormatMutation = useMutation({
-    mutationFn: (data: CreateResponseFormatRequest) => 
-      responseFormatService.createFormat(data),
+    mutationFn: (formatData: CreateResponseFormatRequest) => ResponseFormatService.createFormat(formatData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      setShowAddDialog(false);
-      toast.success("Response format created successfully");
+      toast({
+        title: "Format created",
+        description: "The response format has been created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["responseFormats"] });
     },
-    onError: (error: any) => {
-      toast.error(`Failed to create format: ${error.message || "Unknown error"}`);
-    }
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to create format: ${error.message}`,
+      });
+    },
   });
 
   // Update format mutation
   const updateFormatMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: UpdateResponseFormatRequest }) => 
-      responseFormatService.updateFormat(id, data),
+    mutationFn: ({ id, format }: { id: string; format: Partial<ResponseFormat> }) => 
+      ResponseFormatService.updateFormat(id, format),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      setShowEditDialog(false);
-      toast.success("Response format updated successfully");
+      toast({
+        title: "Format updated",
+        description: "The response format has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["responseFormats"] });
     },
-    onError: (error: any) => {
-      toast.error(`Failed to update format: ${error.message || "Unknown error"}`);
-    }
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to update format: ${error.message}`,
+      });
+    },
   });
 
   // Delete format mutation
   const deleteFormatMutation = useMutation({
-    mutationFn: responseFormatService.deleteFormat,
+    mutationFn: ResponseFormatService.deleteFormat,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats'] });
-      toast.success("Response format deleted successfully");
+      toast({
+        title: "Format deleted",
+        description: "The response format has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["responseFormats"] });
     },
-    onError: (error: any) => {
-      toast.error(`Failed to delete format: ${error.message || "Unknown error"}`);
-    }
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to delete format: ${error.message}`,
+      });
+    },
   });
 
   // Set default format mutation
   const setDefaultFormatMutation = useMutation({
-    mutationFn: responseFormatService.setDefaultFormat,
+    mutationFn: ResponseFormatService.setDefaultFormat,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['responseFormats', 'defaultResponseFormat'] });
-      toast.success("Default response format set successfully");
+      toast({
+        title: "Default format updated",
+        description: "The default response format has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["responseFormats", "defaultResponseFormat"] });
     },
-    onError: (error: any) => {
-      toast.error(`Failed to set default format: ${error.message || "Unknown error"}`);
-    }
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to set default format: ${error.message}`,
+      });
+    },
   });
 
   // Test format mutation
   const testFormatMutation = useMutation({
-    mutationFn: ({ formatId, prompt }: { formatId: string, prompt: string }) => 
-      responseFormatService.testFormat(formatId, prompt),
-    onSuccess: () => {
-      toast.success("Test completed successfully");
-    },
-    onError: (error: any) => {
-      toast.error(`Test failed: ${error.message || "Unknown error"}`);
-    }
+    mutationFn: ({ formatId, prompt }: { formatId: string; prompt: string }) => 
+      ResponseFormatService.testFormat(formatId, prompt),
   });
 
-  // Handlers
-  const handleAddFormat = () => {
-    setShowAddDialog(true);
-  };
-
-  const handleEditFormat = (format: ResponseFormat) => {
-    setCurrentFormat(format);
-    setShowEditDialog(true);
-  };
-
-  const handleDeleteFormat = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this format?")) {
-      deleteFormatMutation.mutate(id);
+  // Helper functions
+  const createFormat = async (format: CreateResponseFormatRequest) => {
+    try {
+      await createFormatMutation.mutateAsync(format);
+      return true;
+    } catch (error) {
+      return false;
     }
   };
 
-  const handleSetDefaultFormat = (id: string) => {
-    setDefaultFormatMutation.mutate(id);
+  const updateFormat = async (id: string, format: Partial<ResponseFormat>) => {
+    try {
+      await updateFormatMutation.mutateAsync({ id, format });
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
 
-  const handleTestFormat = (formatId: string, prompt: string) => {
-    return testFormatMutation.mutateAsync({ formatId, prompt });
+  const deleteFormat = async (id: string) => {
+    try {
+      await deleteFormatMutation.mutateAsync(id);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const setDefaultFormat = async (id: string) => {
+    try {
+      await setDefaultFormatMutation.mutateAsync(id);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const testFormat = async (formatId: string, prompt: string) => {
+    try {
+      return await testFormatMutation.mutateAsync({ formatId, prompt });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          variant: "destructive",
+          title: "Test failed",
+          description: error.message,
+        });
+      }
+      return null;
+    }
   };
 
   return {
     formats,
     defaultFormat,
-    isLoading,
-    isError,
-    currentFormat,
-    showAddDialog,
-    setShowAddDialog,
-    showEditDialog,
-    setShowEditDialog,
-    refetch,
-    handleAddFormat,
-    handleEditFormat,
-    handleDeleteFormat,
-    handleSetDefaultFormat,
-    handleTestFormat,
-    createFormatMutation,
-    updateFormatMutation,
-    deleteFormatMutation,
-    setDefaultFormatMutation,
-    testFormatMutation
+    selectedFormat,
+    setSelectedFormat,
+    isLoadingFormats,
+    isLoadingDefaultFormat,
+    isSaving: createFormatMutation.isPending || updateFormatMutation.isPending,
+    isDeleting: deleteFormatMutation.isPending,
+    isSettingDefault: setDefaultFormatMutation.isPending,
+    isTesting: testFormatMutation.isPending,
+    formatsError,
+    createFormat,
+    updateFormat,
+    deleteFormat,
+    setDefaultFormat,
+    testFormat,
+    refetchFormats,
   };
 }

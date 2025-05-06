@@ -1,78 +1,60 @@
 
-import { useState, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import ApiService from '@/services/api/base';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { SystemPrompt } from "@/types/ai-configuration";
+import * as SystemPromptService from "@/services/ai-configuration/systemPromptService";
+import { useToast } from "@/components/ui/use-toast";
 
-interface SystemPrompt {
-  id: string;
-  content: string;
-  isDefault: boolean;
-  lastUpdated: string;
-}
-
-export const useSystemPrompt = () => {
-  const [systemPrompt, setSystemPrompt] = useState<SystemPrompt | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+export function useSystemPrompt() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Create a mock mutation state
-  const saveSystemPromptMutation = { isPending: false };
-  
-  const fetchSystemPrompt = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      // Replace with actual API call when backend is ready
-      const response = await ApiService.get<SystemPrompt>('/ai-configuration/system-prompt');
-      setSystemPrompt(response);
-      return response;
-    } catch (error) {
-      console.error('Error fetching system prompt:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load system prompt',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-  
-  const saveSystemPrompt = useCallback(async (content: string) => {
-    try {
-      setIsLoading(true);
-      // Replace with actual API call when backend is ready
-      const response = await ApiService.put<SystemPrompt>('/ai-configuration/system-prompt', { content });
-      setSystemPrompt(response);
-      toast({
-        title: 'Success',
-        description: 'System prompt saved successfully',
-      });
-      return response;
-    } catch (error) {
-      console.error('Error saving system prompt:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save system prompt',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+  // Fetch system prompt
+  const { 
+    data: systemPrompt, 
+    isLoading: isLoadingPrompt,
+    error: promptError,
+    refetch: refetchPrompt
+  } = useQuery({
+    queryKey: ["systemPrompt"],
+    queryFn: SystemPromptService.getSystemPrompt,
+  });
 
-  // Handler for component
-  const handleSaveSystemPrompt = (content: string) => {
-    saveSystemPrompt(content);
+  // Update system prompt mutation
+  const updatePromptMutation = useMutation({
+    mutationFn: SystemPromptService.updateSystemPrompt,
+    onSuccess: () => {
+      toast({
+        title: "System prompt updated",
+        description: "The system prompt has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["systemPrompt"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to update system prompt: ${error.message}`,
+      });
+    },
+  });
+
+  // Helper function
+  const updatePrompt = async (content: string) => {
+    try {
+      await updatePromptMutation.mutateAsync(content);
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
-  
+
   return {
     systemPrompt,
-    isLoading,
-    saveSystemPromptMutation,
-    fetchSystemPrompt,
-    saveSystemPrompt,
-    handleSaveSystemPrompt
+    isLoadingPrompt,
+    isUpdatingPrompt: updatePromptMutation.isPending,
+    promptError,
+    updatePrompt,
+    refetchPrompt,
   };
-};
+}
