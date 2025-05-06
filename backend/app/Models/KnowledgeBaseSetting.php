@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Models;
@@ -8,6 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 class KnowledgeBaseSetting extends Model
 {
     use HasFactory;
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'knowledge_base_settings';
 
     /**
      * The attributes that are mass assignable.
@@ -29,4 +37,22 @@ class KnowledgeBaseSetting extends Model
         'is_enabled' => 'boolean',
         'include_citations' => 'boolean',
     ];
+
+    /**
+     * Get the current settings or create default ones if they don't exist
+     */
+    public static function getCurrentSettings()
+    {
+        $settings = self::first();
+        
+        if (!$settings) {
+            $settings = self::create([
+                'is_enabled' => true,
+                'priority' => 'medium',
+                'include_citations' => true,
+            ]);
+        }
+        
+        return $settings;
+    }
 }

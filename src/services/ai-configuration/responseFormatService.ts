@@ -1,68 +1,89 @@
 
 import ApiService from "../api/base";
 import { ResponseFormat } from "@/types/ai-configuration";
+import { PaginatedResponse } from "../api/types";
 
-/**
- * Get all response formats
- */
-export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
-  try {
-    const response = await ApiService.get<{ data: ResponseFormat[] }>('/response-formats');
-    return response.data || [];
-  } catch (error) {
-    console.error('Error fetching response formats:', error);
-    return [];
+export interface CreateResponseFormatRequest {
+  name: string;
+  description?: string;
+  format: string;
+  length: string;
+  tone: string;
+  is_default?: boolean;
+  options: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
+}
+
+export interface UpdateResponseFormatRequest {
+  name?: string;
+  description?: string;
+  format?: string;
+  length?: string;
+  tone?: string;
+  is_default?: boolean;
+  options?: {
+    useHeadings?: boolean;
+    useBulletPoints?: boolean;
+    includeLinks?: boolean;
+    formatCodeBlocks?: boolean;
+  };
+}
+
+class ResponseFormatService {
+  /**
+   * Get all response formats
+   */
+  static async getFormats(page: number = 1, perPage: number = 20): Promise<PaginatedResponse<ResponseFormat>> {
+    return await ApiService.get<PaginatedResponse<ResponseFormat>>("/response-formats", {
+      params: { page, per_page: perPage }
+    });
   }
-};
 
-/**
- * Create a new response format
- */
-export const createResponseFormat = async (format: Omit<ResponseFormat, 'id'>): Promise<ResponseFormat> => {
-  const response = await ApiService.post<ResponseFormat>('/response-formats', format);
-  return response;
-};
+  /**
+   * Get a format by ID
+   */
+  static async getFormat(id: string): Promise<ResponseFormat> {
+    return await ApiService.get<ResponseFormat>(`/response-formats/${id}`);
+  }
 
-/**
- * Update an existing response format
- */
-export const updateResponseFormat = async (id: string, format: Partial<ResponseFormat>): Promise<ResponseFormat> => {
-  const response = await ApiService.put<ResponseFormat>(`/response-formats/${id}`, format);
-  return response;
-};
+  /**
+   * Create a new response format
+   */
+  static async createFormat(data: CreateResponseFormatRequest): Promise<ResponseFormat> {
+    return await ApiService.post<ResponseFormat>("/response-formats", data);
+  }
 
-/**
- * Delete a response format
- */
-export const deleteResponseFormat = async (id: string): Promise<void> => {
-  await ApiService.delete(`/response-formats/${id}`);
-};
+  /**
+   * Update an existing response format
+   */
+  static async updateFormat(id: string, data: UpdateResponseFormatRequest): Promise<ResponseFormat> {
+    return await ApiService.put<ResponseFormat>(`/response-formats/${id}`, data);
+  }
 
-/**
- * Set a response format as default
- */
-export const setDefaultResponseFormat = async (id: string): Promise<void> => {
-  await ApiService.post(`/response-formats/${id}/set-default`, {});
-};
+  /**
+   * Delete a response format
+   */
+  static async deleteFormat(id: string): Promise<void> {
+    await ApiService.delete(`/response-formats/${id}`);
+  }
 
-/**
- * Test a response format with sample content
- */
-export const testResponseFormat = async (
-  formatId: string,
-  content: string
-): Promise<{ formatted: string }> => {
-  const response = await ApiService.post<{ formatted: string }>(`/response-formats/${formatId}/test`, { content });
-  return response;
-};
+  /**
+   * Get the default response format
+   */
+  static async getDefaultFormat(): Promise<ResponseFormat> {
+    return await ApiService.get<ResponseFormat>("/response-formats/default");
+  }
 
-export const responseFormatService = {
-  getAllResponseFormats,
-  createResponseFormat,
-  updateResponseFormat,
-  deleteResponseFormat,
-  setDefaultResponseFormat,
-  testResponseFormat,
-};
+  /**
+   * Set a response format as default
+   */
+  static async setDefaultFormat(id: string): Promise<ResponseFormat> {
+    return await ApiService.post<ResponseFormat>(`/response-formats/${id}/set-default`, {});
+  }
+}
 
-export default responseFormatService;
+export default ResponseFormatService;

@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Models;
@@ -23,22 +24,6 @@ class DocumentCategory extends Model
     ];
 
     /**
-     * Get the documents for the category.
-     */
-    public function documents(): HasMany
-    {
-        return $this->hasMany(KnowledgeDocument::class, 'category_id');
-    }
-
-    /**
-     * Calculate document count for this category
-     */
-    public function getDocumentCountAttribute(): int
-    {
-        return $this->documents()->count();
-    }
-
-    /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
@@ -48,6 +33,22 @@ class DocumentCategory extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    /**
+     * Get the documents for this category
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(KnowledgeDocument::class, 'category_id');
+    }
+
+    /**
+     * Get the document count attribute
+     */
+    public function getDocumentCountAttribute()
+    {
+        return $this->documents()->count();
+    }
 
     /**
      * The accessors to append to the model's array form.
