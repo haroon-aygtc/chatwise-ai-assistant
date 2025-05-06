@@ -1,6 +1,7 @@
 
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { ApiRequestParams } from "./types";
+import { API_BASE_URL } from "./config";
 
 // Define the base API response type
 export interface ApiResponse<T = any> {
@@ -12,7 +13,7 @@ export interface ApiResponse<T = any> {
 
 // Create an axios instance with default configs
 const apiClient = axios.create({
-  baseURL: "/api", // This will be prefixed to all requests
+  baseURL: API_BASE_URL, // Use the configured base URL from environment
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

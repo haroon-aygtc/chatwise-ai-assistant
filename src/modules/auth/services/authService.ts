@@ -4,6 +4,7 @@ import { User } from "@/types/user";
 import { LoginResponse, PasswordResetRequestData, SignupData } from "../types";
 import tokenService from "./tokenService";
 import { handleAuthError } from "../utils/errorHandler";
+import { AUTH_ENDPOINTS } from "@/services/api/config";
 
 /**
  * Service for handling authentication related API calls
@@ -21,7 +22,7 @@ const AuthService = {
     rememberMe: boolean = false
   ): Promise<LoginResponse> => {
     try {
-      const response = await ApiService.post<LoginResponse>("/login", {
+      const response = await ApiService.post<LoginResponse>(AUTH_ENDPOINTS.LOGIN, {
         email,
         password,
         remember: rememberMe,
@@ -42,7 +43,7 @@ const AuthService = {
    */
   logout: async (): Promise<void> => {
     try {
-      await ApiService.post("/logout");
+      await ApiService.post(AUTH_ENDPOINTS.LOGOUT);
       // Clear the token regardless of API response
       tokenService.clearToken();
     } catch (error) {
@@ -57,8 +58,8 @@ const AuthService = {
    */
   signup: async (data: SignupData): Promise<LoginResponse> => {
     try {
-      // Fixed endpoint to ensure it's properly formatted
-      const response = await ApiService.post<LoginResponse>("/register", data);
+      // Use standardized endpoint 
+      const response = await ApiService.post<LoginResponse>(AUTH_ENDPOINTS.REGISTER, data);
 
       // Store the token if available
       if (response && response.token) {
@@ -78,7 +79,7 @@ const AuthService = {
    */
   getCurrentUser: async (): Promise<User> => {
     try {
-      return await ApiService.get<User>("/user");
+      return await ApiService.get<User>(AUTH_ENDPOINTS.CURRENT_USER);
     } catch (error) {
       handleAuthError(error);
       throw error;
@@ -96,7 +97,7 @@ const AuthService = {
       }
 
       // Then verify with the server
-      await ApiService.get("/check-auth");
+      await ApiService.get(AUTH_ENDPOINTS.CHECK_AUTH);
       return true;
     } catch (error) {
       return false;
@@ -110,7 +111,7 @@ const AuthService = {
     try {
       const data = { email };
       const response = await ApiService.post<{ message: string }>(
-        "/password/reset-request",
+        AUTH_ENDPOINTS.RESET_PASSWORD_REQUEST,
         data
       );
       return { message: response.message || "Password reset email sent" };
@@ -128,7 +129,7 @@ const AuthService = {
   ): Promise<{ message: string }> => {
     try {
       const response = await ApiService.post<{ message: string }>(
-        "/password/reset",
+        AUTH_ENDPOINTS.RESET_PASSWORD,
         data
       );
       return { message: response.message || "Password reset successful" };
@@ -144,7 +145,7 @@ const AuthService = {
   verifyEmail: async (token: string): Promise<{ message: string }> => {
     try {
       const response = await ApiService.post<{ message: string }>(
-        "/verify-email",
+        AUTH_ENDPOINTS.VERIFY_EMAIL,
         {
           token,
         }
