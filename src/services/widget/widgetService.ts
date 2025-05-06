@@ -52,6 +52,16 @@ export const getWidgetPreviewCode = async (widgetId: string, format: 'js' | 'rea
   return ApiService.get<{ code: string }>(`/widgets/${widgetId}/code`, { params: { format } });
 };
 
+// Get widget analytics
+export const getWidgetAnalytics = async (widgetId: string): Promise<any> => {
+  return ApiService.get<any>(`/widgets/${widgetId}/analytics`);
+};
+
+// Get customization options
+export const getCustomizationOptions = async (): Promise<any> => {
+  return ApiService.get<any>(`/widgets/customization-options`);
+};
+
 // Test widget configuration
 export const testWidgetConfig = async (config: Partial<ChatWidget>): Promise<{ status: string; message: string }> => {
   return ApiService.post<{ status: string; message: string }>('/widgets/test-config', config);

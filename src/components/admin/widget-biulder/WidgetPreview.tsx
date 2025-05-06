@@ -5,9 +5,17 @@ import { useState } from 'react';
 interface WidgetPreviewProps {
   config: any;
   showWelcomeButtons?: boolean;
+  aiModel?: {
+    id: string;
+    name: string;
+  } | null;
+  promptTemplate?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
-const WidgetPreview = ({ config, showWelcomeButtons = false }: WidgetPreviewProps) => {
+const WidgetPreview = ({ config, showWelcomeButtons = false, aiModel = null, promptTemplate = null }: WidgetPreviewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   const {
@@ -75,6 +83,19 @@ const WidgetPreview = ({ config, showWelcomeButtons = false }: WidgetPreviewProp
       } ${glassMorphism ? 'backdrop-blur-md bg-opacity-80' : ''} relative`}
       style={containerStyles}
     >
+      {/* AI Model Badge (if applicable) */}
+      {aiModel && (
+        <div 
+          className="absolute top-2 left-2 z-20 px-2 py-1 text-xs rounded-full" 
+          style={{ 
+            backgroundColor: 'rgba(0, 0, 0, 0.6)', 
+            color: 'white'
+          }}
+        >
+          AI: {aiModel.name}
+        </div>
+      )}
+
       {/* Widget Header */}
       <div 
         className="p-4 flex items-center justify-between"
@@ -133,6 +154,11 @@ const WidgetPreview = ({ config, showWelcomeButtons = false }: WidgetPreviewProp
           >
             <p className={`text-sm ${darkMode ? 'text-white' : 'text-gray-800'}`}>
               {welcomeMessage}
+              {promptTemplate && (
+                <span className="block text-xs mt-1 opacity-75">
+                  Using template: {promptTemplate.name}
+                </span>
+              )}
             </p>
 
             {/* Quick reply buttons */}
@@ -206,7 +232,6 @@ const WidgetPreview = ({ config, showWelcomeButtons = false }: WidgetPreviewProp
                 ? 'bg-gray-700 text-white border-gray-600 focus:border-blue-400' 
                 : 'bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-300'
             }`}
-            // INSERT_YOUR_REWRITE_HERE
           />
           <button  
             title="Send"

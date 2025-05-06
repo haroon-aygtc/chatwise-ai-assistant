@@ -175,4 +175,33 @@ class WidgetController extends Controller
 
         return ResponseService::success($result);
     }
+
+    /**
+     * Get widget analytics
+     * 
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function getAnalytics(int $id): JsonResponse
+    {
+        $analytics = $this->widgetService->getWidgetAnalytics($id);
+        
+        if (!$analytics) {
+            return ResponseService::error('Widget not found or no analytics available', null, 404);
+        }
+        
+        return ResponseService::success($analytics);
+    }
+
+    /**
+     * Get widget customization options
+     * 
+     * @return JsonResponse
+     */
+    public function getCustomizationOptions(): JsonResponse
+    {
+        $options = $this->widgetService->getCustomizationOptions();
+        
+        return ResponseService::success($options);
+    }
 }

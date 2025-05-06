@@ -152,6 +152,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/{id}/settings', [WidgetController::class, 'createSetting']);
         Route::get('/{id}/code', [WidgetController::class, 'getCode']);
         Route::post('/test-config', [WidgetController::class, 'testConfig']);
+        
+        // New widget routes
+        Route::get('/{id}/analytics', [WidgetController::class, 'getAnalytics']);
+        Route::get('/customization-options', [WidgetController::class, 'getCustomizationOptions']);
     });
     
     // Settings routes

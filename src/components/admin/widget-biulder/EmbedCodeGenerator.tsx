@@ -12,9 +12,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 interface EmbedCodeGeneratorProps {
   config: any;
+  aiModel?: {
+    id: string;
+    name: string;
+  } | null;
+  promptTemplate?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
-const EmbedCodeGenerator = ({ config }: EmbedCodeGeneratorProps) => {
+const EmbedCodeGenerator = ({ config, aiModel = null, promptTemplate = null }: EmbedCodeGeneratorProps) => {
   const [copied, setCopied] = useState(false);
   const [codeTab, setCodeTab] = useState('script');
   const [scriptVersion, setScriptVersion] = useState('standard');
@@ -31,9 +39,9 @@ const EmbedCodeGenerator = ({ config }: EmbedCodeGeneratorProps) => {
     // Simple check - if custom CSS or webhook URL is used, highlight security considerations
     setHasSecurityIssues(
       (config.appearance.customCSS && config.appearance.customCSS.length > 0) ||
-      (config.advanced.webhookUrl && config.advanced.webhookUrl.length > 0)
+      (config.advanced?.webhookUrl && config.advanced.webhookUrl.length > 0)
     );
-  }, [config.appearance.customCSS, config.advanced.webhookUrl]);
+  }, [config.appearance.customCSS, config.advanced?.webhookUrl]);
   
   // Generate JavaScript embed code
   const generateScriptCode = () => {
@@ -46,7 +54,7 @@ const EmbedCodeGenerator = ({ config }: EmbedCodeGeneratorProps) => {
     g.src = "https://cdn.chatadmin.ai/widget/${widgetId}.js";
     g.async = true;
     g.defer = true;
-    ${includeAnalytics ? '    g.setAttribute("data-analytics", "true");\n' : ''}    s.parentNode.insertBefore(g, s);
+    ${includeAnalytics ? '    g.setAttribute("data-analytics", "true");\n' : ''}${aiModel ? `    g.setAttribute("data-ai-model", "${aiModel.id}");\n` : ''}${promptTemplate ? `    g.setAttribute("data-prompt-template", "${promptTemplate.id}");\n` : ''}    s.parentNode.insertBefore(g, s);
   }(document, "script"));
 </script>`;
     } else if (scriptVersion === 'delayed') {
@@ -60,7 +68,7 @@ const EmbedCodeGenerator = ({ config }: EmbedCodeGeneratorProps) => {
       g.src = "https://cdn.chatadmin.ai/widget/${widgetId}.js";
       g.async = true;
       g.defer = true;
-      ${includeAnalytics ? '      g.setAttribute("data-analytics", "true");\n' : ''}      s.parentNode.insertBefore(g, s);
+      ${includeAnalytics ? '      g.setAttribute("data-analytics", "true");\n' : ''}${aiModel ? `      g.setAttribute("data-ai-model", "${aiModel.id}");\n` : ''}${promptTemplate ? `      g.setAttribute("data-prompt-template", "${promptTemplate.id}");\n` : ''}      s.parentNode.insertBefore(g, s);
     }, 2000); // 2 second delay
   });
 </script>`;
@@ -88,7 +96,7 @@ const EmbedCodeGenerator = ({ config }: EmbedCodeGeneratorProps) => {
     g.src = "https://cdn.chatadmin.ai/widget/${widgetId}.js";
     g.async = true;
     g.defer = true;
-    ${includeAnalytics ? '    g.setAttribute("data-analytics", "true");\n' : ''}    s.parentNode.insertBefore(g, s);
+    ${includeAnalytics ? '    g.setAttribute("data-analytics", "true");\n' : ''}${aiModel ? `    g.setAttribute("data-ai-model", "${aiModel.id}");\n` : ''}${promptTemplate ? `    g.setAttribute("data-prompt-template", "${promptTemplate.id}");\n` : ''}    s.parentNode.insertBefore(g, s);
   }
 </script>`;
     }
@@ -99,7 +107,7 @@ const EmbedCodeGenerator = ({ config }: EmbedCodeGeneratorProps) => {
   // Generate HTML embed code (iframe)
   const iframeCode = `<!-- ChatAdmin Widget (iframe) -->
 <iframe
-  src="https://app.chatadmin.ai/widget/${widgetId}"
+  src="https://app.chatadmin.ai/widget/${widgetId}${aiModel ? `?aiModel=${aiModel.id}` : ''}${promptTemplate ? `${aiModel ? '&' : '?'}promptTemplate=${promptTemplate.id}` : ''}"
   width="${config.appearance.widgetWidth || 350}"
   height="${config.appearance.widgetHeight || 550}"
   frameborder="0"
@@ -120,7 +128,7 @@ import ChatAdminWidget from 'chatadmin-widget';
   position="${config.general.widgetPosition}" 
   primaryColor="${config.appearance.primaryColor}"
   darkMode={${config.appearance.darkMode}}
-  ${config.appearance.glassMorphism ? '  glassMorphism={true}\n' : ''}  ${config.advanced.abTesting ? '  abTesting={true}\n' : ''}  onChatOpen={() => console.log('Chat opened')}
+  ${aiModel ? `  aiModelId="${aiModel.id}"\n` : ''}${promptTemplate ? `  promptTemplateId="${promptTemplate.id}"\n` : ''}${config.appearance.glassMorphism ? '  glassMorphism={true}\n' : ''}  ${config.advanced?.abTesting ? '  abTesting={true}\n' : ''}  onChatOpen={() => console.log('Chat opened')}
   onChatClose={() => console.log('Chat closed')}
   onMessageSent={(msg) => console.log('Message sent:', msg)}
 />`;
@@ -132,11 +140,15 @@ import { useEffect } from 'react';
 interface ChatWidgetProps {
   widgetId: string;
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  aiModelId?: string;
+  promptTemplateId?: string;
 }
 
 const ChatWidget = ({ 
   widgetId = "${widgetId}", 
-  position = "${config.general.widgetPosition}" 
+  position = "${config.general.widgetPosition}",
+  aiModelId${aiModel ? ` = "${aiModel.id}"` : ' = undefined'},
+  promptTemplateId${promptTemplate ? ` = "${promptTemplate.id}"` : ' = undefined'}
 }: ChatWidgetProps) => {
   useEffect(() => {
     // Create script element
@@ -147,7 +159,13 @@ const ChatWidget = ({
     
     // Add data attributes
     script.setAttribute('data-position', position);
-    ${includeAnalytics ? "    script.setAttribute('data-analytics', 'true');\n" : ''}    
+    ${includeAnalytics ? "    script.setAttribute('data-analytics', 'true');\n" : ''}    if (aiModelId) {
+      script.setAttribute('data-ai-model', aiModelId);
+    }
+    if (promptTemplateId) {
+      script.setAttribute('data-prompt-template', promptTemplateId);
+    }
+    
     // Append script to document
     document.body.appendChild(script);
     
@@ -160,7 +178,7 @@ const ChatWidget = ({
         document.body.removeChild(widgetContainer);
       }
     };
-  }, [widgetId, position]);
+  }, [widgetId, position, aiModelId, promptTemplateId]);
   
   return null;
 };
@@ -199,6 +217,25 @@ export default ChatWidget;`;
       <p className="text-sm text-muted-foreground mb-2">
         Use this code to embed the chat widget on your website. Choose the method that works best for your platform.
       </p>
+      
+      {aiModel && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md flex items-start space-x-3 mb-3">
+          <div className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+            <Code className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+              AI Integration Detected
+            </p>
+            <p className="text-sm text-blue-600 dark:text-blue-400">
+              This widget uses the <strong>{aiModel.name}</strong> AI model
+              {promptTemplate && (
+                <> with the <strong>{promptTemplate.name}</strong> prompt template</>
+              )}. The embed code includes these configurations.
+            </p>
+          </div>
+        </div>
+      )}
       
       <Tabs defaultValue="script" value={codeTab} onValueChange={setCodeTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -293,7 +330,7 @@ export default ChatWidget;`;
                   {config.appearance.customCSS && config.appearance.customCSS.length > 0 && (
                     <li>Custom CSS should be reviewed for potential security issues</li>
                   )}
-                  {config.advanced.webhookUrl && config.advanced.webhookUrl.length > 0 && (
+                  {config.advanced?.webhookUrl && config.advanced.webhookUrl.length > 0 && (
                     <li>Ensure your webhook endpoint is secure and validates requests</li>
                   )}
                 </ul>
@@ -338,6 +375,12 @@ export default ChatWidget;`;
           <h4 className="text-sm font-medium mb-1">Installation Notes</h4>
           <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-4">
             <li>The widget will appear in the <strong>{config.general.widgetPosition.replace('-', ' ')}</strong> of your website.</li>
+            {aiModel && (
+              <li>This widget uses the <strong>{aiModel.name}</strong> AI model for processing conversations.</li>
+            )}
+            {promptTemplate && (
+              <li>The widget uses the <strong>{promptTemplate.name}</strong> prompt template for generating responses.</li>
+            )}
             <li>Make sure your website allows third-party scripts if you're using the JavaScript embed method.</li>
             <li>For WordPress sites, you can add the code in the theme footer or use a "Custom HTML" block.</li>
             <li>For advanced customization options, use the NPM package with your React application.</li>
