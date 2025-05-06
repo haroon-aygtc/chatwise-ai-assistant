@@ -1,10 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Loader2 } from "lucide-react";
 import { useRoleManagement } from "@/hooks/access-control/useRoleManagement";
-import { Role, PermissionCategory } from "@/types";
+import { usePermissionManagement } from "@/hooks/access-control/usePermissionManagement";
+import { Role } from "@/types";
 import { CreateRoleDialog, DeleteRoleDialog, EditRoleDialog } from "../dialogs";
 import RoleCard from "../components/RoleCard";
 
@@ -15,13 +16,32 @@ const RolesPermissions = () => {
   const [showDeleteRoleDialog, setShowDeleteRoleDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
+  // Get roles data
   const {
     roles,
-    permissionCategories,
-    isLoading,
-    error,
-    refreshRoles,
+    isLoadingRoles, // Correctly use isLoadingRoles from the hook
+    rolesError, // Correctly use rolesError from the hook
+    fetchRoles, // Use fetchRoles as the refresh function
+    createRole,
+    updateRole,
+    deleteRole
   } = useRoleManagement();
+  
+  // Get permission categories
+  const { 
+    permissionCategories,
+    isLoadingPermissions
+  } = usePermissionManagement();
+
+  // Use isLoading to combine both loading states
+  const isLoading = isLoadingRoles || isLoadingPermissions;
+  // Handle error state
+  const error = rolesError;
+
+  // Load roles on component mount
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
 
   const handleEditRole = (role: Role) => {
     setSelectedRole(role);
@@ -31,6 +51,42 @@ const RolesPermissions = () => {
   const handleDeleteRole = (role: Role) => {
     setSelectedRole(role);
     setShowDeleteRoleDialog(true);
+  };
+
+  const handleCreateRole = async (
+    name: string, 
+    description: string, 
+    permissions: string[]
+  ) => {
+    try {
+      await createRole(name, description, permissions);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const handleUpdateRole = async (
+    id: string,
+    name: string,
+    description: string,
+    permissions: string[]
+  ) => {
+    try {
+      await updateRole(id, name, description, permissions);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const handleDeleteRoleConfirm = async (id: string) => {
+    try {
+      await deleteRole(id);
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
 
   return (
@@ -88,7 +144,7 @@ const RolesPermissions = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {permissionCategories.map((category: PermissionCategory) => (
+                {permissionCategories.map((category) => (
                   <div key={category.id} className="space-y-2">
                     <h4 className="font-medium text-md">{category.category}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -117,7 +173,7 @@ const RolesPermissions = () => {
         open={showCreateRoleDialog}
         onOpenChange={setShowCreateRoleDialog}
         permissionCategories={permissionCategories}
-        onSuccess={refreshRoles}
+        onCreateRole={handleCreateRole}
       />
 
       {selectedRole && (
@@ -127,13 +183,13 @@ const RolesPermissions = () => {
             open={showEditRoleDialog}
             onOpenChange={setShowEditRoleDialog}
             permissionCategories={permissionCategories}
-            onSuccess={refreshRoles}
+            onSave={handleUpdateRole}
           />
           <DeleteRoleDialog
             role={selectedRole}
             open={showDeleteRoleDialog}
             onOpenChange={setShowDeleteRoleDialog}
-            onSuccess={refreshRoles}
+            onDelete={() => handleDeleteRoleConfirm(selectedRole.id)}
           />
         </>
       )}
