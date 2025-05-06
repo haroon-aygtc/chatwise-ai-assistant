@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { DataSourceSettings, getDataSourceSettings, updateDataSourceSettings } from '@/services/ai-configuration/dataSourceService';
+import { dataSourceService } from '@/services/ai-configuration';
+import { DataSourceSettings } from '@/services/ai-configuration/dataSourceService';
 
 export function useDataSourceSettings() {
   const [settings, setSettings] = useState<DataSourceSettings>({
@@ -15,7 +16,7 @@ export function useDataSourceSettings() {
   const fetchSettings = async () => {
     setIsLoading(true);
     try {
-      const data = await getDataSourceSettings();
+      const data = await dataSourceService.getDataSourceSettings();
       setSettings(data);
     } catch (error) {
       console.error('Error fetching data source settings:', error);
@@ -32,7 +33,7 @@ export function useDataSourceSettings() {
   const handleSaveSettings = async (newSettings: DataSourceSettings) => {
     setIsSaving(true);
     try {
-      const updatedSettings = await updateDataSourceSettings(newSettings);
+      const updatedSettings = await dataSourceService.updateDataSourceSettings(newSettings);
       setSettings(updatedSettings);
       toast.success('Settings saved successfully');
       return true;

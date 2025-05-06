@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Role, PermissionCategory } from "@/types/domain";
-import RoleService from "@/services/role/roleService";
+import { RoleService } from "@/services/role";
 import { useToast } from "@/components/ui/use-toast";
 
 export function useRoleManagement() {
