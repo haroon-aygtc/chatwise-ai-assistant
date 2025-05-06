@@ -3,16 +3,14 @@ import ApiService from "../api/base";
 import { User, EditedUser, NewUser } from "@/types/domain";
 import { ApiRequestParams, PaginatedResponse } from "../api/types";
 
-interface UserListResponse extends PaginatedResponse<User> {}
-
 class UserService {
   /**
    * Get a paginated list of users
    */
   static async getUsers(
     params: ApiRequestParams = {}
-  ): Promise<UserListResponse> {
-    return await ApiService.get<UserListResponse>("/users", params);
+  ): Promise<PaginatedResponse<User>> {
+    return await ApiService.get<PaginatedResponse<User>>("/users", params);
   }
 
   /**
@@ -63,7 +61,7 @@ class UserService {
    */
   static async updateUserStatus(
     id: string,
-    status: string
+    status: "active" | "inactive" | "pending" | "suspended"
   ): Promise<{ user: User; message: string }> {
     return await ApiService.put<{ user: User; message: string }>(
       `/users/${id}/status`,
