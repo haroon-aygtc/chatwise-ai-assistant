@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Models;
@@ -59,12 +58,12 @@ class User extends Authenticatable
     public function getAllPermissions()
     {
         $permissions = $this->permissions->pluck('name')->toArray();
-        
+
         foreach ($this->roles as $role) {
             $rolePermissions = $role->permissions->pluck('name')->toArray();
             $permissions = array_merge($permissions, $rolePermissions);
         }
-        
+
         return array_unique($permissions);
     }
 }

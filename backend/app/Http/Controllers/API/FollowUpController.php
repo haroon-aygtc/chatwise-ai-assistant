@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -75,7 +74,7 @@ class FollowUpController extends Controller
             'ordered_ids' => 'required|array',
             'ordered_ids.*' => 'string',
         ]);
-        
+
         $suggestions = $this->followUpService->reorderSuggestions($request->ordered_ids);
         return $this->responseService->success($suggestions, 'Suggestions reordered successfully');
     }

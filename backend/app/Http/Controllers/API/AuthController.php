@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -50,7 +49,7 @@ class AuthController extends Controller
 
         $user = Auth::user();
         $user->update(['last_active' => now()]);
-        
+
         // Log user login activity
         ActivityLogService::logLogin($user);
 
@@ -84,7 +83,7 @@ class AuthController extends Controller
 
         // Assign default role
         $user->assignRole('user');
-        
+
         // Log user registration activity
         ActivityLogService::logRegistration($user);
 
@@ -106,7 +105,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $user = Auth::user();
-        
+
         // Log user logout activity
         if ($user) {
             ActivityLogService::logLogout($user);
@@ -182,7 +181,7 @@ class AuthController extends Controller
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
                 ])->save();
-                
+
                 // Log password reset
                 ActivityLogService::log('Password Reset', 'User reset their password', $user);
             }

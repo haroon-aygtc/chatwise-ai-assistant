@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -50,14 +49,14 @@ class ResponseFormatService
     {
         try {
             DB::beginTransaction();
-            
+
             // If this format is set as default, unset any existing defaults
             if (isset($data['is_default']) && $data['is_default']) {
                 $this->unsetDefaultFormats();
             }
-            
+
             $format = ResponseFormat::create($data);
-            
+
             DB::commit();
             return $format;
         } catch (\Exception $e) {
@@ -78,16 +77,16 @@ class ResponseFormatService
     {
         try {
             DB::beginTransaction();
-            
+
             $format = ResponseFormat::findOrFail($id);
-            
+
             // If this format is set as default, unset any existing defaults
             if (isset($data['is_default']) && $data['is_default']) {
                 $this->unsetDefaultFormats();
             }
-            
+
             $format->update($data);
-            
+
             DB::commit();
             return $format;
         } catch (\Exception $e) {
@@ -107,12 +106,12 @@ class ResponseFormatService
     {
         try {
             $format = ResponseFormat::findOrFail($id);
-            
+
             // Check if this is the default format
             if ($format->is_default) {
                 throw new \Exception('Cannot delete the default response format');
             }
-            
+
             return $format->delete();
         } catch (\Exception $e) {
             Log::error('Failed to delete response format: ' . $e->getMessage());
@@ -130,13 +129,13 @@ class ResponseFormatService
     {
         try {
             DB::beginTransaction();
-            
+
             $this->unsetDefaultFormats();
-            
+
             $format = ResponseFormat::findOrFail($id);
             $format->is_default = true;
             $format->save();
-            
+
             DB::commit();
             return $format;
         } catch (\Exception $e) {

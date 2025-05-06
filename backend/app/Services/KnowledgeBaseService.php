@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -47,7 +46,7 @@ class KnowledgeBaseService
             $document->file_path = $filePath;
             $document->file_type = $file->getClientOriginalExtension();
             $document->file_size = $file->getSize();
-            
+
             // Extract content based on file type if no content provided
             if (empty($data['content'])) {
                 $document->content = $this->extractContentFromFile($file);
@@ -69,37 +68,37 @@ class KnowledgeBaseService
     public function updateDocument(string $id, array $data): KnowledgeDocument
     {
         $document = KnowledgeDocument::findOrFail($id);
-        
+
         if (isset($data['title'])) {
             $document->title = $data['title'];
         }
-        
+
         if (array_key_exists('description', $data)) {
             $document->description = $data['description'];
         }
-        
+
         if (isset($data['content'])) {
             $document->content = $data['content'];
         }
-        
+
         if (array_key_exists('category_id', $data)) {
             $document->category_id = $data['category_id'];
         }
-        
+
         if (isset($data['tags'])) {
             $document->tags = $data['tags'];
         }
-        
+
         if (isset($data['status'])) {
             $document->status = $data['status'];
-            
+
             if ($data['status'] === 'indexed') {
                 $document->last_indexed_at = now();
             }
         }
-        
+
         $document->save();
-        
+
         return $document;
     }
 
@@ -109,12 +108,12 @@ class KnowledgeBaseService
     public function deleteDocument(string $id): bool
     {
         $document = KnowledgeDocument::findOrFail($id);
-        
+
         // Remove the file if it exists
         if ($document->file_path) {
             Storage::disk('public')->delete($document->file_path);
         }
-        
+
         return $document->delete();
     }
 
@@ -151,17 +150,17 @@ class KnowledgeBaseService
     public function updateCategory(string $id, array $data): DocumentCategory
     {
         $category = DocumentCategory::findOrFail($id);
-        
+
         if (isset($data['name'])) {
             $category->name = $data['name'];
         }
-        
+
         if (array_key_exists('description', $data)) {
             $category->description = $data['description'];
         }
-        
+
         $category->save();
-        
+
         return $category;
     }
 
@@ -179,7 +178,7 @@ class KnowledgeBaseService
     public function getSettings(): KnowledgeBaseSetting
     {
         $settings = KnowledgeBaseSetting::first();
-        
+
         if (!$settings) {
             $settings = KnowledgeBaseSetting::create([
                 'is_enabled' => true,
@@ -187,7 +186,7 @@ class KnowledgeBaseService
                 'include_citations' => true,
             ]);
         }
-        
+
         return $settings;
     }
 
@@ -197,21 +196,21 @@ class KnowledgeBaseService
     public function updateSettings(array $data): KnowledgeBaseSetting
     {
         $settings = $this->getSettings();
-        
+
         if (isset($data['is_enabled'])) {
             $settings->is_enabled = $data['is_enabled'];
         }
-        
+
         if (isset($data['priority'])) {
             $settings->priority = $data['priority'];
         }
-        
+
         if (isset($data['include_citations'])) {
             $settings->include_citations = $data['include_citations'];
         }
-        
+
         $settings->save();
-        
+
         return $settings;
     }
 
@@ -235,7 +234,7 @@ class KnowledgeBaseService
     private function extractContentFromFile(UploadedFile $file): string
     {
         $extension = strtolower($file->getClientOriginalExtension());
-        
+
         // This is a simplified version - in a real app you'd use specialized libraries
         switch ($extension) {
             case 'txt':

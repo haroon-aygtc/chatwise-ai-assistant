@@ -1,4 +1,3 @@
-
 <?php
 
 namespace Database\Seeders;
@@ -14,6 +13,9 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        \DB::table('users')->delete();
+
+
         // Create admin user
         $admin = User::create([
             'name' => 'Admin User',

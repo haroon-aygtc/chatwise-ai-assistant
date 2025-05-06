@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -61,7 +60,7 @@ class KnowledgeBaseController extends Controller
         try {
             $data = $request->validated();
             $file = $request->hasFile('file') ? $request->file('file') : null;
-            
+
             $document = $this->knowledgeBaseService->createDocument($data, $file);
             return $this->responseService->success($document, 'Document created successfully', 201);
         } catch (\Exception $e) {

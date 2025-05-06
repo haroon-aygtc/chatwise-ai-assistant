@@ -1,12 +1,12 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { tokenService as TokenService } from '@/modules/auth';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import tokenService from "@/modules/auth/services/tokenService";
 
 // Create a custom Axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
   withCredentials: true,
 });
@@ -15,17 +15,19 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Add token to request headers if it exists
-    const token = TokenService.getToken();
+    const token = tokenService.getToken();
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
-    
+
     // Add CSRF token for non-GET requests if using Laravel
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (csrfToken && config.method !== 'get') {
-      config.headers['X-CSRF-TOKEN'] = csrfToken;
+    const csrfToken = document
+      .querySelector('meta[name="csrf-token"]')
+      ?.getAttribute("content");
+    if (csrfToken && config.method !== "get") {
+      config.headers["X-CSRF-TOKEN"] = csrfToken;
     }
-    
+
     return config;
   },
   (error) => {
@@ -42,16 +44,16 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized errors
     if (error.response && error.response.status === 401) {
       // Clear token and redirect to login
-      TokenService.clearToken();
-      window.location.href = '/login';
+      tokenService.clearToken();
+      window.location.href = "/login";
     }
-    
+
     // Handle 419 CSRF token mismatch (Laravel)
     if (error.response && error.response.status === 419) {
       // Refresh the page to get a new CSRF token
       window.location.reload();
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -59,12 +61,12 @@ api.interceptors.response.use(
 // Helper to convert parameters to axios config
 const paramsToConfig = (params: any): AxiosRequestConfig => {
   if (!params) return {};
-  
+
   // If params already has an AxiosRequestConfig shape, return it
   if (params.headers || params.params || params.data) {
     return params;
   }
-  
+
   // Otherwise, convert to params config
   return { params };
 };
@@ -87,7 +89,11 @@ const ApiService = {
   /**
    * Make a POST request
    */
-  post: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  post: async <T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     try {
       const response: AxiosResponse = await api.post(url, data, config);
       return response.data;
@@ -99,7 +105,11 @@ const ApiService = {
   /**
    * Make a PUT request
    */
-  put: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  put: async <T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     try {
       const response: AxiosResponse = await api.put(url, data, config);
       return response.data;
@@ -123,7 +133,11 @@ const ApiService = {
   /**
    * Make a PATCH request
    */
-  patch: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  patch: async <T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     try {
       const response: AxiosResponse = await api.patch(url, data, config);
       return response.data;

@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -19,13 +18,13 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::with('permissions')->get();
-        
+
         // Add user count to each role
         $roles = $roles->map(function ($role) {
             $role->userCount = $role->users()->count();
             return $role;
         });
-        
+
         return response()->json($roles);
     }
 
@@ -48,18 +47,18 @@ class RoleController extends Controller
             'name' => $validated['name'],
             'guard_name' => 'web',
         ]);
-        
+
         // Add description as a custom attribute
         if (isset($validated['description'])) {
             $role->description = $validated['description'];
             $role->save();
         }
-        
+
         // Assign permissions if provided
         if (isset($validated['permissions'])) {
             $role->syncPermissions($validated['permissions']);
         }
-        
+
         // Log activity
         ActivityLogService::logRoleCreated($role->name);
 
@@ -79,7 +78,7 @@ class RoleController extends Controller
     {
         $role->load('permissions');
         $role->userCount = $role->users()->count();
-        
+
         return response()->json($role);
     }
 
@@ -99,7 +98,7 @@ class RoleController extends Controller
                 'message' => 'Cannot rename system roles'
             ], 403);
         }
-        
+
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255', 'unique:roles,name,'.$role->id],
             'description' => ['nullable', 'string'],
@@ -108,13 +107,13 @@ class RoleController extends Controller
         if (isset($validated['name'])) {
             $role->name = $validated['name'];
         }
-        
+
         if (isset($validated['description'])) {
             $role->description = $validated['description'];
         }
-        
+
         $role->save();
-        
+
         // Log activity
         ActivityLogService::logRoleUpdated($role->name);
 
@@ -139,17 +138,17 @@ class RoleController extends Controller
                 'message' => 'Cannot delete system roles'
             ], 403);
         }
-        
+
         // Check if role has users
         if ($role->users()->count() > 0) {
             return response()->json([
                 'message' => 'Cannot delete role with assigned users. Please reassign users first.'
             ], 409);
         }
-        
+
         $roleName = $role->name;
         $role->delete();
-        
+
         // Log activity
         ActivityLogService::logRoleDeleted($roleName);
 
@@ -173,7 +172,7 @@ class RoleController extends Controller
         ]);
 
         $role->syncPermissions($validated['permissions']);
-        
+
         // Log activity
         ActivityLogService::logPermissionsUpdated($role->name);
 

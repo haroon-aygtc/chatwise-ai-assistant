@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -33,6 +32,8 @@ return new class extends Migration
             $table->json('tags')->nullable();
             $table->string('status')->default('processing');
             $table->string('file_path')->nullable();
+            $table->string('external_source_url')->nullable();
+            $table->string('external_source_type')->nullable();
             $table->timestamps();
             $table->timestamp('last_indexed_at')->nullable();
             $table->softDeletes();

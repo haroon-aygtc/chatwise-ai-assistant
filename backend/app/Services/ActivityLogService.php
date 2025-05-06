@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -21,7 +20,7 @@ class ActivityLogService
     {
         return ActivityLog::log($action, $description, $user);
     }
-    
+
     /**
      * Log a user login
      *
@@ -32,7 +31,7 @@ class ActivityLogService
     {
         return self::log('User Login', 'User logged in successfully', $user);
     }
-    
+
     /**
      * Log a user logout
      *
@@ -43,7 +42,7 @@ class ActivityLogService
     {
         return self::log('User Logout', 'User logged out', $user);
     }
-    
+
     /**
      * Log a user registration
      *
@@ -54,7 +53,7 @@ class ActivityLogService
     {
         return self::log('User Registration', 'New user account created', $user);
     }
-    
+
     /**
      * Log a user update
      *
@@ -65,17 +64,17 @@ class ActivityLogService
     public static function logUserUpdate(User $user, $details = '')
     {
         $actor = Auth::user();
-        $description = ($actor && $actor->id !== $user->id) 
-            ? "Admin updated user: {$user->email}" 
+        $description = ($actor && $actor->id !== $user->id)
+            ? "Admin updated user: {$user->email}"
             : "User updated their profile";
-            
+
         if ($details) {
             $description .= " - $details";
         }
-        
+
         return self::log('User Update', $description, $actor);
     }
-    
+
     /**
      * Log a role creation
      *
@@ -86,7 +85,7 @@ class ActivityLogService
     {
         return self::log('Role Created', "Created new role: {$roleName}");
     }
-    
+
     /**
      * Log a role update
      *
@@ -97,7 +96,7 @@ class ActivityLogService
     {
         return self::log('Role Updated', "Updated role: {$roleName}");
     }
-    
+
     /**
      * Log a role deletion
      *
@@ -108,7 +107,7 @@ class ActivityLogService
     {
         return self::log('Role Deleted', "Deleted role: {$roleName}");
     }
-    
+
     /**
      * Log permissions update
      *
@@ -119,7 +118,7 @@ class ActivityLogService
     {
         return self::log('Permissions Updated', "Updated permissions for role: {$roleName}");
     }
-    
+
     /**
      * Log role assignment
      *
