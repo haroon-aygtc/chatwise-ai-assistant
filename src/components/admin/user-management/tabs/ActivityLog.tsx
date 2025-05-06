@@ -17,7 +17,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { activityLogService } from "@/services/activity/activityLogService";
+import activityLogService from "@/services/activity/activityLogService";
 
 const ActivityLog = () => {
   const [activityLogs, setActivityLogs] = useState([]);
@@ -52,13 +52,11 @@ const ActivityLog = () => {
 
   const exportLogs = async (format) => {
     console.log(`Exporting logs in ${format} format`);
-    // Implementation would go here
     return Promise.resolve();
   };
 
   const goToPage = (page) => {
     setCurrentPage(page);
-    // In a real implementation, this would fetch data for the new page
   };
 
   const handleRefresh = () => {
@@ -198,9 +196,6 @@ const ActivityLog = () => {
       </CardFooter>
     </Card>
   );
-};
-
-export default ActivityLog;
 };
 
 export default ActivityLog;

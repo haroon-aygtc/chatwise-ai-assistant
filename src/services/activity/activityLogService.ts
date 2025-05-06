@@ -1,5 +1,4 @@
-
-import ApiService from '../api/base';
+import ApiService from "../api/base";
 
 export interface ActivityLog {
   id: string;
@@ -28,39 +27,53 @@ class ActivityLogService {
   /**
    * Get paginated activity logs
    */
-  static async getActivityLogs(params: {
-    page?: number;
-    per_page?: number;
-    search?: string;
-    action_type?: string;
-    from_date?: string;
-    to_date?: string;
-    user_id?: string;
-  } = {}): Promise<ActivityLogResponse> {
-    return ApiService.get<ActivityLogResponse>('/activity-logs', params);
+  static async getActivityLogs(
+    params: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      action_type?: string;
+      from_date?: string;
+      to_date?: string;
+      user_id?: string;
+    } = {}
+  ): Promise<ActivityLogResponse> {
+    const response = await ApiService.get<ActivityLogResponse>(
+      "/activity-logs",
+      params
+    );
+    return response.data;
   }
 
   /**
    * Get all available action types for filtering
    */
   static async getActionTypes(): Promise<string[]> {
-    return ApiService.get<string[]>('/activity-logs/action-types');
+    const response = await ApiService.get<string[]>(
+      "/activity-logs/action-types"
+    );
+    return response.data;
   }
 
   /**
    * Export activity logs as CSV
    */
-  static async exportActivityLogs(params: {
-    search?: string;
-    action_type?: string;
-    from_date?: string;
-    to_date?: string;
-    user_id?: string;
-  } = {}): Promise<Blob> {
-    const response = await ApiService.getAxiosInstance().get('/activity-logs/export', {
-      params,
-      responseType: 'blob'
-    });
+  static async exportActivityLogs(
+    params: {
+      search?: string;
+      action_type?: string;
+      from_date?: string;
+      to_date?: string;
+      user_id?: string;
+    } = {}
+  ): Promise<Blob> {
+    const response = await ApiService.getAxiosInstance().get(
+      "/activity-logs/export",
+      {
+        params,
+        responseType: "blob",
+      }
+    );
     return response.data;
   }
 
@@ -68,7 +81,8 @@ class ActivityLogService {
    * Get activity log by ID
    */
   static async getActivityLog(id: string): Promise<ActivityLog> {
-    return ApiService.get<ActivityLog>(`/activity-logs/${id}`);
+    const response = await ApiService.get<ActivityLog>(`/activity-logs/${id}`);
+    return response.data;
   }
 }
 
