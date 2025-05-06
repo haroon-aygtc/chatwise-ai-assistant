@@ -8,6 +8,7 @@ export const useWidgets = (widgetId?: string) => {
   const [widgets, setWidgets] = useState<ChatWidget[]>([]);
   const [currentWidget, setCurrentWidget] = useState<ChatWidget | null>(null);
   const [widgetSettings, setWidgetSettings] = useState<WidgetSettings[]>([]);
+  const [customizationOptions, setCustomizationOptions] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [previewCode, setPreviewCode] = useState('');
@@ -210,6 +211,45 @@ export const useWidgets = (widgetId?: string) => {
     }
   }, [toast]);
 
+  // Get widget analytics
+  const getWidgetAnalytics = useCallback(async (widgetId: string) => {
+    try {
+      setIsLoading(true);
+      const analytics = await widgetService.getWidgetAnalytics(widgetId);
+      return analytics;
+    } catch (error) {
+      console.error('Error getting widget analytics:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch widget analytics',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  // Get customization options
+  const fetchCustomizationOptions = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const options = await widgetService.getCustomizationOptions();
+      setCustomizationOptions(options);
+      return options;
+    } catch (error) {
+      console.error('Error fetching customization options:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load widget customization options',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+  
   // Test widget configuration
   const testWidgetConfig = useCallback(async (config: Partial<ChatWidget>) => {
     try {
@@ -251,12 +291,16 @@ export const useWidgets = (widgetId?: string) => {
     } else {
       fetchWidgets();
     }
-  }, [widgetId, fetchWidget, fetchWidgetSettings, fetchWidgets]);
+    
+    // Load customization options on init
+    fetchCustomizationOptions();
+  }, [widgetId, fetchWidget, fetchWidgetSettings, fetchWidgets, fetchCustomizationOptions]);
 
   return {
     widgets,
     currentWidget,
     widgetSettings,
+    customizationOptions,
     isLoading,
     isSaving,
     previewCode,
@@ -268,6 +312,8 @@ export const useWidgets = (widgetId?: string) => {
     fetchWidgetSettings,
     createWidgetSettings,
     getWidgetCode,
+    getWidgetAnalytics,
+    fetchCustomizationOptions,
     testWidgetConfig,
     setCurrentWidget,
   };
