@@ -20,7 +20,7 @@ import { PermissionCategory, Role } from "@/types/user";
 import roleService from "@/services/role/roleService";
 import permissionService from "@/services/permission/permissionService";
 
-export function RolesPermissions() {
+const RolesPermissions = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("roles");
   const [roles, setRoles] = useState<Role[]>([]);
@@ -38,7 +38,7 @@ export function RolesPermissions() {
       setIsLoading(true);
       try {
         const [fetchedRoles, fetchedPermissions] = await Promise.all([
-          roleService.getAllRoles(),
+          roleService.getRoles(),
           permissionService.getPermissionsByCategory()
         ]);
         setRoles(fetchedRoles);
@@ -62,8 +62,8 @@ export function RolesPermissions() {
   const handleCreateRole = async (name: string, description: string, permissions: string[]) => {
     setIsCreating(true);
     try {
-      const newRole = await roleService.createRole({ name, description, permissions });
-      setRoles([...roles, newRole]);
+      const response = await roleService.createRole({ name, description, permissions });
+      setRoles([...roles, response.role]);
       setShowCreateRoleDialog(false);
       toast({
         title: "Success",
@@ -86,8 +86,8 @@ export function RolesPermissions() {
   // Handle role update
   const handleUpdateRole = async (id: string, name: string, description: string, permissions: string[]) => {
     try {
-      const updatedRole = await roleService.updateRole(id, { name, description, permissions });
-      setRoles(roles.map(role => role.id === id ? updatedRole : role));
+      const response = await roleService.updateRole(id, { name, description, permissions });
+      setRoles(roles.map(role => role.id === id ? response.role : role));
       setSelectedRole(null);
       setShowEditRoleDialog(false);
       toast({
@@ -209,4 +209,6 @@ export function RolesPermissions() {
       </CardContent>
     </Card>
   );
-}
+};
+
+export default RolesPermissions;
