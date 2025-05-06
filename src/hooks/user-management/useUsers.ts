@@ -1,20 +1,13 @@
+
 import { useState } from "react";
 import { User } from "@/types/domain";
 import { useQuery } from "@tanstack/react-query";
 import ApiService from "@/services/api/base";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "@/constants";
-
-// Response type from the backend API
-interface UsersResponse {
-  data: User[];
-  total: number;
-  current_page: number;
-  per_page: number;
-  last_page: number;
-}
+import { PaginatedResponse, ApiRequestParams } from "@/services/api/types";
 
 // Parameters for filtering and pagination
-interface UpdateQueryParams {
+interface UpdateQueryParams extends ApiRequestParams {
   page?: number;
   per_page?: number;
   search?: string;
@@ -31,12 +24,7 @@ export function useUsers() {
   // Function to fetch users from the API
   const fetchUsers = async (params: UpdateQueryParams) => {
     try {
-      const response = await ApiService.get<UsersResponse>("/users", {
-        params: {
-          ...params,
-        },
-      });
-      return response.data;
+      return await ApiService.get<PaginatedResponse<User>>("/users", params);
     } catch (error) {
       console.error("Error fetching users:", error);
       throw error;

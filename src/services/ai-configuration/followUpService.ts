@@ -26,40 +26,35 @@ const followUpService = {
    * Get follow-up settings
    */
   getSettings: async (): Promise<FollowUpSetting> => {
-    const response = await ApiService.get<FollowUpSetting>('/follow-up/settings');
-    return response.data;
+    return await ApiService.get<FollowUpSetting>('/follow-up/settings');
   },
   
   /**
    * Update follow-up settings
    */
   updateSettings: async (settings: Partial<FollowUpSetting>): Promise<FollowUpSetting> => {
-    const response = await ApiService.put<FollowUpSetting>('/follow-up/settings', settings);
-    return response.data;
+    return await ApiService.put<FollowUpSetting>('/follow-up/settings', settings);
   },
   
   /**
    * Get all follow-up suggestions
    */
   getSuggestions: async (): Promise<FollowUpSuggestion[]> => {
-    const response = await ApiService.get<FollowUpSuggestion[]>('/follow-up/suggestions');
-    return response.data;
+    return await ApiService.get<FollowUpSuggestion[]>('/follow-up/suggestions');
   },
   
   /**
    * Create a new follow-up suggestion
    */
   createSuggestion: async (suggestion: Omit<FollowUpSuggestion, 'id'>): Promise<FollowUpSuggestion> => {
-    const response = await ApiService.post<FollowUpSuggestion>('/follow-up/suggestions', suggestion);
-    return response.data;
+    return await ApiService.post<FollowUpSuggestion>('/follow-up/suggestions', suggestion);
   },
   
   /**
    * Update an existing follow-up suggestion
    */
   updateSuggestion: async (id: string, suggestion: Partial<FollowUpSuggestion>): Promise<FollowUpSuggestion> => {
-    const response = await ApiService.put<FollowUpSuggestion>(`/follow-up/suggestions/${id}`, suggestion);
-    return response.data;
+    return await ApiService.put<FollowUpSuggestion>(`/follow-up/suggestions/${id}`, suggestion);
   },
   
   /**
@@ -73,16 +68,14 @@ const followUpService = {
    * Reorder follow-up suggestions
    */
   reorderSuggestions: async (ids: string[]): Promise<FollowUpSuggestion[]> => {
-    const response = await ApiService.put<FollowUpSuggestion[]>('/follow-up/suggestions/reorder', { ordered_ids: ids });
-    return response.data;
+    return await ApiService.put<FollowUpSuggestion[]>('/follow-up/suggestions/reorder', { ordered_ids: ids });
   },
   
   /**
    * Get suggestion categories
    */
   getCategories: async (): Promise<string[]> => {
-    const response = await ApiService.get<string[]>('/follow-up/categories');
-    return response.data;
+    return await ApiService.get<string[]>('/follow-up/categories');
   },
 };
 
