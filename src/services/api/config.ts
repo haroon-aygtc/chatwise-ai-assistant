@@ -28,3 +28,31 @@ export const PERMISSION_ENDPOINTS = {
   PERMISSIONS: '/permissions',
   PERMISSION_CATEGORIES: '/permissions/categories',
 };
+
+// Global headers storage for dynamic headers that can be added/removed
+const globalHeaders: Record<string, string> = {};
+
+/**
+ * Add a global header to be included in all API requests
+ * @param name Header name
+ * @param value Header value
+ */
+export const addGlobalHeader = (name: string, value: string): void => {
+  globalHeaders[name] = value;
+};
+
+/**
+ * Remove a global header
+ * @param name Header name to remove
+ */
+export const removeGlobalHeader = (name: string): void => {
+  delete globalHeaders[name];
+};
+
+/**
+ * Get all global headers
+ * @returns Object containing all global headers
+ */
+export const getGlobalHeaders = (): Record<string, string> => {
+  return { ...globalHeaders };
+};

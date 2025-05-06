@@ -1,7 +1,7 @@
 
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { ApiRequestParams } from "./types";
-import { API_BASE_URL } from "./config";
+import { API_BASE_URL, getGlobalHeaders } from "./config";
 
 // Define the base API response type
 export interface ApiResponse<T = any> {
@@ -30,6 +30,12 @@ apiClient.interceptors.request.use(
     // If token exists, add it to the Authorization header
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Add any global headers
+    const globalHeaders = getGlobalHeaders();
+    for (const [key, value] of Object.entries(globalHeaders)) {
+      config.headers[key] = value;
     }
     
     return config;
