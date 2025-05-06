@@ -201,3 +201,6 @@ const ActivityLog = () => {
 };
 
 export default ActivityLog;
+};
+
+export default ActivityLog;

@@ -46,13 +46,11 @@ export const RolesList = ({
         ) : roles.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {roles.map((role) => (
-              <RoleCard
+              <RolesCard
                 key={role.id}
                 role={role}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                canEdit={canEdit}
-                canDelete={canDelete}
+                onClick={() => onEdit(role)}
+                onDelete={() => onDelete(role)}
               />
             ))}
           </div>
