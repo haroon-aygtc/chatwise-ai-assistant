@@ -62,14 +62,15 @@ const FollowUpManager = ({
     category: "general",
     order: 0,
     isActive: true,
+    triggerConditions: []
   });
+  const [suggestions, setSuggestions] = useState<FollowUpSuggestion[]>([]);
   const [enableFollowUps, setEnableFollowUps] = useState(true);
   const [maxSuggestions, setMaxSuggestions] = useState(3);
   const [testResponse, setTestResponse] = useState("");
   const [testFollowUps, setTestFollowUps] = useState<FollowUpSuggestion[]>([]);
   const [isTesting, setIsTesting] = useState(false);
   const [activeTab, setActiveTab] = useState("suggestions");
-  const [suggestions, setSuggestions] = useState<FollowUpSuggestion[]>([]);
 
   useEffect(() => {
     fetchSuggestions();
@@ -154,7 +155,11 @@ const FollowUpManager = ({
   const handleSaveNewSuggestion = async () => {
     if (newSuggestion.text && newSuggestion.category) {
       try {
-        const createdSuggestion = await followUpService.createSuggestion(newSuggestion);
+        const createdSuggestion = await followUpService.createSuggestion({
+          ...newSuggestion,
+          isActive: true,
+          order: suggestions.length + 1
+        });
         setSuggestions([...suggestions, createdSuggestion]);
         toast.success("Suggestion added successfully");
         setShowAddDialog(false);
@@ -174,7 +179,10 @@ const FollowUpManager = ({
         );
         
         const updatedSuggestions = suggestions.map((suggestion) =>
-          suggestion.id === updatedSuggestion.id ? updatedSuggestion : suggestion
+          suggestion.id === updatedSuggestion.id ? {
+            ...suggestion,
+            ...updatedSuggestion
+          } : suggestion
         );
         
         setSuggestions(updatedSuggestions);

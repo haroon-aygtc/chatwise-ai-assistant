@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import KnowledgeBaseService from "@/services/knowledge-base/knowledgeBaseService";
-import { KnowledgeDocument, DocumentCategory } from "@/types/knowledge-base";
+import { KnowledgeDocument, DocumentCategory } from '@/types/knowledge-base';
 
 export function useKnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -13,18 +12,21 @@ export function useKnowledgeBase() {
 
   // Fetch documents
   const { 
-    data: documents = [], 
+    data: documents = { data: [], total: 0, current_page: 1, last_page: 1 }, 
     isLoading: isLoadingDocuments,
     isError: isDocumentsError,
     refetch: refetchDocuments
   } = useQuery({
     queryKey: ['knowledgeBase', 'documents'],
-    queryFn: KnowledgeBaseService.getAllDocuments
+    queryFn: async ({ pageParam = 1, queryKey }) => {
+      const filters = queryKey[2] || {};
+      return KnowledgeBaseService.getAllDocuments(Number(pageParam), 20, filters);
+    },
   });
 
   // Fetch categories
   const { 
-    data: categories = [],
+    data: categories = [] as DocumentCategory[],
     isLoading: isLoadingCategories
   } = useQuery({
     queryKey: ['knowledgeBase', 'categories'],
@@ -58,7 +60,7 @@ export function useKnowledgeBase() {
   });
 
   // Filter documents based on search query
-  const filteredDocuments = documents.filter(doc => 
+  const filteredDocuments = documents.data.filter(doc => 
     doc.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     doc.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -83,7 +85,7 @@ export function useKnowledgeBase() {
   };
 
   return {
-    documents,
+    documents: documents.data,
     categories,
     filteredDocuments,
     searchQuery,

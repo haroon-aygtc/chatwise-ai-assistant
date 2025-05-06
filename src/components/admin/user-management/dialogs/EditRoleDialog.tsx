@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -25,7 +24,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CategoryPermissionsGroup } from "../components/CategoryPermissionsGroup";
-import { PermissionCategory, Role } from "@/types/user";
+import { PermissionCategory, Role } from "@/types";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -38,6 +38,7 @@ export interface EditRoleDialogProps {
   role: Role;
   permissionCategories: PermissionCategory[];
   onSave: (id: string, name: string, description: string, permissions: string[]) => Promise<boolean>;
+  isSubmitting?: boolean;
 }
 
 export function EditRoleDialog({
@@ -46,12 +47,20 @@ export function EditRoleDialog({
   role,
   permissionCategories,
   onSave,
+  isSubmitting = false,
 }: EditRoleDialogProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const [localSubmitting, setLocalSubmitting] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
-    role.permissions || []
+    Array.isArray(role.permissions) ? 
+      (typeof role.permissions[0] === 'string' ? 
+        role.permissions as string[] : 
+        (role.permissions as any).map((p: any) => p.id || p.name)
+      ) : []
   );
   const [activeTab, setActiveTab] = useState("details");
+  
+  // Use external isSubmitting state if provided
+  const isSaving = isSubmitting || localSubmitting;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,7 +71,7 @@ export function EditRoleDialog({
   });
 
   const handleSave = async (values: z.infer<typeof formSchema>) => {
-    setIsSaving(true);
+    setLocalSubmitting(true);
     try {
       const success = await onSave(
         role.id,
@@ -74,7 +83,7 @@ export function EditRoleDialog({
         onOpenChange(false);
       }
     } finally {
-      setIsSaving(false);
+      setLocalSubmitting(false);
     }
   };
 
@@ -162,7 +171,7 @@ export function EditRoleDialog({
                   {permissionCategories.map((category) => (
                     <CategoryPermissionsGroup
                       key={category.id}
-                      category={category.name}
+                      category={category.category}
                       permissions={category.permissions}
                       selectedPermissions={selectedPermissions}
                       onTogglePermission={handleTogglePermission}
@@ -178,11 +187,18 @@ export function EditRoleDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={isSaving || isSystemRole}
               >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSaving || isSystemRole}>
-                {isSaving ? "Saving..." : "Save Changes"}
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
             </DialogFooter>
           </form>

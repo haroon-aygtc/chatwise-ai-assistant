@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
@@ -12,124 +11,99 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RolesCard } from "../components/RolesCard";
+import RoleCard from "../components/RoleCard";
 import { PermissionManagement } from "../components/PermissionManagement";
 import { CreateRoleDialog } from "../dialogs/CreateRoleDialog";
 import { EditRoleDialog } from "../dialogs/EditRoleDialog";
-import { PermissionCategory, Role } from "@/types/user";
-import roleService from "@/services/role/roleService";
-import permissionService from "@/services/permission/permissionService";
+import { Role, PermissionCategory } from '@/types';
+import { useRoleManagement } from "@/hooks/access-control/useRoleManagement";
+import { usePermissionManagement } from "@/hooks/access-control/usePermissionManagement";
 
 export function RolesPermissions() {
   const { toast } = useToast();
+  
+  // Use role and permission management hooks
+  const { 
+    roles, 
+    isLoadingRoles, 
+    rolesError, 
+    fetchRoles, 
+    createRole, 
+    updateRole, 
+    deleteRole 
+  } = useRoleManagement();
+  
+  const {
+    permissionCategories,
+    isLoadingPermissions,
+    permissionsError,
+    fetchPermissions
+  } = usePermissionManagement();
+  
   const [activeTab, setActiveTab] = useState("roles");
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissionCategories, setPermissionCategories] = useState<PermissionCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [showEditRoleDialog, setShowEditRoleDialog] = useState(false);
   const [showCreateRoleDialog, setShowCreateRoleDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  
-  // Load roles and permissions
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Filtered roles based on search query
+  const filteredRoles = useMemo(() => roles.filter((role) =>
+    role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (role.description && role.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  ), [roles, searchQuery]);
+
+  // Load roles and permissions on component mount
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [fetchedRoles, fetchedPermissions] = await Promise.all([
-          roleService.getAllRoles(),
-          permissionService.getPermissionsByCategory()
-        ]);
-        setRoles(fetchedRoles);
-        setPermissionCategories(fetchedPermissions);
-      } catch (error) {
-        console.error("Error loading roles and permissions:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load roles and permissions",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
+    const loadData = async () => {
+      await Promise.all([fetchRoles(), fetchPermissions()]);
     };
     
-    fetchData();
-  }, [toast]);
-  
-  // Handle role creation
-  const handleCreateRole = async (name: string, description: string, permissions: string[]) => {
+    loadData();
+  }, [fetchRoles, fetchPermissions]);
+
+  const handleCreateRole = async (name: string, description: string, permissions: string[]): Promise<boolean> => {
     setIsCreating(true);
     try {
-      const newRole = await roleService.createRole({ name, description, permissions });
-      setRoles([...roles, newRole]);
+      await createRole(name, description, permissions);
       setShowCreateRoleDialog(false);
-      toast({
-        title: "Success",
-        description: `Role "${name}" created successfully`,
-      });
       return true;
     } catch (error) {
-      console.error("Error creating role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create role",
-        variant: "destructive",
-      });
+      // Error is already handled by the hook
       return false;
     } finally {
       setIsCreating(false);
     }
   };
-  
-  // Handle role update
-  const handleUpdateRole = async (id: string, name: string, description: string, permissions: string[]) => {
+
+  const handleUpdateRole = async (id: string, name: string, description: string, permissions: string[]): Promise<boolean> => {
+    setIsUpdating(true);
     try {
-      const updatedRole = await roleService.updateRole(id, { name, description, permissions });
-      setRoles(roles.map(role => role.id === id ? updatedRole : role));
+      await updateRole(id, name, description, permissions);
       setSelectedRole(null);
       setShowEditRoleDialog(false);
-      toast({
-        title: "Success",
-        description: `Role "${name}" updated successfully`,
-      });
       return true;
     } catch (error) {
-      console.error("Error updating role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update role",
-        variant: "destructive",
-      });
+      // Error is already handled by the hook
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteRole = async (id: string): Promise<boolean> => {
+    try {
+      await deleteRole(id);
+      return true;
+    } catch (error) {
+      // Error is already handled by the hook
       return false;
     }
   };
-  
-  // Handle role deletion
-  const handleDeleteRole = async (id: string) => {
-    try {
-      await roleService.deleteRole(id);
-      setRoles(roles.filter(role => role.id !== id));
-      toast({
-        title: "Success",
-        description: "Role deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete role",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  // Filter roles based on search
-  const filteredRoles = roles.filter((role) =>
-    role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (role.description && role.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+
+  const isLoading = isLoadingRoles || isLoadingPermissions;
+  const error = rolesError?.message || permissionsError?.message || null;
 
   return (
     <Card>
@@ -140,6 +114,12 @@ export function RolesPermissions() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded">
+            {error}
+          </div>
+        )}
+        
         <Tabs defaultValue="roles" value={activeTab} onValueChange={setActiveTab}>
           <div className="flex justify-between items-center pb-4">
             <TabsList>
@@ -168,17 +148,29 @@ export function RolesPermissions() {
           </div>
           
           <TabsContent value="roles" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredRoles.map((role) => (
-              <RolesCard
-                key={role.id}
-                role={role}
-                onClick={() => {
-                  setSelectedRole(role);
-                  setShowEditRoleDialog(true);
-                }}
-                onDelete={() => handleDeleteRole(role.id)}
-              />
-            ))}
+            {isLoading ? (
+              <div className="col-span-full py-8 text-center text-muted-foreground">
+                Loading roles...
+              </div>
+            ) : filteredRoles.length > 0 ? (
+              filteredRoles.map((role) => (
+                <RoleCard
+                  key={role.id}
+                  role={role}
+                  onEdit={() => {
+                    setSelectedRole(role);
+                    setShowEditRoleDialog(true);
+                  }}
+                  onDelete={() => handleDeleteRole(role.id)}
+                  canEdit={true}
+                  canDelete={true}
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-8 text-center text-muted-foreground">
+                {searchQuery ? "No roles match your search" : "No roles available"}
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="permissions">
@@ -194,7 +186,6 @@ export function RolesPermissions() {
           onOpenChange={setShowCreateRoleDialog}
           permissionCategories={permissionCategories}
           onCreateRole={handleCreateRole}
-          isCreating={isCreating}
         />
         
         {selectedRole && (
@@ -210,3 +201,4 @@ export function RolesPermissions() {
     </Card>
   );
 }
+

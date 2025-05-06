@@ -1,7 +1,8 @@
-import ApiService from "@/services/api/base";
+import ApiService, { ApiResponse } from "@/services/api/base";
 import { User } from "@/types/user";
 import { LoginResponse, PasswordResetRequestData, SignupData } from "../types";
 import tokenService from "./tokenService";
+import { handleAuthError } from "../utils/errorHandler";
 
 /**
  * Service for handling authentication related API calls
@@ -19,20 +20,18 @@ const AuthService = {
     rememberMe: boolean = false
   ): Promise<LoginResponse> => {
     try {
-      const response = await ApiService.post<LoginResponse>("/auth/login", {
+      const response = await ApiService.post<LoginResponse>("/login", {
         email,
         password,
         remember: rememberMe,
       });
-
       // Store the token
       if (response && response.token) {
         tokenService.setToken(response.token, rememberMe);
       }
-
-      return response;
+      return response as LoginResponse;
     } catch (error) {
-      console.error("Login error:", error);
+      handleAuthError(error);
       throw error;
     }
   },
@@ -42,13 +41,12 @@ const AuthService = {
    */
   logout: async (): Promise<void> => {
     try {
-      await ApiService.post("/auth/logout");
+      await ApiService.post("/logout");
       // Clear the token regardless of API response
       tokenService.clearToken();
     } catch (error) {
-      console.error("Logout error:", error);
-      // Still clear the token even if the API call fails
       tokenService.clearToken();
+      handleAuthError(error);
       throw error;
     }
   },
@@ -58,19 +56,18 @@ const AuthService = {
    */
   signup: async (data: SignupData): Promise<LoginResponse> => {
     try {
-      const response = await ApiService.post<LoginResponse>(
-        "/auth/register",
-        data
-      );
+      // Fixed endpoint to ensure it's properly formatted
+      const response = await ApiService.post<LoginResponse>("/register", data);
 
       // Store the token if available
       if (response && response.token) {
         tokenService.setToken(response.token, false);
       }
 
-      return response;
+      return response as LoginResponse;
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("Registration error:", error);
+      handleAuthError(error);
       throw error;
     }
   },
@@ -80,9 +77,10 @@ const AuthService = {
    */
   getCurrentUser: async (): Promise<User> => {
     try {
-      return await ApiService.get<User>("/auth/user");
+      const response = await ApiService.get<User>("/user");
+      return response.data as User;
     } catch (error) {
-      console.error("Get current user error:", error);
+      handleAuthError(error);
       throw error;
     }
   },
@@ -98,7 +96,7 @@ const AuthService = {
       }
 
       // Then verify with the server
-      await ApiService.get("/auth/check");
+      await ApiService.get("/check-auth");
       return true;
     } catch (error) {
       return false;
@@ -110,12 +108,14 @@ const AuthService = {
    */
   requestPasswordReset: async (email: string): Promise<{ message: string }> => {
     try {
-      return await ApiService.post<{ message: string }>(
-        "/auth/forgot-password",
-        { email }
+      const data = { email };
+      const response = await ApiService.post<{ message: string }>(
+        "/password/reset-request",
+        data
       );
+      return { message: response.message || "Password reset email sent" };
     } catch (error) {
-      console.error("Request password reset error:", error);
+      handleAuthError(error);
       throw error;
     }
   },
@@ -127,12 +127,13 @@ const AuthService = {
     data: PasswordResetRequestData
   ): Promise<{ message: string }> => {
     try {
-      return await ApiService.post<{ message: string }>(
-        "/auth/reset-password",
+      const response = await ApiService.post<{ message: string }>(
+        "/password/reset",
         data
       );
+      return { message: response.message || "Password reset successful" };
     } catch (error) {
-      console.error("Reset password error:", error);
+      handleAuthError(error);
       throw error;
     }
   },
@@ -142,11 +143,15 @@ const AuthService = {
    */
   verifyEmail: async (token: string): Promise<{ message: string }> => {
     try {
-      return await ApiService.post<{ message: string }>("/auth/verify-email", {
-        token,
-      });
+      const response = await ApiService.post<{ message: string }>(
+        "/verify-email",
+        {
+          token,
+        }
+      );
+      return { message: response.message || "Email verified successfully" };
     } catch (error) {
-      console.error("Verify email error:", error);
+      handleAuthError(error);
       throw error;
     }
   },

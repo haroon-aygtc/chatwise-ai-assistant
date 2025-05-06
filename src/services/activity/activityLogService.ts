@@ -18,6 +18,7 @@ export interface ActivityLog {
 }
 
 export interface ActivityLogResponse {
+  meta: any;
   data: ActivityLog[];
   current_page: number;
   last_page: number;

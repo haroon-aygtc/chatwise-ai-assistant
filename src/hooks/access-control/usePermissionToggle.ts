@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { PermissionCategory } from "@/types";
+import { PermissionCategory } from "@/types/domain";
 
 export const usePermissionToggle = (
   permissionCategories: PermissionCategory[],

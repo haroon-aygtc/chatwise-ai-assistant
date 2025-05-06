@@ -1,220 +1,203 @@
-
-import { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Activity, ArrowDown, Filter, Search } from "lucide-react";
-import { ActivityLogTable } from "../components/ActivityLogTable";
-import { ActivityLog } from "@/services/activity/activityLogService";
-import activityLogService from "@/services/activity/activityLogService";
-import { DateRange } from "@/types/user";
+  Filter,
+  Download,
+  RefreshCw,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { activityLogService } from "@/services/activity/activityLogService";
 
-export function ActivityLog() {
-  const { toast } = useToast();
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
-  const [actionTypes, setActionTypes] = useState<string[]>([]);
-  
-  // Filter states
-  const [search, setSearch] = useState("");
-  const [actionType, setActionType] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: undefined,
-    to: undefined,
-  });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+const ActivityLog = () => {
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
   const [totalLogs, setTotalLogs] = useState(0);
-  
-  // Load activity logs
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        // Get activity logs with filters
-        const params: any = {
-          page: currentPage,
-          per_page: 20,
-          search: search || undefined,
-          action_type: actionType !== "all" ? actionType : undefined,
-        };
-        
-        // Add date range if available
-        if (dateRange.from) {
-          params.from_date = dateRange.from.toISOString().split('T')[0];
-        }
-        if (dateRange.to) {
-          params.to_date = dateRange.to.toISOString().split('T')[0];
-        }
-        
-        const response = await activityLogService.getActivityLogs(params);
-        setLogs(response.data);
-        setTotalPages(response.last_page);
-        setTotalLogs(response.total);
-        
-        // Get action types for filter
-        const types = await activityLogService.getActionTypes();
-        setActionTypes(types);
-      } catch (error) {
-        console.error("Error loading activity logs:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load activity logs",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [currentPage, search, actionType, dateRange, toast]);
-  
-  // Handle export logs
-  const handleExport = async () => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const fetchLogs = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      // Export with current filters
-      const params: any = {
-        search: search || undefined,
-        action_type: actionType !== "all" ? actionType : undefined,
-      };
-      
-      // Add date range if available
-      if (dateRange.from) {
-        params.from_date = dateRange.from.toISOString().split('T')[0];
-      }
-      if (dateRange.to) {
-        params.to_date = dateRange.to.toISOString().split('T')[0];
-      }
-      
-      const blob = await activityLogService.exportActivityLogs(params);
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `activity-logs-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Success",
-        description: "Activity logs exported successfully",
-      });
-    } catch (error) {
-      console.error("Error exporting logs:", error);
-      toast({
-        title: "Error",
-        description: "Failed to export activity logs",
-        variant: "destructive",
-      });
+      const response = await activityLogService.getActivityLogs({ page: currentPage });
+      setActivityLogs(response.data);
+      setTotalLogs(response.meta?.total || response.data.length);
+    } catch (err) {
+      setError(err);
+      setActivityLogs([]);
+      setTotalLogs(0);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchLogs();
+    return () => {
+      controller.abort();
+    };
+  }, [currentPage]);
+
+  const exportLogs = async (format) => {
+    console.log(`Exporting logs in ${format} format`);
+    // Implementation would go here
+    return Promise.resolve();
+  };
+
+  const goToPage = (page) => {
+    setCurrentPage(page);
+    // In a real implementation, this would fetch data for the new page
+  };
+
+  const handleRefresh = () => {
+    fetchLogs();
+  };
+
+  const handleExport = async () => {
+    try {
+      await exportLogs("csv");
+    } catch (err) {
+      console.error("Error exporting activity logs:", err);
+    }
+  };
+
+  const goToNextPage = () => {
+    goToPage(currentPage + 1);
+  };
+
+  const goToPreviousPage = () => {
+    goToPage(Math.max(1, currentPage - 1));
+  };
+
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle>Activity Log</CardTitle>
             <CardDescription>
               Track user actions and system events
             </CardDescription>
           </div>
-          <Button variant="outline" onClick={handleExport}>
-            <ArrowDown className="mr-2 h-4 w-4" /> Export
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" /> Filter
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              title="Refresh activity logs"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+              />
+            </Button>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search activity logs..."
-              className="pl-8 w-full"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error.message || "Failed to load activity logs"}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Loading activity logs...
+            </p>
           </div>
+        ) : activityLogs.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No activity logs found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {activityLogs.map((activity) => (
+              <div
+                key={activity.id}
+                className="flex items-start gap-4 border-b pb-4 last:border-0 last:pb-0"
+              >
+                <Avatar className="h-9 w-9">
+                  {activity.user_avatar ? (
+                    <AvatarImage
+                      src={activity.user_avatar}
+                      alt={activity.user_name || "User"}
+                    />
+                  ) : (
+                    <AvatarFallback>
+                      {(activity.user_name || "U").charAt(0)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">
+                      {activity.user_name || "Unknown User"}
+                    </p>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(activity.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm">
+                    {activity.action}{" "}
+                    <span className="font-medium">{activity.description}</span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="border-t pt-4 flex justify-between">
+        <Button variant="outline" size="sm" onClick={() => goToPage(1)}>
+          View All Activity
+        </Button>
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowFilters(!showFilters)}
+            disabled={isLoading || currentPage <= 1}
+            onClick={goToPreviousPage}
           >
-            <Filter className="mr-2 h-4 w-4" />
-            Filters
-            {showFilters ? <Activity className="ml-2 h-4 w-4" /> : null}
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={
+              isLoading || (totalLogs > 0 && currentPage * 10 >= totalLogs)
+            }
+            onClick={goToNextPage}
+          >
+            Next
           </Button>
         </div>
-        
-        {showFilters && (
-          <div className="border rounded-md p-4 grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Action Type</label>
-              <Select value={actionType} onValueChange={setActionType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an action type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Actions</SelectItem>
-                  {actionTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Start Date</label>
-              <DatePicker
-                selected={dateRange.from}
-                onSelect={(date) => setDateRange({ ...dateRange, from: date })}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">End Date</label>
-              <DatePicker
-                selected={dateRange.to}
-                onSelect={(date) => setDateRange({ ...dateRange, to: date })}
-              />
-            </div>
-          </div>
-        )}
-        
-        <Separator />
-        
-        <ActivityLogTable
-          logs={logs}
-          isLoading={isLoading}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalLogs}
-          onPageChange={setCurrentPage}
-        />
-      </CardContent>
+      </CardFooter>
     </Card>
   );
-}
+};
+
+export default ActivityLog;

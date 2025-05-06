@@ -1,3 +1,12 @@
+import {
+  Permission,
+  PermissionCategory,
+  Role,
+  NewRole,
+  EditedRole,
+  DateRange,
+} from "./domain";
+
 export interface AIModel {
   id: string;
   name: string;
@@ -80,10 +89,7 @@ export interface DocumentCategory {
   id: string;
   name: string;
   description?: string;
-  parentId?: string;
-  documentCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
+  documentCount: number;
 }
 
 export interface KnowledgeDocument {
@@ -98,44 +104,6 @@ export interface KnowledgeDocument {
   uploadedAt: string;
   lastUpdated: string;
   status: string;
-}
-
-export interface PermissionCategory {
-  id: string;
-  name: string;
-  description?: string;
-  permissions: Permission[];
-}
-
-export interface Permission {
-  id: string;
-  name: string;
-  displayName: string;
-  description?: string;
-  categoryId?: string;
-}
-
-export interface Role {
-  id: string;
-  name: string;
-  description?: string;
-  permissions: string[];
-  userCount?: number;
-  isSystem?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface NewRole {
-  name: string;
-  description?: string;
-  permissions: string[];
-}
-
-export interface EditedRole {
-  name?: string;
-  description?: string;
-  permissions?: string[];
 }
 
 export interface ResponseFormat {
@@ -154,9 +122,4 @@ export interface ResponseFormat {
     includeLinks: boolean;
     formatCodeBlocks: boolean;
   };
-}
-
-export interface DateRange {
-  from: Date | undefined;
-  to: Date | undefined;
 }

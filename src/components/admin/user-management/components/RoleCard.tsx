@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Role } from "@/types";
+import { PERMISSION_CATEGORIES, hasPermissionInCategory } from "@/constants/permissions";
 
 interface RoleCardProps {
   role: Role;
@@ -27,80 +28,6 @@ const RoleCard = ({
   canEdit = true,
   canDelete = true,
 }: RoleCardProps) => {
-  // Define the permission categories to display
-  const permissionCategories = [
-    "User Management",
-    "AI Configuration",
-    "Widget Builder",
-    "Knowledge Base",
-    "System Settings",
-  ];
-
-  // Helper function to check if role has any permission in a category
-  const hasPermissionInCategory = (category: string): boolean => {
-    if (!role.permissions) return false;
-
-    switch (category) {
-      case "User Management":
-        return (
-          role.permissions?.some((p) =>
-            [
-              "create_users",
-              "edit_users",
-              "delete_users",
-              "assign_roles",
-            ].includes(p),
-          ) || false
-        );
-      case "AI Configuration":
-        return (
-          role.permissions?.some((p) =>
-            [
-              "manage_models",
-              "edit_prompts",
-              "test_ai",
-              "view_ai_logs",
-            ].includes(p),
-          ) || false
-        );
-      case "Widget Builder":
-        return (
-          role.permissions?.some((p) =>
-            [
-              "create_widgets",
-              "edit_widgets",
-              "publish_widgets",
-              "delete_widgets",
-            ].includes(p),
-          ) || false
-        );
-      case "Knowledge Base":
-        return (
-          role.permissions?.some((p) =>
-            [
-              "create_kb_articles",
-              "edit_kb_articles",
-              "delete_kb_articles",
-              "manage_kb_categories",
-            ].includes(p),
-          ) || false
-        );
-      case "System Settings":
-        return (
-          role.permissions?.some((p) =>
-            [
-              "manage_api_keys",
-              "billing_subscription",
-              "system_backup",
-              "view_audit_logs",
-            ].includes(p),
-          ) || false
-        );
-      default:
-        return false;
-    }
-  };
-
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -112,10 +39,10 @@ const RoleCard = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          {permissionCategories.map((category) => (
+          {PERMISSION_CATEGORIES.map((category) => (
             <div key={category} className="flex items-center justify-between">
               <Label>{category}</Label>
-              {hasPermissionInCategory(category) ? (
+              {hasPermissionInCategory(role.permissions as string[], category) ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               ) : (
                 <XCircle className="h-4 w-4 text-gray-500" />

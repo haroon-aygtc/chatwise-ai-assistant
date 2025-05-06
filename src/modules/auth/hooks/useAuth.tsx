@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types/user';
+import { Role } from '@/types';
 import AuthService from '../services/authService';
 import tokenService from '../services/tokenService';
 import { SignupData } from '../types';
@@ -168,25 +168,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (Array.isArray(role)) {
       return role.some(r => {
-        // Handle both string roles and role objects
-        if (typeof user.roles[0] === 'string') {
-          return user.roles.includes(r);
-        } else {
-          return user.roles.some(userRole =>
-            typeof userRole === 'object' && 'name' in userRole && userRole.name === r
-          );
-        }
+        const roleNames = (user.roles as Role[]).map(role => role.name);
+        return roleNames.includes(r);
       });
     }
 
-    // Handle both string roles and role objects
-    if (typeof user.roles[0] === 'string') {
-      return user.roles.includes(role);
-    } else {
-      return user.roles.some(userRole =>
-        typeof userRole === 'object' && 'name' in userRole && userRole.name === role
-      );
-    }
+    const roleNames = (user.roles as Role[]).map(r => r.name);
+    return roleNames.includes(role);
   };
 
   // Check if user has a specific permission

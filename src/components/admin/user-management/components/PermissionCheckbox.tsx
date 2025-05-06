@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Permission } from "../../../../types";
-import { handlePermissionChange } from "../../../../utils/helpers";
+import { Permission } from "@/types";
+import { handlePermissionChange } from "@/utils/helpers";
 
 interface PermissionCheckboxProps {
   permission: Permission;
