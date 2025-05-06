@@ -17,8 +17,9 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
-  withCredentials: true, // For cookie-based authentication
+  withCredentials: true, // Essential for cross-domain cookie handling
 });
 
 // Add request interceptor to handle auth tokens
@@ -41,6 +42,36 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle common errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response) {
+      // Handle 401 Unauthorized errors
+      if (error.response.status === 401) {
+        localStorage.removeItem("auth_token");
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login?session=expired";
+        }
+      }
+      
+      // Handle CSRF token mismatches (419 errors)
+      else if (error.response.status === 419) {
+        try {
+          await axios.get(`${API_BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
+            withCredentials: true
+          });
+          // Retry the original request
+          return apiClient(error.config);
+        } catch (refreshError) {
+          console.error("Failed to refresh CSRF token", refreshError);
+        }
+      }
+    }
     return Promise.reject(error);
   }
 );
