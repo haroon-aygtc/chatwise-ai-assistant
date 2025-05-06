@@ -58,7 +58,7 @@ const ApiService = {
   async get<T>(url: string, params?: ApiRequestParams | AxiosRequestConfig): Promise<T> {
     // Handle both ApiRequestParams and AxiosRequestConfig
     const config: AxiosRequestConfig = !params ? {} : 
-      'params' in params ? params : { params };
+      (params && 'headers' in params) ? params as AxiosRequestConfig : { params };
     
     const response = await apiClient.get<ApiResponse<T> | T>(url, config);
     return extractData(response);

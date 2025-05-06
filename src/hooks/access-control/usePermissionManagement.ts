@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { PermissionCategory } from "@/types";
 import permissionService from "@/services/permission/permissionService";
@@ -23,8 +24,8 @@ export function usePermissionManagement() {
 
     try {
       const response = await permissionService.getPermissionsByCategory();
-      setPermissionCategories(response.data);
-      return response.data;
+      setPermissionCategories(response);
+      return response;
     } catch (error) {
       console.error("Failed to fetch permissions:", error);
       const err =
