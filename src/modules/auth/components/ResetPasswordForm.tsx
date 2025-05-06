@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-import AuthService from "../services/authService";
+import AuthService from "@/services/auth/authService";
 import AuthLayout from "./AuthLayout";
 
 // Schema for requesting password reset
