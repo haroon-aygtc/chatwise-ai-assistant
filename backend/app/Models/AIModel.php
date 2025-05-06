@@ -5,7 +5,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AIModel extends Model
 {
@@ -19,6 +19,7 @@ class AIModel extends Model
     protected $fillable = [
         'name',
         'provider',
+        'provider_id',
         'modelId',
         'apiKey',
         'baseUrl',
@@ -54,10 +55,10 @@ class AIModel extends Model
     ];
 
     /**
-     * Get the widgets that use this AI model
+     * Get the model provider that owns this model.
      */
-    public function widgets(): HasMany
+    public function provider(): BelongsTo
     {
-        return $this->hasMany(Widget::class, 'ai_model_id');
+        return $this->belongsTo(ModelProvider::class, 'provider_id');
     }
 }

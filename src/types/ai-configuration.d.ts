@@ -1,10 +1,14 @@
 
+/**
+ * Types for AI Configuration System
+ */
+
 export interface AIModel {
   id: string;
   name: string;
   provider: string;
   modelId: string;
-  apiKey: string;
+  apiKey?: string;
   baseUrl?: string;
   isActive: boolean;
   isDefault: boolean;
@@ -25,8 +29,8 @@ export interface PromptTemplate {
   name: string;
   description?: string;
   template: string;
-  category: string;
   variables: string[];
+  category: string;
   isActive: boolean;
   isDefault: boolean;
   usageCount: number;
@@ -38,6 +42,7 @@ export interface PromptTemplateCategory {
   id: string;
   name: string;
   description?: string;
+  templates?: PromptTemplate[];
 }
 
 export interface RoutingRule {
@@ -66,6 +71,24 @@ export interface ResponseFormat {
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
+  length?: string;
+  format?: string;
+  tone?: string;
+  options?: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
+}
+
+export interface CreateResponseFormatRequest {
+  name: string;
+  description?: string;
+  content: string;
+  systemInstructions?: string;
+  parameters?: Record<string, any>;
+  isDefault?: boolean;
 }
 
 export interface KnowledgeBaseSource {
@@ -82,4 +105,27 @@ export interface SystemPrompt {
   id: string;
   content: string;
   updatedAt: string;
+}
+
+export interface ModelProvider {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  apiKeyName: string;
+  apiKeyRequired: boolean;
+  baseUrlRequired: boolean;
+  baseUrlName?: string;
+  isActive: boolean;
+  logoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  models?: AIModel[];
+}
+
+export interface ModelCapability {
+  id: string;
+  name: string;
+  description: string;
+  models?: AIModel[];
 }
