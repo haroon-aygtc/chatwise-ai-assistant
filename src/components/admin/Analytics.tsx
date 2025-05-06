@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { CalendarDateRangePicker } from "@/components/date-range-picker";
 import { Overview } from "@/components/dashboard/overview";
 import { RecentSales } from "@/components/dashboard/recent-sales";
 import { FileDownIcon, RefreshCw } from 'lucide-react';
-import { AnalyticsService } from '@/services/analytics/analyticsService';
+import { toast } from 'sonner';
+import * as analyticsService from '@/services/analytics/analyticsService';
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState({
@@ -22,19 +23,23 @@ const Analytics = () => {
     refetch,
   } = useQuery({
     queryKey: ['analytics', dateRange],
-    queryFn: () => AnalyticsService.getAnalytics({
-      startDate: dateRange.from.toISOString(),
-      endDate: dateRange.to.toISOString(),
-    })
+    queryFn: () => analyticsService.getAnalyticsOverview(
+      dateRange.from.toISOString(),
+      dateRange.to.toISOString()
+    )
   });
 
   const { mutateAsync: exportData, isPending: isExporting } = useMutation({
     mutationFn: (format: 'csv' | 'json' | 'excel' = 'csv') => 
-      AnalyticsService.exportAnalyticsData(format),
+      analyticsService.exportAnalyticsData(
+        dateRange.from.toISOString(),
+        dateRange.to.toISOString(),
+        format
+      ),
     onSuccess: () => {
       toast.success("Analytics data exported successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Export failed: ${error.message}`);
     }
   });
@@ -71,14 +76,11 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoading ? "Loading..." : analyticsData?.overview.totalConversations.toLocaleString()}
+                {isLoading ? "Loading..." : analyticsData?.totalSessions?.toLocaleString() || "0"}
               </div>
               <p className="text-xs text-muted-foreground">
                 {isLoading ? "" : 
-                  analyticsData?.overview.conversationTrend > 0 
-                    ? `+${analyticsData.overview.conversationTrend}% from previous period` 
-                    : `${analyticsData.overview.conversationTrend}% from previous period`
-                }
+                  analyticsData?.averageSessionTime ? `${analyticsData.averageSessionTime.toFixed(1)} min avg. session time` : "No data available"}
               </p>
             </CardContent>
           </Card>
@@ -102,14 +104,11 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoading ? "Loading..." : analyticsData?.overview.activeUsers.toLocaleString()}
+                {isLoading ? "Loading..." : analyticsData?.activeUsers?.toLocaleString() || "0"}
               </div>
               <p className="text-xs text-muted-foreground">
                 {isLoading ? "" : 
-                  analyticsData?.overview.userTrend > 0 
-                    ? `+${analyticsData.overview.userTrend}% from previous period` 
-                    : `${analyticsData.overview.userTrend}% from previous period`
-                }
+                  analyticsData?.totalUsers ? `${analyticsData.totalUsers.toLocaleString()} total registered users` : "No users data"}
               </p>
             </CardContent>
           </Card>
@@ -134,21 +133,20 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoading ? "Loading..." : `${analyticsData?.performanceMetrics.avgResponseTime.toFixed(2)}s`}
+                {isLoading ? "Loading..." : 
+                  analyticsData?.averageResponseTime !== undefined ? 
+                  `${analyticsData.averageResponseTime.toFixed(2)}s` : "N/A"}
               </div>
               <p className="text-xs text-muted-foreground">
                 {isLoading ? "" : 
-                  analyticsData?.performanceMetrics.responseTimeTrend < 0 
-                    ? `${analyticsData.performanceMetrics.responseTimeTrend}% faster than previous period` 
-                    : `+${analyticsData.performanceMetrics.responseTimeTrend}% slower than previous period`
-                }
+                  "Response time for AI-generated replies"}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Token Usage
+                User Satisfaction
               </CardTitle>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -166,19 +164,12 @@ const Analytics = () => {
             <CardContent>
               <div className="text-2xl font-bold">
                 {isLoading ? "Loading..." : 
-                  analyticsData?.usageMetrics.totalTokens > 1000000 
-                    ? `${(analyticsData.usageMetrics.totalTokens / 1000000).toFixed(2)}M` 
-                    : analyticsData?.usageMetrics.totalTokens > 1000 
-                      ? `${(analyticsData.usageMetrics.totalTokens / 1000).toFixed(2)}K` 
-                      : analyticsData?.usageMetrics.totalTokens.toLocaleString()
-                }
+                  analyticsData?.satisfactionRate !== undefined ? 
+                  `${(analyticsData.satisfactionRate * 100).toFixed(0)}%` : "N/A"}
               </div>
               <p className="text-xs text-muted-foreground">
                 {isLoading ? "" : 
-                  analyticsData?.usageMetrics.tokenTrend > 0 
-                    ? `+${analyticsData.usageMetrics.tokenTrend}% from previous period` 
-                    : `${analyticsData.usageMetrics.tokenTrend}% from previous period`
-                }
+                  "User satisfaction rate"}
               </p>
             </CardContent>
           </Card>
@@ -193,7 +184,7 @@ const Analytics = () => {
             </CardHeader>
             <CardContent className="pl-2">
               <Overview 
-                data={analyticsData?.chatMetrics.dailyChats || []} 
+                data={analyticsData?.dailyActiveUsers || []} 
                 isLoading={isLoading} 
               />
             </CardContent>
@@ -207,7 +198,7 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <RecentSales 
-                data={analyticsData?.recentSessions || []} 
+                data={analyticsData?.feedback?.feedback || []} 
                 isLoading={isLoading} 
               />
             </CardContent>
