@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { dataSourceService } from '@/services/ai-configuration';
+import * as dataSourceService from '@/services/ai-configuration/dataSourceService';
 import { DataSourceSettings } from '@/services/ai-configuration/dataSourceService';
 
 export function useDataSourceSettings() {

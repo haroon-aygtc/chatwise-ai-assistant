@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { dataSourceService } from '@/services/ai-configuration';
 import { DataSource } from '@/services/ai-configuration/dataSourceService';
+import * as dataSourceService from '@/services/ai-configuration/dataSourceService';
 
 export function useDataSources() {
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
