@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -85,7 +84,7 @@ export function LoginForm() {
       id: "mock-user-1",
       name: "Mock User",
       email: "user@example.com",
-      status: "active",
+      status: "active" as "active" | "inactive" | "pending", // Explicitly type as one of the allowed values
       avatar_url: null,
       last_active: new Date().toISOString(),
       roles: [{ 
