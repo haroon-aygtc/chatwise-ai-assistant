@@ -75,6 +75,20 @@ export function LoginForm() {
     }
   }
 
+  // Mock login function to bypass API
+  const handleMockLogin = () => {
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      toast({
+        title: "Mock Login Successful!",
+        description: "Bypassing API for development purposes.",
+      });
+      navigate('/dashboard');
+      setIsLoading(false);
+    }, 1000);
+  }
+
   return (
     <div className="space-y-6">
       <Form {...form}>
@@ -153,13 +167,25 @@ export function LoginForm() {
             )}
           />
           
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Signing in..." : "Sign in"}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full"
+              onClick={handleMockLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? "Please wait..." : "Mock Login (Development Only)"}
+            </Button>
+          </div>
         </form>
       </Form>
       
