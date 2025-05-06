@@ -25,5 +25,8 @@ export type {
   ResponseFormat,
 } from "./ai-configuration";
 
+// Re-export knowledge base types
+export * from './knowledge-base';
+
 // We don't need to re-export anything from user.ts as the User interface
 // is already defined in domain.ts and there are no other unique types.
