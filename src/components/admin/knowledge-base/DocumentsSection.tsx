@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentList } from "./DocumentList";
 import { DocumentDetail } from "./DocumentDetail";
-import { DocumentCategory, KnowledgeDocument } from "@/types/knowledge-base";
+import { DocumentCategory as KnowledgeBaseDocumentCategory, KnowledgeDocument } from "@/types/knowledge-base";
 
 interface DocumentsSectionProps {
   documents: KnowledgeDocument[];
-  categories: DocumentCategory[];
+  categories: KnowledgeBaseDocumentCategory[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedDocumentId: string | null;

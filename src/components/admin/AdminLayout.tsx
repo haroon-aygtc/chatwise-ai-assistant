@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/ModeToggle";
 import AdminNotFound from "./AdminNotFound";

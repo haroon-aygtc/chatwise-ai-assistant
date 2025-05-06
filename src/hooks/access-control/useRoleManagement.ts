@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Role, PermissionCategory } from "@/types";
+import { Role, PermissionCategory } from "@/types/domain";
 import RoleService from "@/services/role/roleService";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -14,14 +13,16 @@ export function useRoleManagement() {
   const fetchRoles = async () => {
     setIsLoadingRoles(true);
     setRolesError(null);
-    
+
     try {
-      const rolesData = await RoleService.getRoles();
-      setRoles(rolesData);
-      return rolesData;
+      const response = await RoleService.getRoles();
+      setRoles(response.data);
+      return response.data;
     } catch (error) {
       console.error("Failed to fetch roles:", error);
-      setRolesError(error instanceof Error ? error : new Error("Failed to fetch roles"));
+      setRolesError(
+        error instanceof Error ? error : new Error("Failed to fetch roles")
+      );
       return [];
     } finally {
       setIsLoadingRoles(false);
@@ -29,21 +30,25 @@ export function useRoleManagement() {
   };
 
   // Create a new role
-  const createRole = async (name: string, description: string, permissions: string[]) => {
+  const createRole = async (
+    name: string,
+    description: string,
+    permissions: string[]
+  ) => {
     try {
       const response = await RoleService.createRole({
         name,
         description,
-        permissions
+        permissions,
       });
-      
+
       toast({
         title: "Role created",
         description: `Role "${name}" has been created successfully.`,
       });
-      
+
       await fetchRoles();
-      return response.role;
+      return response.data.role;
     } catch (error) {
       console.error("Failed to create role:", error);
       toast({
@@ -56,16 +61,21 @@ export function useRoleManagement() {
   };
 
   // Update a role
-  const updateRole = async (id: string, name: string, description: string, permissions: string[]) => {
+  const updateRole = async (
+    id: string,
+    name: string,
+    description: string,
+    permissions: string[]
+  ) => {
     try {
       await RoleService.updateRole(id, { name, description });
       await RoleService.updateRolePermissions(id, permissions);
-      
+
       toast({
         title: "Role updated",
         description: `Role "${name}" has been updated successfully.`,
       });
-      
+
       await fetchRoles();
     } catch (error) {
       console.error("Failed to update role:", error);
@@ -82,12 +92,12 @@ export function useRoleManagement() {
   const deleteRole = async (id: string) => {
     try {
       await RoleService.deleteRole(id);
-      
+
       toast({
         title: "Role deleted",
         description: "The role has been deleted successfully.",
       });
-      
+
       await fetchRoles();
     } catch (error) {
       console.error("Failed to delete role:", error);
@@ -101,22 +111,25 @@ export function useRoleManagement() {
   };
 
   // Update role permissions
-  const updateRolePermissions = async (roleId: string, permissions: string[]) => {
+  const updateRolePermissions = async (
+    roleId: string,
+    permissions: string[]
+  ) => {
     try {
       await RoleService.updateRolePermissions(roleId, permissions);
-      
+
       // Update local state
-      setRoles(prevRoles => prevRoles.map(role => 
-        role.id === roleId 
-          ? { ...role, permissions: permissions } 
-          : role
-      ));
-      
+      setRoles((prevRoles) =>
+        prevRoles.map((role) =>
+          role.id === roleId ? { ...role, permissions: permissions } : role
+        )
+      );
+
       toast({
         title: "Permissions updated",
         description: "Role permissions have been saved successfully.",
       });
-      
+
       return true;
     } catch (error) {
       console.error("Failed to update permissions:", error);

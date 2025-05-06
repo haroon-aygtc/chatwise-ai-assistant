@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,18 +16,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Permission } from "@/types/user";
+import { Permission } from "@/types";
+import { title } from "process";
 
 export interface PermissionGroupProps {
-  title: string;
+  categoryId: string;
+  categoryName: string;
   permissions: Permission[];
+  selectedPermissions: string[];
+  onChange: (selectedPermissions: string[]) => void;
   searchQuery?: string;
 }
 
 export function PermissionGroup({
-  title,
+  categoryName,
   permissions,
   searchQuery = "",
+  selectedPermissions,
+  onChange,
+  categoryId,
 }: PermissionGroupProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [localSearchQuery, setLocalSearchQuery] = useState("");
@@ -61,7 +67,7 @@ export function PermissionGroup({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-2">
-            <h3 className="text-lg font-semibold">{formatTitle(title)}</h3>
+            <h3 className="text-lg font-semibold">{formatTitle(categoryName)}</h3>
             <Badge variant="outline">
               {effectiveSearchQuery ? `${filteredCount}/${totalCount}` : totalCount}
             </Badge>

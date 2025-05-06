@@ -1,3 +1,5 @@
+import { useToast } from "@/components/ui/use-toast";
+import { Role } from '@/types/domain';
 
 /**
  * Helper function for handling permission changes in UI components
@@ -83,4 +85,33 @@ export const getRoleBadgeVariant = (role: string): "default" | "secondary" | "ou
     default:
       return "outline";
   }
+};
+
+/**
+ * Generic error handler for API operations
+ */
+export const handleApiError = (error: any, setError: (error: string | null) => void, toast: any, message: string): boolean => {
+  setError(error.message || message);
+  toast({
+    title: "Error",
+    description: error.message || message,
+    variant: "destructive",
+  });
+  return false;
+};
+
+/**
+ * Update role state in array
+ */
+export const updateRoleState = (roles: Role[], updatedRole: Role): Role[] => {
+  return roles.map(role => role.id === updatedRole.id ? updatedRole : role);
+};
+
+/**
+ * Toggle loading state
+ */
+export const toggleLoadingState = (setState: (state: boolean) => void) => {
+  return (isLoading: boolean) => {
+    setState(isLoading);
+  };
 };

@@ -1,9 +1,8 @@
-
-import { Role } from "@/types";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Role } from '@/types/domain';
+  import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import RoleCard from "./RolesCard";
+import RoleCard from "./RoleCard";
 import { CardContent, CardFooter } from "@/components/ui/card";
 
 interface RolesListProps {

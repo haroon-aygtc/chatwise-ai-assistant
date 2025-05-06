@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Permission } from "@/types/user";
+import { Permission } from "@/types/domain";
 
 export interface CategoryPermissionsGroupProps {
   category: string;
@@ -28,18 +28,24 @@ export function CategoryPermissionsGroup({
   onTogglePermission,
   disabled = false,
 }: CategoryPermissionsGroupProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Calculate if all permissions in this category are selected
   const allSelected = permissions.every((permission) =>
     selectedPermissions.includes(permission.id)
   );
-  
-  // Calculate if some (but not all) permissions in this category are selected
-  const someSelected =
-    !allSelected &&
-    permissions.some((permission) => selectedPermissions.includes(permission.id));
+
+  // Calculate if some permissions in this category are selected
+  const someSelected = permissions.some((permission) =>
+    selectedPermissions.includes(permission.id)
+  );
+
+  const [isIndeterminate, setIsIndeterminate] = useState(false);
+
+  useEffect(() => {
+    setIsIndeterminate(someSelected && !allSelected);
+  }, [someSelected, allSelected]);
 
   // Filter permissions based on search query
   const filteredPermissions = permissions.filter((permission) =>
@@ -67,8 +73,10 @@ export function CategoryPermissionsGroup({
           <Checkbox
             id={`category-${category}`}
             checked={allSelected}
-            indeterminate={someSelected}
-            onCheckedChange={toggleAll}
+            onCheckedChange={(checked: boolean) => {
+              setIsIndeterminate(false);
+              toggleAll(checked);
+            }}
             disabled={disabled}
             aria-label={`Select all ${category} permissions`}
           />

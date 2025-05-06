@@ -15,6 +15,7 @@ interface DecodedToken {
 
 class TokenService {
   private csrfToken: string | null = null;
+  private storageType: 'localStorage' | 'sessionStorage' = 'sessionStorage';
 
   /**
    * Store the authentication token
@@ -22,26 +23,17 @@ class TokenService {
    * @param rememberMe Optional flag to indicate if the token should be stored for longer
    */
   setToken(token: string, rememberMe: boolean = false): void {
+    this.storageType = rememberMe ? 'localStorage' : 'sessionStorage';
     if (rememberMe) {
       // Store in localStorage for persistence across browser sessions
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(`${TOKEN_KEY}_created`, Date.now().toString());
       localStorage.setItem(`${TOKEN_KEY}_remember`, "true");
-
-      // Clear any sessionStorage tokens to avoid confusion
-      sessionStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(`${TOKEN_KEY}_created`);
-      sessionStorage.removeItem(`${TOKEN_KEY}_remember`);
     } else {
       // Store in sessionStorage for session-only persistence
       sessionStorage.setItem(TOKEN_KEY, token);
       sessionStorage.setItem(`${TOKEN_KEY}_created`, Date.now().toString());
       sessionStorage.setItem(`${TOKEN_KEY}_remember`, "false");
-
-      // Clear any localStorage tokens to avoid confusion
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(`${TOKEN_KEY}_created`);
-      localStorage.removeItem(`${TOKEN_KEY}_remember`);
     }
 
     // Log token expiration if available
@@ -56,40 +48,33 @@ class TokenService {
    * Get the stored authentication token
    */
   getToken(): string | null {
-    // Check localStorage first (for remembered sessions)
-    let token = localStorage.getItem(TOKEN_KEY);
-    let sessionToken = sessionStorage.getItem(TOKEN_KEY);
-
-    // If we have both tokens (which shouldn't happen but just in case),
-    // use the one that was created most recently
-    if (token && sessionToken) {
-      const localCreated = localStorage.getItem(`${TOKEN_KEY}_created`);
-      const sessionCreated = sessionStorage.getItem(`${TOKEN_KEY}_created`);
-
-      if (localCreated && sessionCreated) {
-        // Use the most recently created token
-        return parseInt(localCreated) > parseInt(sessionCreated)
-          ? token
-          : sessionToken;
-      }
+    // Get token from the appropriate storage
+    const storage = this.getTokenStorage();
+    if (storage === 'localStorage') {
+      return localStorage.getItem(TOKEN_KEY) || null;
     }
-
-    // If only one exists, return it
-    return token || sessionToken || null;
+    return sessionStorage.getItem(TOKEN_KEY) || null;
   }
 
   /**
    * Clear the stored authentication token and related data
    */
-  clearToken(): void {
-    // Clear from both storage types to ensure complete logout
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(`${TOKEN_KEY}_created`);
-    localStorage.removeItem(`${TOKEN_KEY}_remember`);
+  private getTokenStorage(): 'localStorage' | 'sessionStorage' {
+    return this.storageType;
+  }
 
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(`${TOKEN_KEY}_created`);
-    sessionStorage.removeItem(`${TOKEN_KEY}_remember`);
+  clearToken(): void {
+    // Clear token storage based on where it was stored
+    const storage = this.getTokenStorage();
+    if (storage === 'localStorage') {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(`${TOKEN_KEY}_created`);
+      localStorage.removeItem(`${TOKEN_KEY}_remember`);
+    } else {
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(`${TOKEN_KEY}_created`);
+      sessionStorage.removeItem(`${TOKEN_KEY}_remember`);
+    }
   }
 
   /**

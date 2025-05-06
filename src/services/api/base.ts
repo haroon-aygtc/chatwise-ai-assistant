@@ -1,14 +1,28 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import tokenService from "@/modules/auth/services/tokenService";
+import { API_BASE_URL } from "./config";
+
+// Generic API response type
+export type ApiResponse<T> = {
+  data: T;
+  message?: string;
+  token?: string;
+  user?: any;
+};
+
+// Generic API error type
+export type ApiError = {
+  message: string;
+};
 
 // Create a custom Axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  withCredentials: true,
+  withCredentials: false,
 });
 
 // Add a request interceptor
@@ -76,10 +90,13 @@ const ApiService = {
   /**
    * Make a GET request
    */
-  get: async <T>(url: string, params?: any): Promise<T> => {
+  get: async <T>(endpoint: string, params?: any): Promise<ApiResponse<T>> => {
+    // Remove /api prefix if it exists since it's already in baseURL
+    const cleanEndpoint = endpoint.startsWith("/api")
+      ? endpoint.substring(4)
+      : endpoint;
     try {
-      const config = paramsToConfig(params);
-      const response: AxiosResponse = await api.get(url, config);
+      const response = await api.get(cleanEndpoint, paramsToConfig(params));
       return response.data;
     } catch (error) {
       throw error;
@@ -93,9 +110,11 @@ const ApiService = {
     url: string,
     data?: any,
     config?: AxiosRequestConfig
-  ): Promise<T> => {
+  ): Promise<ApiResponse<T>> => {
+    // Remove /api prefix if it exists since it's already in baseURL
+    const cleanUrl = url.startsWith("/api") ? url.substring(4) : url;
     try {
-      const response: AxiosResponse = await api.post(url, data, config);
+      const response = await api.post(cleanUrl, data, config);
       return response.data;
     } catch (error) {
       throw error;
@@ -109,9 +128,11 @@ const ApiService = {
     url: string,
     data?: any,
     config?: AxiosRequestConfig
-  ): Promise<T> => {
+  ): Promise<ApiResponse<T>> => {
+    // Remove /api prefix if it exists since it's already in baseURL
+    const cleanUrl = url.startsWith("/api") ? url.substring(4) : url;
     try {
-      const response: AxiosResponse = await api.put(url, data, config);
+      const response = await api.put(cleanUrl, data, config);
       return response.data;
     } catch (error) {
       throw error;
@@ -121,9 +142,14 @@ const ApiService = {
   /**
    * Make a DELETE request
    */
-  delete: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  delete: async <T>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> => {
+    // Remove /api prefix if it exists since it's already in baseURL
+    const cleanUrl = url.startsWith("/api") ? url.substring(4) : url;
     try {
-      const response: AxiosResponse = await api.delete(url, config);
+      const response = await api.delete(cleanUrl, config);
       return response.data;
     } catch (error) {
       throw error;
@@ -137,7 +163,7 @@ const ApiService = {
     url: string,
     data?: any,
     config?: AxiosRequestConfig
-  ): Promise<T> => {
+  ): Promise<ApiResponse<T>> => {
     try {
       const response: AxiosResponse = await api.patch(url, data, config);
       return response.data;

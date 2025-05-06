@@ -8,13 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { FileUp, X } from "lucide-react";
-import { DocumentCategory, CreateDocumentRequest } from "@/types/knowledge-base";
+import { DocumentCategory as KnowledgeBaseDocumentCategory, CreateDocumentRequest } from "@/types/knowledge-base";
 
 interface UploadDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpload: (data: CreateDocumentRequest) => void;
-  categories: DocumentCategory[];
+  categories: KnowledgeBaseDocumentCategory[];
   isUploading: boolean;
 }
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -14,7 +13,7 @@ import SessionExpirationModal from "@/components/auth/SessionExpirationModal";
 
 // Layout components
 import ProtectedRoute from "@/modules/auth/components/ProtectedRoute";
-import AuthLayout from "@/components/auth/AuthLayout";
+import AuthLayout from "@/modules/auth/components/AuthLayout";
 import AdminLayout from "@/components/admin/AdminLayout";
 
 // Auth pages

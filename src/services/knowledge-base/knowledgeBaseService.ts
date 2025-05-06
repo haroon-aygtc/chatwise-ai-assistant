@@ -1,6 +1,6 @@
 
 import ApiService from '../api/base';
-import { KnowledgeDocument, DocumentCategory } from '@/types/ai-configuration';
+import { KnowledgeDocument, DocumentCategory as KnowledgeBaseDocumentCategory } from '@/types/knowledge-base';
 
 /**
  * Service for managing knowledge base documents and categories
@@ -80,28 +80,28 @@ export const knowledgeBaseService = {
   /**
    * Get all categories
    */
-  getAllCategories: async (): Promise<DocumentCategory[]> => {
+  getAllCategories: async (): Promise<KnowledgeBaseDocumentCategory[]> => {
     return ApiService.get('/knowledge-base/categories');
   },
 
   /**
    * Get a category by ID
    */
-  getCategoryById: async (id: string): Promise<DocumentCategory> => {
+  getCategoryById: async (id: string): Promise<KnowledgeBaseDocumentCategory> => {
     return ApiService.get(`/knowledge-base/categories/${id}`);
   },
 
   /**
    * Create a new category
    */
-  createCategory: async (data: Partial<DocumentCategory>): Promise<DocumentCategory> => {
+  createCategory: async (data: Partial<KnowledgeBaseDocumentCategory>): Promise<KnowledgeBaseDocumentCategory> => {
     return ApiService.post('/knowledge-base/categories', data);
   },
 
   /**
    * Update an existing category
    */
-  updateCategory: async (id: string, data: Partial<DocumentCategory>): Promise<DocumentCategory> => {
+  updateCategory: async (id: string, data: Partial<KnowledgeBaseDocumentCategory>): Promise<KnowledgeBaseDocumentCategory> => {
     return ApiService.put(`/knowledge-base/categories/${id}`, data);
   },
 

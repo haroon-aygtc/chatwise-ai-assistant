@@ -1,7 +1,8 @@
-
 import ApiService from "./base";
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// Default to the Laravel URL format used by Laragon if environment variable isn't set
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
 export const setBaseUrl = (url: string) => {
   const api = ApiService.getAxiosInstance();

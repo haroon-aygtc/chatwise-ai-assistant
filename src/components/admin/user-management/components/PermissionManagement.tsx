@@ -1,29 +1,32 @@
-
 import { useState, useEffect } from "react";
 import { PermissionGroup } from "./PermissionGroup";
-import { PermissionCategory } from "@/types/user";
-import { usePermissionFilter } from "../hooks/usePermissionFilter";
+import { PermissionCategory } from "@/types";
+import { usePermissionFilter } from "../../../../hooks/access-control/usePermissionFilter";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 export interface PermissionManagementProps {
   permissionCategories: PermissionCategory[];
   searchQuery?: string;
+  selectedPermissions?: string[];
+  onPermissionChange?: (selected: string[]) => void;
 }
 
 export function PermissionManagement({
   permissionCategories,
   searchQuery = "",
+  selectedPermissions: initialSelectedPermissions = [],
+  onPermissionChange,
 }: PermissionManagementProps) {
   const [categories, setCategories] = useState<PermissionCategory[]>([]);
-  
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialSelectedPermissions);
+
   // Map the input data to the correct format if needed
   useEffect(() => {
     // Make sure the data is in the expected format
     const formattedCategories: PermissionCategory[] = permissionCategories.map(category => ({
       id: category.id,
-      name: category.name,
-      description: category.description,
+      category: category.category,
       permissions: category.permissions,
     }));
     
@@ -33,13 +36,21 @@ export function PermissionManagement({
   // Get filtered categories based on search
   const { filteredCategories } = usePermissionFilter(categories, searchQuery);
 
+  const handlePermissionChange = (selected: string[]) => {
+    setSelectedPermissions(selected);
+    onPermissionChange?.(selected);
+  };
+
   return (
     <div className="space-y-4">
       {filteredCategories.map((category) => (
         <PermissionGroup
           key={category.id}
-          title={category.name}
+          categoryId={category.id}
+          categoryName={category.category}
           permissions={category.permissions}
+          selectedPermissions={selectedPermissions}
+          onChange={handlePermissionChange}
           searchQuery={searchQuery}
         />
       ))}

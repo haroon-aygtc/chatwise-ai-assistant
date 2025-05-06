@@ -6,7 +6,7 @@ import { z } from "zod";
 import { ApiError } from "@/services/api/errors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import AuthService from "@/services/auth/authService";
+import AuthService from "@/modules/auth/services/authService";
 import {
   Form,
   FormControl,
