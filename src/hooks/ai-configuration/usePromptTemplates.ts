@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { PromptTemplate } from "@/types/ai-configuration";
-import { promptTemplateService } from "@/services/ai-configuration";
+import * as promptTemplateServiceImport from "@/services/ai-configuration/promptTemplateService";
 
 export const usePromptTemplates = () => {
   const { toast } = useToast();
@@ -22,7 +22,7 @@ export const usePromptTemplates = () => {
     refetch 
   } = useQuery({
     queryKey: ['promptTemplates', { search: searchQuery, category: selectedCategory }],
-    queryFn: () => promptTemplateService.getAllTemplates({
+    queryFn: () => promptTemplateServiceImport.getAllTemplates({
       search: searchQuery || undefined,
       category: selectedCategory !== 'all' ? selectedCategory : undefined,
     }),
@@ -31,12 +31,12 @@ export const usePromptTemplates = () => {
   // Fetch categories
   const { data: categoriesData } = useQuery({
     queryKey: ['promptTemplateCategories'],
-    queryFn: () => promptTemplateService.getCategories(),
+    queryFn: () => promptTemplateServiceImport.getCategories(),
   });
 
   // Create template mutation
   const createTemplateMutation = useMutation({
-    mutationFn: (template: any) => promptTemplateService.createTemplate(template),
+    mutationFn: (template: any) => promptTemplateServiceImport.createTemplate(template),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       queryClient.invalidateQueries({ queryKey: ['promptTemplateCategories'] });
@@ -58,7 +58,7 @@ export const usePromptTemplates = () => {
   // Update template mutation
   const updateTemplateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => 
-      promptTemplateService.updateTemplate(id, data),
+      promptTemplateServiceImport.updateTemplate(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       setShowEditDialog(false);
@@ -79,7 +79,7 @@ export const usePromptTemplates = () => {
 
   // Delete template mutation
   const deleteTemplateMutation = useMutation({
-    mutationFn: (id: string) => promptTemplateService.deleteTemplate(id),
+    mutationFn: (id: string) => promptTemplateServiceImport.deleteTemplate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       toast({
