@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { PermissionGroup } from "./PermissionGroup";
 import { PermissionCategory } from "@/types";
@@ -10,6 +11,7 @@ export interface PermissionManagementProps {
   searchQuery?: string;
   selectedPermissions?: string[];
   onPermissionChange?: (selected: string[]) => void;
+  onChange?: (selected: string[]) => void;  // Add this prop for backward compatibility
 }
 
 export function PermissionManagement({
@@ -17,6 +19,7 @@ export function PermissionManagement({
   searchQuery = "",
   selectedPermissions: initialSelectedPermissions = [],
   onPermissionChange,
+  onChange,
 }: PermissionManagementProps) {
   const [categories, setCategories] = useState<PermissionCategory[]>([]);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialSelectedPermissions);
@@ -39,6 +42,7 @@ export function PermissionManagement({
   const handlePermissionChange = (selected: string[]) => {
     setSelectedPermissions(selected);
     onPermissionChange?.(selected);
+    onChange?.(selected); // Also call onChange for backward compatibility
   };
 
   return (
