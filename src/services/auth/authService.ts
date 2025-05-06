@@ -1,9 +1,9 @@
 
 import ApiService from "@/services/api/base";
 import { User } from "@/types/user";
-import { LoginResponse, PasswordResetRequestData, SignupData } from "../types";
+import { LoginResponse, PasswordResetRequestData, SignupData } from "./types";
 import tokenService from "./tokenService";
-import { handleAuthError } from "../utils/errorHandler";
+import { handleAuthError } from "./utils";
 import { AUTH_ENDPOINTS } from "@/services/api/config";
 
 /**

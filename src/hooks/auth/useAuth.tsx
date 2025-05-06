@@ -1,9 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types/user';
 import { Role } from '@/types';
-import AuthService from '../services/authService';
-import tokenService from '../services/tokenService';
-import { SignupData } from '../types';
+import { AuthService, tokenService } from '@/services/auth';
+import { SignupData } from '@/services/auth/types';
 import { useToast } from '@/components/ui/use-toast';
 
 // Define the auth context type

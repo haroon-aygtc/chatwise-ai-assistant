@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { DataSource, getAllDataSources, createDataSource, updateDataSource, deleteDataSource, testDataSource } from '@/services/ai-configuration/dataSourceService';
+import { dataSourceService } from '@/services/ai-configuration';
+import { DataSource } from '@/services/ai-configuration/dataSourceService';
 
 export function useDataSources() {
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -18,7 +19,7 @@ export function useDataSources() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getAllDataSources();
+      const data = await dataSourceService.getAllDataSources();
       setDataSources(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch data sources'));
@@ -43,7 +44,7 @@ export function useDataSources() {
 
   const handleDeleteDataSource = async (id: string) => {
     try {
-      await deleteDataSource(id);
+      await dataSourceService.deleteDataSource(id);
       setDataSources(dataSources.filter(ds => ds.id !== id));
       toast.success('Data source deleted successfully');
     } catch (err) {
@@ -55,7 +56,7 @@ export function useDataSources() {
   const handleSaveNewDataSource = async (newDataSource: Omit<DataSource, 'id'>) => {
     setIsSaving(true);
     try {
-      const created = await createDataSource(newDataSource);
+      const created = await dataSourceService.createDataSource(newDataSource);
       setDataSources([...dataSources, created]);
       setShowAddDialog(false);
       toast.success('Data source created successfully');
@@ -74,7 +75,7 @@ export function useDataSources() {
     
     setIsSaving(true);
     try {
-      const updated = await updateDataSource(currentDataSource.id, editedDataSource);
+      const updated = await dataSourceService.updateDataSource(currentDataSource.id, editedDataSource);
       setDataSources(dataSources.map(ds => ds.id === updated.id ? updated : ds));
       setShowEditDialog(false);
       setCurrentDataSource(null);
@@ -91,7 +92,7 @@ export function useDataSources() {
 
   const handleTestDataSource = async (id: string, query: string) => {
     try {
-      return await testDataSource(id, query);
+      return await dataSourceService.testDataSource(id, query);
     } catch (err) {
       toast.error('Failed to test data source');
       console.error(err);

@@ -1,14 +1,14 @@
 
-import * as aiModelService from './aiModelService';
+import aiModelService from './aiModelService';
 import followUpService from './followUpService';
-import * as dataSourceService from './dataSourceService';
-import * as promptTemplateService from '../prompt-template/promptTemplateService';
-import * as responseFormatService from './responseFormatService';
+import dataSourceService from './dataSourceService';
+import responseFormatService from './responseFormatService';
+import promptTemplateService from './promptTemplateService';
 
 export { 
   aiModelService, 
   followUpService, 
   dataSourceService, 
-  promptTemplateService,
-  responseFormatService 
+  responseFormatService,
+  promptTemplateService
 };

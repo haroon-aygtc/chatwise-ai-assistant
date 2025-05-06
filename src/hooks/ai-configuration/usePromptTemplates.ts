@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { PromptTemplate } from "@/types/ai-configuration";
-import promptTemplateService from "@/services/prompt-template/promptTemplateService";
+import { promptTemplateService } from "@/services/ai-configuration";
 
 export const usePromptTemplates = () => {
   const { toast } = useToast();

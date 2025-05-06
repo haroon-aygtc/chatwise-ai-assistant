@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { PermissionCategory } from "@/types";
-import permissionService from "@/services/permission/permissionService";
+import { PermissionService } from "@/services/permission";
 import { PERMISSION_CATEGORIES } from "@/constants/permissions";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -23,7 +23,7 @@ export function usePermissionManagement() {
     setPermissionsError(null);
 
     try {
-      const response = await permissionService.getPermissionsByCategory();
+      const response = await PermissionService.getPermissionsByCategory();
       setPermissionCategories(response);
       return response;
     } catch (error) {
