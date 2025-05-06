@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +34,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, updateUser } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,16 +75,46 @@ export function LoginForm() {
     }
   }
 
-  // Mock login function to bypass API
+  // Updated mock login function to properly set authentication state
   const handleMockLogin = () => {
     setIsLoading(true);
     
+    // Mock user data that would normally come from the backend
+    const mockUser = {
+      id: "mock-user-1",
+      name: "Mock User",
+      email: "user@example.com",
+      status: "active",
+      avatar_url: null,
+      last_active: new Date().toISOString(),
+      roles: [{ name: "user", id: 1 }],
+      permissions: ["access dashboard", "view profile"]
+    };
+    
+    // Mock token for storage
+    const mockToken = "mock-jwt-token-" + Date.now();
+    
+    // Store the mock token in localStorage (similar to what tokenService does)
+    localStorage.setItem("token", mockToken);
+    
     setTimeout(() => {
+      // Update the user state in the auth context
+      updateUser(mockUser);
+      
       toast({
         title: "Mock Login Successful!",
         description: "Bypassing API for development purposes.",
       });
-      navigate('/dashboard');
+      
+      // Check for redirect URL same as real login
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectUrl) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectUrl);
+      } else {
+        navigate('/dashboard');
+      }
+      
       setIsLoading(false);
     }, 1000);
   }
