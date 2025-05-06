@@ -54,26 +54,26 @@ const ApiService = {
 
   // GET request
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.get<ApiResponse<T> | T>(url, config);
-    return response.data as T;
+    const response = await apiClient.get<T>(url, config);
+    return response.data;
   },
 
   // POST request
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.post<ApiResponse<T> | T>(url, data, config);
-    return response.data as T;
+    const response = await apiClient.post<T>(url, data, config);
+    return response.data;
   },
 
   // PUT request
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.put<ApiResponse<T> | T>(url, data, config);
-    return response.data as T;
+    const response = await apiClient.put<T>(url, data, config);
+    return response.data;
   },
 
   // DELETE request
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.delete<ApiResponse<T> | T>(url, config);
-    return response.data as T;
+    const response = await apiClient.delete<T>(url, config);
+    return response.data;
   },
 
   // Form data POST request (for file uploads)
@@ -82,14 +82,14 @@ const ApiService = {
     formData: FormData,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await apiClient.post<ApiResponse<T> | T>(url, formData, {
+    const response = await apiClient.post<T>(url, formData, {
       ...config,
       headers: {
         ...config?.headers,
         "Content-Type": "multipart/form-data",
       },
     });
-    return response.data as T;
+    return response.data;
   },
 };
 
