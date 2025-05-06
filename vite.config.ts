@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -11,9 +12,10 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       // Proxy API requests to your Laravel backend
       '/api': {
-        target: 'http://localhost:8000', // Assuming Laravel runs on port 8000
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api'), // Keep /api prefix since Laravel expects it
       }
     }
   },

@@ -1,3 +1,4 @@
+
 import ApiService from "./base";
 
 // Default to the Laravel URL format used by Laragon if environment variable isn't set
@@ -18,3 +19,7 @@ export const removeGlobalHeader = (name: string) => {
   const api = ApiService.getAxiosInstance();
   delete api.defaults.headers.common[name];
 };
+
+// Ensure API base URL is properly configured
+// Log the current API base URL to help with debugging
+console.log("Current API Base URL:", API_BASE_URL);
