@@ -19,7 +19,7 @@ import { Role, PermissionCategory } from '@/types';
 import { useRoleManagement } from "@/hooks/access-control/useRoleManagement";
 import { usePermissionManagement } from "@/hooks/access-control/usePermissionManagement";
 
-export function RolesPermissions() {
+const RolesPermissions = () => {
   const { toast } = useToast();
   
   // Use role and permission management hooks
