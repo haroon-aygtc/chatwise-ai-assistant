@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,8 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAuth } from '@/contexts/AuthContext';
-import { tokenService } from '@/services/auth/tokenService';
+import { useAuth, tokenService } from '@/modules/auth';
 
 // How many seconds before expiration to show the warning
 const WARNING_THRESHOLD = 5 * 60; // 5 minutes
@@ -53,7 +52,7 @@ const SessionExpirationModal = () => {
     // Set up interval to check token expiration
     intervalId = setInterval(() => {
       checkTokenExpiration();
-      
+
       // Update countdown if modal is open
       if (open) {
         setSecondsLeft(prev => Math.max(0, prev - 10));
@@ -89,7 +88,7 @@ const SessionExpirationModal = () => {
         <AlertDialogHeader>
           <AlertDialogTitle>Your session is about to expire</AlertDialogTitle>
           <AlertDialogDescription>
-            For security reasons, your session will expire in {formatTime(secondsLeft)}. 
+            For security reasons, your session will expire in {formatTime(secondsLeft)}.
             Do you want to extend your session?
           </AlertDialogDescription>
         </AlertDialogHeader>

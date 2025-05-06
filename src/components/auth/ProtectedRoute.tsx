@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/modules/auth";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -32,7 +32,7 @@ const ProtectedRoute = ({
     // Store the current location to redirect back after login
     const currentPath = window.location.pathname;
     sessionStorage.setItem('redirectAfterLogin', currentPath);
-    
+
     return <Navigate to={redirectTo} replace />;
   }
 

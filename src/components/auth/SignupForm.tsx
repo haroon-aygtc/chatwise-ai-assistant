@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/modules/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -58,7 +58,7 @@ export function SignupForm() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
       await register(
         values.name,
@@ -66,7 +66,7 @@ export function SignupForm() {
         values.password,
         values.passwordConfirm
       );
-      
+
       // Navigate to user management page after successful registration
       navigate("/admin/users");
     } catch (err: any) {
