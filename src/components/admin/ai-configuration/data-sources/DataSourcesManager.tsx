@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,8 +10,8 @@ import { DataSource } from "@/services/ai-configuration/dataSourceService";
 import { DataSourcesHeader } from "./components/DataSourcesHeader";
 import { DataSourcesContent } from "./components/DataSourcesContent";
 import { DataSourceForm } from "./components/DataSourceForm";
-import { useDataSources } from "./hooks/useDataSources";
-import { useDataSourceSettings } from "./hooks/useDataSourceSettings";
+import { useDataSources } from "@/hooks/ai-configuration/useDataSources";
+import { useDataSourceSettings } from "@/hooks/ai-configuration/useDataSourceSettings";
 
 interface DataSourcesManagerProps {
   standalone?: boolean;
