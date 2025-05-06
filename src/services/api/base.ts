@@ -37,40 +37,43 @@ apiClient.interceptors.request.use(
 );
 
 // Helper method to extract just data from response
-const getData = <T>(response: ApiResponse<T> | T): T => {
-  // If response is already the correct type and has no data property, return it as is
-  if (!response || typeof response !== 'object' || !('data' in response)) {
-    return response as T;
+const extractData = <T>(response: AxiosResponse<ApiResponse<T> | T>): T => {
+  // Check if response has data.data structure (ApiResponse format)
+  if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+    return (response.data as ApiResponse<T>).data;
   }
   
-  // Otherwise extract the data property
-  return (response as ApiResponse<T>).data;
+  // Otherwise return data directly
+  return response.data as T;
 };
 
 // Define the base API service
 const ApiService = {
+  // Expose axios instance for special cases
+  getAxiosInstance: () => apiClient,
+
   // GET request
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.get<T>(url, config);
-    return response.data;
+    const response = await apiClient.get<ApiResponse<T> | T>(url, config);
+    return response.data as T;
   },
 
   // POST request
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.post<T>(url, data, config);
-    return response.data;
+    const response = await apiClient.post<ApiResponse<T> | T>(url, data, config);
+    return response.data as T;
   },
 
   // PUT request
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.put<T>(url, data, config);
-    return response.data;
+    const response = await apiClient.put<ApiResponse<T> | T>(url, data, config);
+    return response.data as T;
   },
 
   // DELETE request
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.delete<T>(url, config);
-    return response.data;
+    const response = await apiClient.delete<ApiResponse<T> | T>(url, config);
+    return response.data as T;
   },
 
   // Form data POST request (for file uploads)
@@ -79,14 +82,14 @@ const ApiService = {
     formData: FormData,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await apiClient.post<T>(url, formData, {
+    const response = await apiClient.post<ApiResponse<T> | T>(url, formData, {
       ...config,
       headers: {
         ...config?.headers,
         "Content-Type": "multipart/form-data",
       },
     });
-    return response.data;
+    return response.data as T;
   },
 };
 
