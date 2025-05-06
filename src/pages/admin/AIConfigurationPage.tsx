@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -13,7 +12,7 @@ import {
 import { ResponseFormatterManager } from "../../components/admin/ai-configuration/response-formats";
 import { useToast } from "@/components/ui/use-toast";
 import { AIModel, RoutingRule } from "@/types/ai-configuration";
-import { aiModelService } from "@/services/ai-configuration";
+import * as aiModelService from "@/services/ai-configuration/aiModelService";
 
 const AIConfigurationPage = () => {
   const { toast } = useToast();

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,8 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-import AuthService from "@/services/auth/authService";
-import AuthLayout from "./AuthLayout";
+import { AuthService } from "@/services/auth";
+import AuthLayout from "../components/AuthLayout";
 
 // Schema for requesting password reset
 const requestSchema = z.object({
