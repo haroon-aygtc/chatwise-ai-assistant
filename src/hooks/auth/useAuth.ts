@@ -1,3 +1,3 @@
 
-// Export the useAuth hook directly from this file
+// Export the useAuth hook directly from the TSX file
 export * from './useAuth.tsx';
