@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Role, PermissionCategory } from "@/types/domain";
 import RoleService from "@/services/role/roleService";
@@ -16,8 +17,8 @@ export function useRoleManagement() {
 
     try {
       const response = await RoleService.getRoles();
-      setRoles(response.data);
-      return response.data;
+      setRoles(response);
+      return response;
     } catch (error) {
       console.error("Failed to fetch roles:", error);
       setRolesError(
@@ -48,7 +49,7 @@ export function useRoleManagement() {
       });
 
       await fetchRoles();
-      return response.data.role;
+      return response.role;
     } catch (error) {
       console.error("Failed to create role:", error);
       toast({

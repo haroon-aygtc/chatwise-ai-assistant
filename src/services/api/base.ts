@@ -1,4 +1,6 @@
+
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import { ApiRequestParams } from "./types";
 
 // Define the base API response type
 export interface ApiResponse<T = any> {
@@ -53,27 +55,31 @@ const ApiService = {
   getAxiosInstance: () => apiClient,
 
   // GET request
-  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.get<T>(url, config);
-    return response.data;
+  async get<T>(url: string, params?: ApiRequestParams | AxiosRequestConfig): Promise<T> {
+    // Handle both ApiRequestParams and AxiosRequestConfig
+    const config: AxiosRequestConfig = !params ? {} : 
+      'params' in params ? params : { params };
+    
+    const response = await apiClient.get<ApiResponse<T> | T>(url, config);
+    return extractData(response);
   },
 
   // POST request
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.post<T>(url, data, config);
-    return response.data;
+    const response = await apiClient.post<ApiResponse<T> | T>(url, data, config);
+    return extractData(response);
   },
 
   // PUT request
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.put<T>(url, data, config);
-    return response.data;
+    const response = await apiClient.put<ApiResponse<T> | T>(url, data, config);
+    return extractData(response);
   },
 
   // DELETE request
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await apiClient.delete<T>(url, config);
-    return response.data;
+    const response = await apiClient.delete<ApiResponse<T> | T>(url, config);
+    return extractData(response);
   },
 
   // Form data POST request (for file uploads)
@@ -82,14 +88,14 @@ const ApiService = {
     formData: FormData,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await apiClient.post<T>(url, formData, {
+    const response = await apiClient.post<ApiResponse<T> | T>(url, formData, {
       ...config,
       headers: {
         ...config?.headers,
         "Content-Type": "multipart/form-data",
       },
     });
-    return response.data;
+    return extractData(response);
   },
 };
 

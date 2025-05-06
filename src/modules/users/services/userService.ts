@@ -7,14 +7,15 @@ import {
   DateRange,
 } from "@/types/domain";
 import { NewUser, EditedUser } from "@/modules/users/types";
+import { ApiRequestParams } from "@/services/api/types";
 
 /**
  * Get all users
  */
 const getAllUsers = async (): Promise<User[]> => {
   try {
-    const response = await ApiService.get<{ data: User[] }>("/users");
-    return response.data.data || [];
+    const response = await ApiService.get<User[]>("/users");
+    return response || [];
   } catch (error) {
     console.error("Error fetching users:", error);
     throw error;
@@ -26,8 +27,8 @@ const getAllUsers = async (): Promise<User[]> => {
  */
 const getUserById = async (id: string): Promise<User> => {
   try {
-    const response = await ApiService.get<{ data: User }>(`/users/${id}`);
-    return response.data.data;
+    const response = await ApiService.get<User>(`/users/${id}`);
+    return response;
   } catch (error) {
     console.error(`Error fetching user ${id}:`, error);
     throw error;
@@ -39,8 +40,8 @@ const getUserById = async (id: string): Promise<User> => {
  */
 const createUser = async (userData: NewUser): Promise<User> => {
   try {
-    const response = await ApiService.post<{ data: User }>("/users", userData);
-    return response.data.data;
+    const response = await ApiService.post<User>("/users", userData);
+    return response;
   } catch (error) {
     console.error("Error creating user:", error);
     throw error;
@@ -52,11 +53,11 @@ const createUser = async (userData: NewUser): Promise<User> => {
  */
 const updateUser = async (id: string, userData: EditedUser): Promise<User> => {
   try {
-    const response = await ApiService.put<{ data: User }>(
+    const response = await ApiService.put<User>(
       `/users/${id}`,
       userData
     );
-    return response.data.data;
+    return response;
   } catch (error) {
     console.error(`Error updating user ${id}:`, error);
     throw error;
@@ -80,10 +81,10 @@ const deleteUser = async (id: string): Promise<void> => {
  */
 const getUserPermissions = async (id: string): Promise<Permission[]> => {
   try {
-    const response = await ApiService.get<{ data: Permission[] }>(
+    const response = await ApiService.get<Permission[]>(
       `/users/${id}/permissions`
     );
-    return response.data.data;
+    return response;
   } catch (error) {
     console.error(`Error fetching permissions for user ${id}:`, error);
     throw error;
@@ -98,11 +99,11 @@ const updateUserPermissions = async (
   permissionIds: string[]
 ): Promise<User> => {
   try {
-    const response = await ApiService.put<{ data: User }>(
+    const response = await ApiService.put<User>(
       `/users/${id}/permissions`,
       { permissions: permissionIds }
     );
-    return response.data.data;
+    return response;
   } catch (error) {
     console.error(`Error updating permissions for user ${id}:`, error);
     throw error;
@@ -117,7 +118,7 @@ const getUserActivityLogs = async (
   dateRange?: DateRange
 ): Promise<any[]> => {
   try {
-    const params: Record<string, any> = {};
+    const params: ApiRequestParams = {};
     if (dateRange?.from) {
       params.from = dateRange.from.toISOString().split("T")[0];
       if (dateRange.to) {
@@ -125,11 +126,11 @@ const getUserActivityLogs = async (
       }
     }
 
-    const response = await ApiService.get<{ data: any[] }>(
+    const response = await ApiService.get<any[]>(
       `/users/${id}/activity`,
-      { params }
+      params
     );
-    return response.data.data;
+    return response;
   } catch (error) {
     console.error(`Error fetching activity logs for user ${id}:`, error);
     throw error;
@@ -141,8 +142,8 @@ const getUserActivityLogs = async (
  */
 const getAllRoles = async (): Promise<Role[]> => {
   try {
-    const response = await ApiService.get<{ data: Role[] }>("/roles");
-    return response.data.data || [];
+    const response = await ApiService.get<Role[]>("/roles");
+    return response || [];
   } catch (error) {
     console.error("Error fetching roles:", error);
     throw error;
@@ -157,11 +158,11 @@ const assignRoleToUser = async (
   roleId: string
 ): Promise<User> => {
   try {
-    const response = await ApiService.post<{ data: User }>(
+    const response = await ApiService.post<User>(
       `/users/${userId}/roles`,
       { role_id: roleId }
     );
-    return response.data.data;
+    return response;
   } catch (error) {
     console.error(`Error assigning role ${roleId} to user ${userId}:`, error);
     throw error;
@@ -176,10 +177,10 @@ const removeRoleFromUser = async (
   roleId: string
 ): Promise<User> => {
   try {
-    const response = await ApiService.delete<{ data: User }>(
+    const response = await ApiService.delete<User>(
       `/users/${userId}/roles/${roleId}`
     );
-    return response.data.data;
+    return response;
   } catch (error) {
     console.error(`Error removing role ${roleId} from user ${userId}:`, error);
     throw error;

@@ -1,37 +1,25 @@
-import ApiService, { ApiResponse } from "../api/base";
-import { User, EditedUser, NewUser } from "@/types/domain";
 
-interface UserListResponse {
-  data: User[];
-  total: number;
-  per_page: number;
-  current_page: number;
-  last_page: number;
-}
+import ApiService from "../api/base";
+import { User, EditedUser, NewUser } from "@/types/domain";
+import { ApiRequestParams, PaginatedResponse } from "../api/types";
+
+interface UserListResponse extends PaginatedResponse<User> {}
 
 class UserService {
   /**
    * Get a paginated list of users
    */
   static async getUsers(
-    params: {
-      page?: number;
-      per_page?: number;
-      role?: string;
-      status?: string;
-      search?: string;
-    } = {}
-  ): Promise<ApiResponse<UserListResponse>> {
-    const response = await ApiService.get<UserListResponse>("/users", params);
-    return { data: response.data };
+    params: ApiRequestParams = {}
+  ): Promise<UserListResponse> {
+    return await ApiService.get<UserListResponse>("/users", params);
   }
 
   /**
    * Get a single user by ID
    */
-  static async getUser(id: string): Promise<ApiResponse<User>> {
-    const response = await ApiService.get<User>(`/users/${id}`);
-    return { data: response.data };
+  static async getUser(id: string): Promise<User> {
+    return await ApiService.get<User>(`/users/${id}`);
   }
 
   /**
@@ -39,12 +27,11 @@ class UserService {
    */
   static async createUser(
     userData: NewUser
-  ): Promise<ApiResponse<{ user: User; message: string }>> {
-    const response = await ApiService.post<{ user: User; message: string }>(
+  ): Promise<{ user: User; message: string }> {
+    return await ApiService.post<{ user: User; message: string }>(
       "/users",
       userData
     );
-    return { data: response.data };
   }
 
   /**
@@ -53,12 +40,11 @@ class UserService {
   static async updateUser(
     id: string,
     userData: Partial<EditedUser>
-  ): Promise<ApiResponse<{ user: User; message: string }>> {
-    const response = await ApiService.put<{ user: User; message: string }>(
+  ): Promise<{ user: User; message: string }> {
+    return await ApiService.put<{ user: User; message: string }>(
       `/users/${id}`,
       userData
     );
-    return { data: response.data };
   }
 
   /**
@@ -66,11 +52,10 @@ class UserService {
    */
   static async deleteUser(
     id: string
-  ): Promise<ApiResponse<{ message: string }>> {
-    const response = await ApiService.delete<{ message: string }>(
+  ): Promise<{ message: string }> {
+    return await ApiService.delete<{ message: string }>(
       `/users/${id}`
     );
-    return { data: response.data };
   }
 
   /**
@@ -79,12 +64,11 @@ class UserService {
   static async updateUserStatus(
     id: string,
     status: string
-  ): Promise<ApiResponse<{ user: User; message: string }>> {
-    const response = await ApiService.put<{ user: User; message: string }>(
+  ): Promise<{ user: User; message: string }> {
+    return await ApiService.put<{ user: User; message: string }>(
       `/users/${id}/status`,
       { status }
     );
-    return { data: response.data };
   }
 
   /**
@@ -93,12 +77,11 @@ class UserService {
   static async assignRoles(
     id: string,
     roles: string[]
-  ): Promise<ApiResponse<{ user: User; message: string }>> {
-    const response = await ApiService.put<{ user: User; message: string }>(
+  ): Promise<{ user: User; message: string }> {
+    return await ApiService.put<{ user: User; message: string }>(
       `/users/${id}/assign-roles`,
       { roles }
     );
-    return { data: response.data };
   }
 }
 

@@ -1,4 +1,5 @@
-import ApiService, { ApiResponse } from "@/services/api/base";
+
+import ApiService from "@/services/api/base";
 import { User } from "@/types/user";
 import { LoginResponse, PasswordResetRequestData, SignupData } from "../types";
 import tokenService from "./tokenService";
@@ -29,7 +30,7 @@ const AuthService = {
       if (response && response.token) {
         tokenService.setToken(response.token, rememberMe);
       }
-      return response as LoginResponse;
+      return response;
     } catch (error) {
       handleAuthError(error);
       throw error;
@@ -64,7 +65,7 @@ const AuthService = {
         tokenService.setToken(response.token, false);
       }
 
-      return response as LoginResponse;
+      return response;
     } catch (error) {
       console.error("Registration error:", error);
       handleAuthError(error);
@@ -77,8 +78,7 @@ const AuthService = {
    */
   getCurrentUser: async (): Promise<User> => {
     try {
-      const response = await ApiService.get<User>("/user");
-      return response.data as User;
+      return await ApiService.get<User>("/user");
     } catch (error) {
       handleAuthError(error);
       throw error;
