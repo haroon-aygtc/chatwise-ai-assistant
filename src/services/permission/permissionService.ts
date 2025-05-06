@@ -1,6 +1,7 @@
 
 import ApiService from '../api/base';
 import { Permission, PermissionCategory } from '@/types/domain';
+import { SingleResponse, PaginatedResponse } from '../api/types';
 
 class PermissionService {
   /**
