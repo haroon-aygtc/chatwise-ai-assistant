@@ -1,3 +1,4 @@
+
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import tokenService from "@/modules/auth/services/tokenService";
 import { API_BASE_URL } from "./config";
@@ -42,6 +43,9 @@ api.interceptors.request.use(
       config.headers["X-CSRF-TOKEN"] = csrfToken;
     }
 
+    // Log request URL for debugging
+    console.log(`Making ${config.method?.toUpperCase()} request to: ${config.baseURL}${config.url}`);
+    
     return config;
   },
   (error) => {
@@ -55,6 +59,8 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    console.error("API Error:", error);
+    
     // Handle 401 Unauthorized errors
     if (error.response && error.response.status === 401) {
       // Clear token and redirect to login
@@ -85,18 +91,20 @@ const paramsToConfig = (params: any): AxiosRequestConfig => {
   return { params };
 };
 
+// Clean URL helper function to ensure proper formatting
+const cleanUrl = (url: string): string => {
+  // Remove /api prefix if it exists since it's already in baseURL
+  return url.startsWith("/api") ? url.substring(4) : url;
+};
+
 // Generic API service functions
 const ApiService = {
   /**
    * Make a GET request
    */
   get: async <T>(endpoint: string, params?: any): Promise<ApiResponse<T>> => {
-    // Remove /api prefix if it exists since it's already in baseURL
-    const cleanEndpoint = endpoint.startsWith("/api")
-      ? endpoint.substring(4)
-      : endpoint;
     try {
-      const response = await api.get(cleanEndpoint, paramsToConfig(params));
+      const response = await api.get(cleanUrl(endpoint), paramsToConfig(params));
       return response.data;
     } catch (error) {
       throw error;
@@ -111,10 +119,8 @@ const ApiService = {
     data?: any,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> => {
-    // Remove /api prefix if it exists since it's already in baseURL
-    const cleanUrl = url.startsWith("/api") ? url.substring(4) : url;
     try {
-      const response = await api.post(cleanUrl, data, config);
+      const response = await api.post(cleanUrl(url), data, config);
       return response.data;
     } catch (error) {
       throw error;
@@ -129,10 +135,8 @@ const ApiService = {
     data?: any,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> => {
-    // Remove /api prefix if it exists since it's already in baseURL
-    const cleanUrl = url.startsWith("/api") ? url.substring(4) : url;
     try {
-      const response = await api.put(cleanUrl, data, config);
+      const response = await api.put(cleanUrl(url), data, config);
       return response.data;
     } catch (error) {
       throw error;
@@ -146,10 +150,8 @@ const ApiService = {
     url: string,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> => {
-    // Remove /api prefix if it exists since it's already in baseURL
-    const cleanUrl = url.startsWith("/api") ? url.substring(4) : url;
     try {
-      const response = await api.delete(cleanUrl, config);
+      const response = await api.delete(cleanUrl(url), config);
       return response.data;
     } catch (error) {
       throw error;
@@ -165,7 +167,7 @@ const ApiService = {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> => {
     try {
-      const response: AxiosResponse = await api.patch(url, data, config);
+      const response: AxiosResponse = await api.patch(cleanUrl(url), data, config);
       return response.data;
     } catch (error) {
       throw error;
