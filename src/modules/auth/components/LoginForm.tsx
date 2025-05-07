@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { getCsrfToken } from "@/services/api/api";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -47,13 +48,19 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      // First, fetch a fresh CSRF token
+      await getCsrfToken();
+
+      console.log('CSRF token fetched, proceeding with login');
+
+      // Now attempt the login
       await login(values.email, values.password, values.remember);
-      
+
       toast({
         title: "Login successful!",
         description: "Welcome back to ChatSystem.",
       });
-      
+
       // Check if there's a redirect URL in session storage
       const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
       if (redirectUrl) {
@@ -77,7 +84,7 @@ export function LoginForm() {
   // Updated mock login function to properly set authentication state
   const handleMockLogin = () => {
     setIsLoading(true);
-    
+
     // Mock user data that would normally come from the backend
     // Make sure the Role type is properly satisfied with all required fields
     const mockUser = {
@@ -87,30 +94,30 @@ export function LoginForm() {
       status: "active" as "active" | "inactive" | "pending", // Explicitly type as one of the allowed values
       avatar_url: null,
       last_active: new Date().toISOString(),
-      roles: [{ 
+      roles: [{
         id: "1",
-        name: "user", 
+        name: "user",
         description: "Regular user role",
         permissions: ["access dashboard", "view profile"]
       }],
       permissions: ["access dashboard", "view profile"]
     };
-    
+
     // Mock token for storage
     const mockToken = "mock-jwt-token-" + Date.now();
-    
+
     // Store the mock token in localStorage (similar to what tokenService does)
     localStorage.setItem("token", mockToken);
-    
+
     setTimeout(() => {
       // Update the user state in the auth context
       updateUser(mockUser);
-      
+
       toast({
         title: "Mock Login Successful!",
         description: "Bypassing API for development purposes.",
       });
-      
+
       // Check for redirect URL same as real login
       const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
       if (redirectUrl) {
@@ -119,7 +126,7 @@ export function LoginForm() {
       } else {
         navigate('/dashboard');
       }
-      
+
       setIsLoading(false);
     }, 1000);
   }
@@ -141,7 +148,7 @@ export function LoginForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="password"
@@ -183,7 +190,7 @@ export function LoginForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="remember"
@@ -201,7 +208,7 @@ export function LoginForm() {
               </FormItem>
             )}
           />
-          
+
           <div className="space-y-2">
             <Button
               type="submit"
@@ -210,10 +217,10 @@ export function LoginForm() {
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
+
+            <Button
+              type="button"
+              variant="outline"
               className="w-full"
               onClick={handleMockLogin}
               disabled={isLoading}
@@ -223,7 +230,7 @@ export function LoginForm() {
           </div>
         </form>
       </Form>
-      
+
       <div className="text-center text-sm">
         Don't have an account?{" "}
         <Link

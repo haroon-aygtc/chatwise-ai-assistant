@@ -1,5 +1,5 @@
 
-import ApiService from "../api/base";
+import ApiService from "../api/api";
 import { Role, NewRole, EditedRole } from "@/types/domain";
 
 class RoleService {

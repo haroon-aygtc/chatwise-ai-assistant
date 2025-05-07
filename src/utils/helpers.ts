@@ -90,7 +90,7 @@ export const getRoleBadgeVariant = (role: string): "default" | "secondary" | "ou
 /**
  * Generic error handler for API operations
  */
-export const handleApiError = (error: any, setError: (error: string | null) => void, toast: any, message: string): boolean => {
+export const handleApiError = (error: unknown, setError: (error: string | null) => void, toast: unknown, message: string): boolean => {
   setError(error.message || message);
   toast({
     title: "Error",

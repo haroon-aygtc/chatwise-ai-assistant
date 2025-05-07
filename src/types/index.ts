@@ -28,5 +28,24 @@ export type {
 // Re-export knowledge base types
 export * from './knowledge-base';
 
+// Export analytics types
+export type {
+  WidgetAnalytics,
+  WidgetInteractions,
+  MessageMetrics,
+  WidgetPerformance,
+  WidgetUsage,
+  SatisfactionMetrics,
+  WidgetTrends,
+  TimeSeriesData,
+  AnalyticsOverview,
+  ChatMetrics,
+  UsageMetrics,
+  PerformanceMetrics,
+  UserFeedback,
+  CustomizationOptions,
+  AnalyticsDateRange
+} from './analytics';
+
 // We don't need to re-export anything from user.ts as the User interface
 // is already defined in domain.ts and there are no other unique types.

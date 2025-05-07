@@ -63,6 +63,7 @@ export interface NewRole {
   name: string;
   description: string;
   permissions: string[];
+  [key: string]: unknown;
 }
 
 export interface EditedRole {
@@ -70,12 +71,14 @@ export interface EditedRole {
   name?: string;
   description?: string;
   permissions?: string[];
+  [key: string]: unknown;
 }
 
 export interface NewUser {
   name: string;
   email: string;
   role: string;
+  [key: string]: unknown;
 }
 
 export interface EditedUser {
@@ -84,6 +87,7 @@ export interface EditedUser {
   email: string;
   role: string;
   status: string;
+  [key: string]: unknown;
 }
 
 export interface ActivityLogEntry {

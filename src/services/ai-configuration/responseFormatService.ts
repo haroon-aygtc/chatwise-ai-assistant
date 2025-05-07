@@ -1,5 +1,5 @@
 
-import ApiService from '../api/base';
+import ApiService from '../api/api';
 import { ResponseFormat } from '@/types/ai-configuration';
 
 // Get all response formats

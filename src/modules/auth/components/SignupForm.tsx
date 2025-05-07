@@ -19,6 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useSignupValidation } from "../hooks/useSignupValidation";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { getCsrfToken } from "@/services/api/api";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -60,19 +61,26 @@ export function SignupForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+
     try {
+      // First, fetch a fresh CSRF token
+      await getCsrfToken();
+
+      console.log('CSRF token fetched, proceeding with signup');
+
+      // Now attempt the signup
       await signup({
         name: values.name,
         email: values.email,
         password: values.password,
         password_confirmation: values.confirmPassword,
       });
-      
+
       toast({
         title: "Account created successfully!",
         description: "You can now log in with your credentials.",
       });
-      
+
       // Redirect to login page or dashboard
     } catch (error) {
       console.error("Signup error:", error);
@@ -103,7 +111,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="email"
@@ -117,7 +125,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="password"
@@ -158,7 +166,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="confirmPassword"
@@ -192,7 +200,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="agreeTerms"
@@ -228,7 +236,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <Button
             type="submit"
             className="w-full"
@@ -238,7 +246,7 @@ export function SignupForm() {
           </Button>
         </form>
       </Form>
-      
+
       <div className="text-center text-sm">
         Already have an account?{" "}
         <Link

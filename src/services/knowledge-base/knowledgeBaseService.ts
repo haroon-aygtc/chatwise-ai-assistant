@@ -1,5 +1,5 @@
 
-import ApiService from "../api/base";
+import ApiService, { ApiParams } from "../api/api";
 import { KnowledgeDocument, DocumentCategory, KnowledgeBaseSettings, CreateDocumentRequest, UpdateDocumentRequest, CreateCategoryRequest, UpdateCategoryRequest, UpdateSettingsRequest } from "@/types/knowledge-base";
 import { PaginatedResponse } from "../api/types";
 
@@ -8,14 +8,14 @@ class KnowledgeBaseService {
    * Get all documents with pagination
    */
   static async getAllDocuments(
-    page: number = 1, 
+    page: number = 1,
     perPage: number = 20,
-    filters: Record<string, any> = {}
+    filters: ApiParams = {}
   ): Promise<PaginatedResponse<KnowledgeDocument>> {
-    const params = { 
-      page, 
+    const params = {
+      page,
       per_page: perPage,
-      ...filters 
+      ...filters
     };
     return await ApiService.get<PaginatedResponse<KnowledgeDocument>>("/knowledge-base/documents", { params });
   }
@@ -33,27 +33,25 @@ class KnowledgeBaseService {
   static async createDocument(data: CreateDocumentRequest): Promise<KnowledgeDocument> {
     if (data.file) {
       const formData = new FormData();
-      
+
       // Add document data to form
       Object.keys(data).forEach(key => {
         if (key !== 'file') {
-          // @ts-ignore
           const value = data[key];
           if (Array.isArray(value)) {
             formData.append(key, JSON.stringify(value));
-          } else {
-            // @ts-ignore
-            formData.append(key, value);
+          } else if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
           }
         }
       });
-      
+
       // Add file
       formData.append('file', data.file);
-      
+
       return await ApiService.uploadFile<KnowledgeDocument>("/knowledge-base/documents/upload", formData);
     }
-    
+
     return await ApiService.post<KnowledgeDocument>("/knowledge-base/documents", data);
   }
 

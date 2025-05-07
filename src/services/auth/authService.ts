@@ -1,161 +1,120 @@
+import apiService from '../api/api';
+import { AUTH_ENDPOINTS } from '../api/config';
 
-import ApiService from "@/services/api/base";
-import { User } from "@/types/user";
-import { LoginResponse, PasswordResetRequestData, SignupData } from "./types";
-import tokenService from "./tokenService";
-import { handleAuthError } from "./utils";
-import { AUTH_ENDPOINTS } from "@/services/api/config";
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  token?: string;
+  // add more fields as necessary
+}
 
-/**
- * Service for handling authentication related API calls
- */
-const AuthService = {
-  /**
-   * Login a user
-   * @param email User's email
-   * @param password User's password
-   * @param rememberMe Whether to remember the user's session
-   */
-  login: async (
-    email: string,
-    password: string,
-    rememberMe: boolean = false
-  ): Promise<LoginResponse> => {
-    try {
-      const response = await ApiService.post<LoginResponse>(AUTH_ENDPOINTS.LOGIN, {
-        email,
-        password,
-        remember: rememberMe,
+interface AuthResponse {
+  user: User;
+  token: string;
+  message?: string;
+}
+
+// Authenticated login
+export const login = async (
+  email: string,
+  password: string
+): Promise<User & { token: string }> => {
+  try {
+    console.log('Starting login process for email:', email);
+
+    // The CSRF token is now fetched in the form component before calling this function
+    // This ensures a fresh token is available for the request
+
+    // Make the POST request
+    const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, { email, password });
+    console.log('Login successful, response:', response);
+
+    // The backend returns { message, user, token }
+    // We need to merge the user object with the token
+    const { user, token } = response;
+
+    // Store token in localStorage for future requests
+    localStorage.setItem('auth_token', token);
+
+    return { ...user, token };
+  } catch (error) {
+    console.error('Login error:', error);
+
+    // Log more details about the error
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as any;
+      console.error('Login error details:', {
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        data: axiosError.response?.data
       });
-      // Store the token
-      if (response && response.token) {
-        tokenService.setToken(response.token, rememberMe);
-      }
-      return response;
-    } catch (error) {
-      handleAuthError(error);
-      throw error;
     }
-  },
 
-  /**
-   * Logout the current user
-   */
-  logout: async (): Promise<void> => {
-    try {
-      await ApiService.post(AUTH_ENDPOINTS.LOGOUT);
-      // Clear the token regardless of API response
-      tokenService.clearToken();
-    } catch (error) {
-      tokenService.clearToken();
-      handleAuthError(error);
-      throw error;
-    }
-  },
-
-  /**
-   * Register a new user
-   */
-  signup: async (data: SignupData): Promise<LoginResponse> => {
-    try {
-      // Use standardized endpoint 
-      const response = await ApiService.post<LoginResponse>(AUTH_ENDPOINTS.REGISTER, data);
-
-      // Store the token if available
-      if (response && response.token) {
-        tokenService.setToken(response.token, false);
-      }
-
-      return response;
-    } catch (error) {
-      console.error("Registration error:", error);
-      handleAuthError(error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get the current authenticated user
-   */
-  getCurrentUser: async (): Promise<User> => {
-    try {
-      return await ApiService.get<User>(AUTH_ENDPOINTS.CURRENT_USER);
-    } catch (error) {
-      handleAuthError(error);
-      throw error;
-    }
-  },
-
-  /**
-   * Check if user is authenticated
-   */
-  checkAuth: async (): Promise<boolean> => {
-    try {
-      // First check if we have a valid token
-      if (!tokenService.validateToken()) {
-        return false;
-      }
-
-      // Then verify with the server
-      await ApiService.get(AUTH_ENDPOINTS.CHECK_AUTH);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  },
-
-  /**
-   * Request a password reset
-   */
-  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
-    try {
-      const data = { email };
-      const response = await ApiService.post<{ message: string }>(
-        AUTH_ENDPOINTS.RESET_PASSWORD_REQUEST,
-        data
-      );
-      return { message: response.message || "Password reset email sent" };
-    } catch (error) {
-      handleAuthError(error);
-      throw error;
-    }
-  },
-
-  /**
-   * Reset password with token
-   */
-  resetPassword: async (
-    data: PasswordResetRequestData
-  ): Promise<{ message: string }> => {
-    try {
-      const response = await ApiService.post<{ message: string }>(
-        AUTH_ENDPOINTS.RESET_PASSWORD,
-        data
-      );
-      return { message: response.message || "Password reset successful" };
-    } catch (error) {
-      handleAuthError(error);
-      throw error;
-    }
-  },
-
-  /**
-   * Verify email with token
-   */
-  verifyEmail: async (token: string): Promise<{ message: string }> => {
-    try {
-      const response = await ApiService.post<{ message: string }>(
-        AUTH_ENDPOINTS.VERIFY_EMAIL,
-        {
-          token,
-        }
-      );
-      return { message: response.message || "Email verified successfully" };
-    } catch (error) {
-      handleAuthError(error);
-      throw error;
-    }
-  },
+    throw error;
+  }
 };
 
-export default AuthService;
+// Authenticated logout
+export const logout = async (): Promise<void> => {
+  await apiService.post(AUTH_ENDPOINTS.LOGOUT);
+
+  // Clear token from localStorage
+  localStorage.removeItem('auth_token');
+};
+
+// Fetch current user info
+export const getUser = async (): Promise<User> => {
+  return await apiService.get<User>(AUTH_ENDPOINTS.CURRENT_USER);
+};
+
+// Alias getUser as getCurrentUser for compatibility with useAuth.tsx
+export const getCurrentUser = getUser;
+
+// Register a new user
+export const register = async (userData: {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<User> => {
+  try {
+    console.log('Starting registration process with data:', {
+      ...userData,
+      password: '[REDACTED]',
+      password_confirmation: '[REDACTED]'
+    });
+
+    // The CSRF token is now fetched in the form component before calling this function
+    // This ensures a fresh token is available for the request
+
+    // Make the POST request
+    const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.REGISTER, userData);
+    console.log('Registration successful, response:', response);
+
+    // If registration returns a token, store it
+    if (response.token) {
+      localStorage.setItem('auth_token', response.token);
+      return { ...response.user, token: response.token };
+    }
+
+    return response.user;
+  } catch (error) {
+    console.error('Registration error:', error);
+
+    // Log more details about the error
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as any;
+      console.error('Registration error details:', {
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        data: axiosError.response?.data
+      });
+    }
+
+    throw error;
+  }
+};
+
+// Alias register as signup for compatibility with useAuth.tsx
+export const signup = register;
