@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { getCSRFToken, refreshCSRFToken, testCSRFProtection, runCsrfDiagnostics, testCsrfEndpoint } from '@/services/api/csrf-debug';
-import { addGlobalHeader, removeGlobalHeader } from '@/services/api/config';
+import apiService, { getCsrfToken } from '@/services/api/api';
 import { API_BASE_URL } from '@/services/api/config';
 
 export function CsrfDebugger() {
@@ -14,41 +13,77 @@ export function CsrfDebugger() {
   const [diagResult, setDiagResult] = useState<any>(null);
   const [endpointResult, setEndpointResult] = useState<any>(null);
 
+  // Get CSRF token from cookies
+  const getTokenFromCookies = (): string | null => {
+    const cookies = document.cookie.split(';');
+    const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='));
+    if (xsrfCookie) {
+      return decodeURIComponent(xsrfCookie.trim().substring('XSRF-TOKEN='.length));
+    }
+    return null;
+  };
+
   const handleGetToken = () => {
-    const token = getCSRFToken();
+    const token = getTokenFromCookies();
     setCsrfToken(token);
   };
 
   const handleRefreshToken = async () => {
-    const token = await refreshCSRFToken();
-    setCsrfToken(token);
-  };
-
-  const handleTestProtection = async () => {
-    const result = await testCSRFProtection();
-    setTestResult(result);
-  };
-
-  const handleRunDiagnostics = async () => {
-    const result = await runCsrfDiagnostics();
-    setDiagResult(result);
-  };
-
-  const handleTestEndpoint = async () => {
-    const result = await testCsrfEndpoint();
-    setEndpointResult(result);
-  };
-
-  const handleAddHeader = () => {
-    const token = getCSRFToken();
-    if (token) {
-      addGlobalHeader('X-CSRF-TOKEN', token);
+    try {
+      await getCsrfToken();
+      const token = getTokenFromCookies();
       setCsrfToken(token);
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
     }
   };
 
-  const handleRemoveHeader = () => {
-    removeGlobalHeader('X-CSRF-TOKEN');
+  const handleTestProtection = async () => {
+    try {
+      await apiService.post('/csrf-test', { test: true });
+      setTestResult(true);
+    } catch (error) {
+      console.error('CSRF test failed:', error);
+      setTestResult(false);
+    }
+  };
+
+  const handleRunDiagnostics = async () => {
+    try {
+      // Get initial token
+      const initialToken = getTokenFromCookies();
+
+      // Refresh token
+      await getCsrfToken();
+      const refreshedToken = getTokenFromCookies();
+
+      // Test protection
+      let testResult = false;
+      try {
+        await apiService.post('/csrf-test', { test: true });
+        testResult = true;
+      } catch (error) {
+        testResult = false;
+      }
+
+      setDiagResult({
+        initialToken,
+        refreshedToken,
+        testResult
+      });
+    } catch (error) {
+      console.error('Diagnostics failed:', error);
+    }
+  };
+
+  const handleTestEndpoint = async () => {
+    try {
+      const result = await apiService.post('/csrf-test');
+      setEndpointResult(result);
+    } catch (error) {
+      console.error('Endpoint test failed:', error);
+      setEndpointResult({ success: false, message: 'Request failed' });
+    }
   };
 
   return (
@@ -78,12 +113,6 @@ export function CsrfDebugger() {
           </Button>
           <Button size="sm" onClick={handleRefreshToken}>
             Refresh Token
-          </Button>
-          <Button size="sm" onClick={handleAddHeader}>
-            Add as Header
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleRemoveHeader}>
-            Remove Header
           </Button>
         </div>
 

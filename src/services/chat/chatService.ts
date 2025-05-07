@@ -1,5 +1,5 @@
 
-import ApiService from '../api/base';
+import ApiService from '../api/api';
 import { Message, Session } from '@/types/chat';
 
 // Get all chat sessions

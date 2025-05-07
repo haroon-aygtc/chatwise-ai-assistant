@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { User } from "@/types/domain";
 import { useQuery } from "@tanstack/react-query";
-import ApiService from "@/services/api/base";
+import ApiService from "@/services/api/api";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "@/constants";
 import { PaginatedResponse, ApiRequestParams } from "@/services/api/types";
 

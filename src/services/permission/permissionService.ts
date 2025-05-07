@@ -1,5 +1,5 @@
 
-import ApiService from '../api/base';
+import ApiService from '../api/api';
 import { Permission, PermissionCategory } from '@/types/domain';
 import { PERMISSION_ENDPOINTS } from '../api/config';
 

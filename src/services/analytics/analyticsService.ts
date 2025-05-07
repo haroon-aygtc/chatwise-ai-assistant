@@ -1,5 +1,5 @@
 
-import ApiService from '../api/base';
+import ApiService from '../api/api';
 
 // Types for analytics data
 export interface AnalyticsOverview {
@@ -109,3 +109,4 @@ export const exportAnalyticsData = async (
     responseType: 'blob'
   });
 };
+

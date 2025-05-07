@@ -1,5 +1,5 @@
 
-import ApiService from '../api/base';
+import ApiService from '../api/api';
 
 export interface UserSettings {
   id: string;

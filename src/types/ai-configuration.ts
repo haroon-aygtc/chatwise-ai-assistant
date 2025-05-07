@@ -12,14 +12,24 @@ export interface AIModel {
   id: string;
   name: string;
   provider: string;
-  version: string;
-  maxTokens: number;
-  temperature: number;
+  modelId: string;
   isActive: boolean;
+  isDefault: boolean;
+  capabilities: {
+    chat: boolean;
+    completion: boolean;
+    embeddings: boolean;
+    vision: boolean;
+  };
+  pricePerToken: number;
+  contextSize: number;
+  createdAt: string;
+  updatedAt: string;
   description?: string;
-  configuration: Record<string, any>;
-  context?: Record<string, any>;
+  configuration: Record<string, unknown>;
+  context?: Record<string, unknown>;
   apiKey?: string;
+  baseUrl?: string;
 }
 
 export interface RoutingRule {
@@ -59,6 +69,13 @@ export interface PromptVariable {
   type?: string;
   defaultValue?: string;
   required?: boolean;
+}
+
+export interface PromptTemplateCategory {
+  id: string;
+  name: string;
+  description?: string;
+  templates?: PromptTemplate[];
 }
 
 export interface FollowUpSuggestion {
@@ -124,3 +141,35 @@ export interface ResponseFormat {
     formatCodeBlocks: boolean;
   };
 }
+
+export interface CreateResponseFormatRequest {
+  name: string;
+  description?: string;
+  format: string;
+  length: string;
+  tone: string;
+  isDefault?: boolean;
+  options: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
+}
+
+/**
+ * System Prompt
+ * Represents the system-wide prompt template used as a base for all AI interactions
+ */
+export interface SystemPrompt {
+  id: string;
+  content: string;
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  lastModifiedBy?: string;
+  isActive?: boolean;
+}
+
+
+

@@ -1,5 +1,5 @@
 
-import ApiService from "../api/base";
+import ApiService from "../api/api";
 
 export interface DataSourceSettings {
   enabled: boolean;
@@ -12,7 +12,7 @@ export interface DataSource {
   name: string;
   type: 'database' | 'storage' | 'knowledge-base' | 'website' | 'file' | 'context' | 'rule';
   description?: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   isActive: boolean;
   priority: number;
   createdAt?: string;

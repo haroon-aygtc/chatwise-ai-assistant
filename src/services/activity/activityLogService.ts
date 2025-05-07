@@ -1,5 +1,5 @@
 
-import ApiService from "../api/base";
+import ApiService from "../api/api";
 import { ApiRequestParams } from "../api/types";
 
 export interface ActivityLog {
@@ -17,7 +17,7 @@ export interface ActivityLog {
 }
 
 export interface ActivityLogResponse {
-  meta: any;
+  meta: Record<string, unknown>;
   data: ActivityLog[];
   total: number;
   per_page: number;

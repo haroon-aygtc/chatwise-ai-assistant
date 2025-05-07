@@ -1,5 +1,5 @@
 
-import ApiService from '../api/base';
+import ApiService from '../api/api';
 
 export interface FollowUpSetting {
   id?: number;
@@ -16,7 +16,7 @@ export interface FollowUpSuggestion {
   description?: string;
   order: number;
   is_active: boolean;
-  trigger_conditions?: Record<string, any>;
+  trigger_conditions?: Record<string, unknown>;
   created_at?: string;
   updated_at?: string;
 }

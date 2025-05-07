@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User } from '@/types/user';
 import { Role } from '@/types';
 import { AuthService, tokenService } from '@/services/auth';
@@ -34,12 +34,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Define logout function with useCallback to avoid dependency issues
+  const logout = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      await AuthService.logout();
+      toast({
+        title: "Logout successful",
+        description: "You have been logged out.",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setIsLoading(false);
+    }
+  }, [toast]);
+
   // Function to refresh authentication status
-  const refreshAuth = async (): Promise<void> => {
+  const refreshAuth = useCallback(async (): Promise<void> => {
     try {
       if (tokenService.validateToken()) {
         const userData = await AuthService.getCurrentUser();
-        setUser(userData);
+        // Convert the authService User to our domain User
+        setUser({
+          ...userData,
+          id: String(userData.id), // Convert number id to string
+        } as User);
       } else {
         setUser(null);
         tokenService.clearToken();
@@ -49,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       tokenService.clearToken();
     }
-  };
+  }, []);
 
   // Check if the user is authenticated on component mount
   useEffect(() => {
@@ -58,7 +80,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         if (tokenService.validateToken()) {
           const userData = await AuthService.getCurrentUser();
-          setUser(userData);
+          // Convert the authService User to our domain User
+          setUser({
+            ...userData,
+            id: String(userData.id), // Convert number id to string
+          } as User);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -69,7 +95,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+  }, []); // This effect should only run once on mount
 
+  // Set up token expiry check in a separate effect
+  useEffect(() => {
     // Set up token expiry check interval
     const tokenCheckInterval = setInterval(() => {
       // If token is expired, trigger a logout
@@ -88,23 +117,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       clearInterval(tokenCheckInterval);
     };
-  }, []);
+  }, [user, logout, toast]); // Add dependencies to avoid stale closures
 
   // Login function
-  const login = async (email: string, password: string, rememberMe = false): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string, _rememberMe = false): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const response = await AuthService.login(email, password, rememberMe);
-      setUser(response.user);
+      // AuthService.login only takes email and password
+      const response = await AuthService.login(email, password);
+
+      // Convert the response to our domain User type
+      setUser({
+        ...response,
+        id: String(response.id), // Convert number id to string
+      } as User);
+
       toast({
         title: "Login successful",
-        description: `Welcome back, ${response.user.name}!`,
+        description: `Welcome back, ${response.name}!`,
         duration: 3000,
       });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login failed:', error);
-      const message = error.message || 'Failed to login. Please check your credentials.';
+      const message = error instanceof Error ? error.message : 'Failed to login. Please check your credentials.';
       toast({
         title: "Login failed",
         description: message,
@@ -115,23 +151,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   // Signup function
-  const signup = async (data: SignupData): Promise<boolean> => {
+  const signup = useCallback(async (data: SignupData): Promise<boolean> => {
     setIsLoading(true);
     try {
       const response = await AuthService.signup(data);
-      setUser(response.user);
+
+      // Convert the response to our domain User type
+      setUser({
+        ...response,
+        id: String(response.id), // Convert number id to string
+      } as User);
+
       toast({
         title: "Registration successful",
         description: "Your account has been created.",
         duration: 3000,
       });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Signup failed:', error);
-      const message = error.message || 'Registration failed. Please try again.';
+      const message = error instanceof Error ? error.message : 'Registration failed. Please try again.';
       toast({
         title: "Registration failed",
         description: message,
@@ -142,28 +184,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Logout function
-  const logout = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      await AuthService.logout();
-      toast({
-        title: "Logout successful",
-        description: "You have been logged out.",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      setIsLoading(false);
-    }
-  };
+  }, [toast]);
 
   // Check if user has a specific role
-  const hasRole = (role: string | string[]): boolean => {
+  const hasRole = useCallback((role: string | string[]): boolean => {
     if (!user || !user.roles) return false;
 
     if (Array.isArray(role)) {
@@ -175,18 +199,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const roleNames = (user.roles as Role[]).map(r => r.name);
     return roleNames.includes(role);
-  };
+  }, [user]);
 
   // Check if user has a specific permission
-  const hasPermission = (permission: string | string[]): boolean => {
+  const hasPermission = useCallback((permission: string | string[]): boolean => {
     if (!user || !user.permissions) return false;
 
     const permissions = Array.isArray(permission) ? permission : [permission];
     return permissions.some(p => user.permissions?.includes(p));
-  };
+  }, [user]);
 
   // Update user data
-  const updateUser = (userData: Partial<User>): void => {
+  const updateUser = useCallback((userData: Partial<User>): void => {
     setUser(prevUser => {
       if (prevUser) {
         // If we already have a user, update their properties
@@ -197,7 +221,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return userData as User;
       }
     });
-  };
+  }, []);
 
   const value: AuthContextType = {
     user,

@@ -39,6 +39,7 @@ import WidgetBuilderPage from "@/pages/admin/WidgetBuilderPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import ChatSessionsPage from "@/pages/admin/ChatSessionsPage";
 import KnowledgeBasePage from "@/pages/admin/KnowledgeBasePage";
+import ApiTester from "./components/api-tester/ApiTester";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -65,6 +66,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="api-tester" element={<ApiTester />} />
 
               {/* Protected routes */}
               <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />

@@ -38,6 +38,7 @@ export interface CreateDocumentRequest {
   categoryId: string;
   tags: string[];
   file?: File;
+  [key: string]: unknown;
 }
 
 export interface UpdateDocumentRequest {
@@ -47,21 +48,25 @@ export interface UpdateDocumentRequest {
   content?: string;
   categoryId?: string;
   tags?: string[];
+  [key: string]: unknown;
 }
 
 export interface CreateCategoryRequest {
   name: string;
   description?: string;
+  [key: string]: unknown;
 }
 
 export interface UpdateCategoryRequest {
   id: string;
   name?: string;
   description?: string;
+  [key: string]: unknown;
 }
 
 export interface UpdateSettingsRequest {
   isEnabled?: boolean;
   priority?: 'low' | 'medium' | 'high' | 'exclusive';
   includeCitations?: boolean;
+  [key: string]: unknown;
 }

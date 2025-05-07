@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -24,23 +23,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Insert a default response format
-        DB::table('response_formats')->insert([
-            'name' => 'Default Format',
-            'description' => 'Standard response format with paragraphs and bullet points',
-            'format' => 'paragraphs',
-            'length' => 'medium',
-            'tone' => 'professional',
-            'is_default' => true,
-            'options' => json_encode([
-                'useHeadings' => true,
-                'useBulletPoints' => true,
-                'includeLinks' => true,
-                'formatCodeBlocks' => true
-            ]),
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
     }
 
     /**
