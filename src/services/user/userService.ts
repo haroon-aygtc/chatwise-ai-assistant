@@ -1,5 +1,5 @@
 
-import ApiService, { ApiParams } from "../api/api";
+import apiService, { ApiParams } from "../api/api";
 import { User, EditedUser, NewUser } from "@/types/domain";
 import { ApiRequestParams, PaginatedResponse } from "../api/types";
 
@@ -10,14 +10,14 @@ class UserService {
   static async getUsers(
     params: ApiParams = {}
   ): Promise<PaginatedResponse<User>> {
-    return await ApiService.get<PaginatedResponse<User>>("/users", params);
+    return await apiService.get<PaginatedResponse<User>>("/users", params);
   }
 
   /**
    * Get a single user by ID
    */
   static async getUser(id: string): Promise<User> {
-    return await ApiService.get<User>(`/users/${id}`);
+    return await apiService.get<User>(`/users/${id}`);
   }
 
   /**
@@ -26,7 +26,7 @@ class UserService {
   static async createUser(
     userData: NewUser
   ): Promise<{ user: User; message: string }> {
-    return await ApiService.post<{ user: User; message: string }>(
+    return await apiService.post<{ user: User; message: string }>(
       "/users",
       userData
     );
@@ -39,7 +39,7 @@ class UserService {
     id: string,
     userData: Partial<EditedUser>
   ): Promise<{ user: User; message: string }> {
-    return await ApiService.put<{ user: User; message: string }>(
+    return await apiService.put<{ user: User; message: string }>(
       `/users/${id}`,
       userData
     );
@@ -51,7 +51,7 @@ class UserService {
   static async deleteUser(
     id: string
   ): Promise<{ message: string }> {
-    return await ApiService.delete<{ message: string }>(
+    return await apiService.delete<{ message: string }>(
       `/users/${id}`
     );
   }
@@ -63,7 +63,7 @@ class UserService {
     id: string,
     status: "active" | "inactive" | "pending" | "suspended"
   ): Promise<{ user: User; message: string }> {
-    return await ApiService.put<{ user: User; message: string }>(
+    return await apiService.put<{ user: User; message: string }>(
       `/users/${id}/status`,
       { status }
     );
@@ -76,7 +76,7 @@ class UserService {
     id: string,
     roles: string[]
   ): Promise<{ user: User; message: string }> {
-    return await ApiService.put<{ user: User; message: string }>(
+    return await apiService.put<{ user: User; message: string }>(
       `/users/${id}/assign-roles`,
       { roles }
     );

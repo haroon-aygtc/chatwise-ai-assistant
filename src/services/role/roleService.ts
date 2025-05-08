@@ -1,5 +1,5 @@
 
-import ApiService from "../api/api";
+import apiService from "../api/api";
 import { Role, NewRole, EditedRole } from "@/types/domain";
 
 class RoleService {
@@ -7,14 +7,14 @@ class RoleService {
    * Get all roles
    */
   static async getRoles(): Promise<Role[]> {
-    return await ApiService.get<Role[]>("/roles");
+    return await apiService.get<Role[]>("/roles");
   }
 
   /**
    * Get a single role by ID
    */
   static async getRole(id: string): Promise<Role> {
-    return await ApiService.get<Role>(`/roles/${id}`);
+    return await apiService.get<Role>(`/roles/${id}`);
   }
 
   /**
@@ -23,7 +23,7 @@ class RoleService {
   static async createRole(
     roleData: NewRole
   ): Promise<{ role: Role; message: string }> {
-    return await ApiService.post<{ role: Role; message: string }>(
+    return await apiService.post<{ role: Role; message: string }>(
       "/roles",
       roleData
     );
@@ -36,7 +36,7 @@ class RoleService {
     id: string,
     roleData: Partial<EditedRole>
   ): Promise<{ role: Role; message: string }> {
-    return await ApiService.put<{ role: Role; message: string }>(
+    return await apiService.put<{ role: Role; message: string }>(
       `/roles/${id}`,
       roleData
     );
@@ -46,7 +46,7 @@ class RoleService {
    * Delete a role
    */
   static async deleteRole(id: string): Promise<{ message: string }> {
-    return await ApiService.delete<{ message: string }>(`/roles/${id}`);
+    return await apiService.delete<{ message: string }>(`/roles/${id}`);
   }
 
   /**
@@ -56,7 +56,7 @@ class RoleService {
     id: string,
     permissions: string[]
   ): Promise<{ role: Role; message: string }> {
-    return await ApiService.put<{ role: Role; message: string }>(
+    return await apiService.put<{ role: Role; message: string }>(
       `/roles/${id}/permissions`,
       { permissions }
     );

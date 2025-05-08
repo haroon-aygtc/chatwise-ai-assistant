@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-import { AuthService } from "@/services/auth";
+import authService from "@/services/auth";
 import AuthLayout from "@/modules/auth/components/AuthLayout";
 
 // Schema for requesting password reset
@@ -68,7 +68,7 @@ export function ResetPasswordForm() {
   async function onRequestSubmit(values: z.infer<typeof requestSchema>) {
     setIsLoading(true);
     try {
-      await AuthService.requestPasswordReset(values.email);
+      await authService.requestPasswordReset(values.email);
       setEmailSent(true);
       toast({
         title: "Reset link sent",
@@ -92,7 +92,7 @@ export function ResetPasswordForm() {
     
     setIsLoading(true);
     try {
-      await AuthService.resetPassword({
+      await authService.resetPassword({
         token,
         email,
         password: values.password,

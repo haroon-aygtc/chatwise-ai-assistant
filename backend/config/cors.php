@@ -1,7 +1,7 @@
-
 <?php
 
 return [
+
     /*
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS) Configuration
@@ -15,47 +15,37 @@ return [
     |
     */
 
-    /*
-     * Paths that should be allowed to access cross-origin resources
-     */
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', 'register', '/'],
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+        'login',
+        'logout',
+        'register',
+        'user'
+    ],
 
-    /*
-     * Allowed request methods
-     */
     'allowed_methods' => ['*'],
 
-    /*
-     * Allowed origins - include all your frontend URLs
-     */
     'allowed_origins' => [
-        'http://localhost:8080',
-        'http://localhost:8081',
-        'http://localhost:5173',
+        env('APP_URL', 'http://localhost:8000'),
         'http://localhost:3000',
-        env('FRONTEND_URL', 'http://localhost:8080'),
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5174',
+        'http://localhost:8080',
+        'http://127.0.0.1:8080',
+        'http://localhost'
     ],
 
     'allowed_origins_patterns' => [],
 
-    /*
-     * Allowed headers in requests
-     */
     'allowed_headers' => ['*'],
 
-    /*
-     * Headers that will be exposed to JavaScript
-     */
     'exposed_headers' => ['*'],
 
-    /*
-     * Maximum age of the CORS preflight response (in seconds)
-     */
     'max_age' => 0,
 
-    /*
-     * Indicates whether the CORS request can include credentials like cookies
-     * This MUST be true for Sanctum to work with SPA authentication
-     */
     'supports_credentials' => true,
+
 ];

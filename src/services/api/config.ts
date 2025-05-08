@@ -9,17 +9,14 @@
  */
 
 // Environment variables with fallbacks
-const API_CONFIG_OBJECT = Object.freeze({
-  BASE_URL: import.meta.env.VITE_API_URL || '/api',
+const API_CONFIG = Object.freeze({
+  BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
   TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
   WITH_CREDENTIALS: true,
-  RETRY_ATTEMPTS: Number(import.meta.env.VITE_API_RETRY_ATTEMPTS) || 3,
-  DEBUG: import.meta.env.DEV || false,
+  DEBUG: import.meta.env.DEV,
 });
 
-// Export as both default and named export for maximum compatibility
-export default API_CONFIG_OBJECT;
-export { API_CONFIG_OBJECT as API_CONFIG };
+export default API_CONFIG;
 
 /**
  * API Endpoints

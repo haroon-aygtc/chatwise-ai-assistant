@@ -55,8 +55,12 @@ class ResponseFormatService
         $format = new ResponseFormat();
         $format->name = $data['name'];
         $format->description = $data['description'] ?? null;
-        $format->content = $data['content'];
+        $format->format = $data['format'];
+        $format->length = $data['length'];
+        $format->tone = $data['tone'];
+        $format->content = $data['content'] ?? null;
         $format->system_instructions = $data['system_instructions'] ?? null;
+        $format->options = $data['options'] ?? [];
         $format->parameters = $data['parameters'] ?? null;
         $format->is_default = $data['is_default'] ?? false;
         $format->save();
@@ -87,27 +91,27 @@ class ResponseFormatService
         if (isset($data['name'])) {
             $format->name = $data['name'];
         }
-        
+
         if (isset($data['description'])) {
             $format->description = $data['description'];
         }
-        
+
         if (isset($data['content'])) {
             $format->content = $data['content'];
         }
-        
+
         if (isset($data['system_instructions'])) {
             $format->system_instructions = $data['system_instructions'];
         }
-        
+
         if (isset($data['parameters'])) {
             $format->parameters = $data['parameters'];
         }
-        
+
         if (isset($data['is_default'])) {
             $format->is_default = $data['is_default'];
         }
-        
+
         $format->save();
 
         return $format;
@@ -177,7 +181,7 @@ class ResponseFormatService
         // This is a simplified example. In a real implementation,
         // this would connect to an AI service to format the response
         $formatted = 'This is a test formatted response for: ' . $prompt;
-        
+
         // Apply some basic formatting based on the format content
         if (strpos($format->content, '{{bullet_points}}') !== false) {
             $formatted = "• Point 1 about $prompt\n• Point 2 about $prompt\n• Point 3 about $prompt";

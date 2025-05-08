@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -15,11 +15,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useSignupValidation } from "../hooks/useSignupValidation";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { getCsrfToken } from "@/services/api/api";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -44,9 +42,9 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { toast } = useToast();
   const { validatePassword } = useSignupValidation();
   const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,32 +61,23 @@ export function SignupForm() {
     setIsLoading(true);
 
     try {
-      // First, fetch a fresh CSRF token
-      await getCsrfToken();
-
-      console.log('CSRF token fetched, proceeding with signup');
-
-      // Now attempt the signup
-      await signup({
+      // Call signup function from auth hook - CSRF token is handled in authService
+      const success = await signup({
         name: values.name,
         email: values.email,
         password: values.password,
         password_confirmation: values.confirmPassword,
       });
 
-      toast({
-        title: "Account created successfully!",
-        description: "You can now log in with your credentials.",
-      });
-
-      // Redirect to login page or dashboard
+      if (success) {
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1000);
+      }
     } catch (error) {
       console.error("Signup error:", error);
-      toast({
-        variant: "destructive",
-        title: "Sign up failed",
-        description: error instanceof Error ? error.message : "Please try again later.",
-      });
+      // Error handling is now centralized in authService
     } finally {
       setIsLoading(false);
     }
@@ -249,10 +238,7 @@ export function SignupForm() {
 
       <div className="text-center text-sm">
         Already have an account?{" "}
-        <Link
-          to="/login"
-          className="text-primary font-medium hover:underline"
-        >
+        <Link to="/login" className="text-primary font-medium hover:underline">
           Sign in
         </Link>
       </div>

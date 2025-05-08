@@ -11,7 +11,7 @@ import { PromptTemplate, PromptTemplateCategory } from '@/types/ai-configuration
  * Get all prompt templates
  * @returns Array of prompt templates
  */
-export const getAllTemplates = async (): Promise<PromptTemplate[]> => {
+export const getAllTemplates = async (filters: { search: string | undefined; category: string | undefined; }): Promise<PromptTemplate[]> => {
   return apiService.get<PromptTemplate[]>('/ai/prompt-templates');
 };
 

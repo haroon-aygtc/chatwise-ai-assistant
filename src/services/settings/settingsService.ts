@@ -1,5 +1,5 @@
 
-import ApiService from '../api/api';
+import apiService from '../api/api';
 
 export interface UserSettings {
   id: string;
@@ -34,17 +34,17 @@ export interface UserSettings {
 
 // Get user settings
 export const getUserSettings = async (): Promise<UserSettings> => {
-  return ApiService.get<UserSettings>('/settings/user');
+  return apiService.get<UserSettings>('/settings/user');
 };
 
 // Update user settings
 export const updateUserSettings = async (data: Partial<UserSettings>): Promise<UserSettings> => {
-  return ApiService.put<UserSettings>('/settings/user', data);
+  return apiService.put<UserSettings>('/settings/user', data);
 };
 
 // Reset user settings to defaults
 export const resetUserSettings = async (): Promise<UserSettings> => {
-  return ApiService.post<UserSettings>('/settings/user/reset');
+  return apiService.post<UserSettings>('/settings/user/reset');
 };
 
 export interface AppSettings {
@@ -66,10 +66,10 @@ export interface AppSettings {
 
 // Get app settings
 export const getAppSettings = async (): Promise<AppSettings> => {
-  return ApiService.get<AppSettings>('/settings/app');
+  return apiService.get<AppSettings>('/settings/app');
 };
 
 // Update app settings (admin only)
 export const updateAppSettings = async (data: Partial<AppSettings>): Promise<AppSettings> => {
-  return ApiService.put<AppSettings>('/settings/app', data);
+  return apiService.put<AppSettings>('/settings/app', data);
 };

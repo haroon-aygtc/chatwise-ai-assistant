@@ -169,7 +169,7 @@ export function useAIModels() {
 
   // Test model mutation
   const testModelMutation = useMutation({
-    mutationFn: ({ id, prompt, options }: { id: string; prompt: string; options?: Record<string, any> }) => 
+    mutationFn: ({ id, prompt, options }: { id: string; prompt: string; options?: Record<string, unknown> }) => 
       AIModelService.testModel(id, prompt, options),
   });
 
@@ -216,7 +216,7 @@ export function useAIModels() {
     }
   };
 
-  const testModel = async (id: string, prompt: string, options?: Record<string, any>) => {
+  const testModel = async (id: string, prompt: string, options?: Record<string, unknown>) => {
     try {
       return await testModelMutation.mutateAsync({ id, prompt, options });
     } catch (error) {

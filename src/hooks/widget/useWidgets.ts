@@ -8,7 +8,7 @@ export const useWidgets = (widgetId?: string) => {
   const [widgets, setWidgets] = useState<ChatWidget[]>([]);
   const [currentWidget, setCurrentWidget] = useState<ChatWidget | null>(null);
   const [widgetSettings, setWidgetSettings] = useState<WidgetSettings[]>([]);
-  const [customizationOptions, setCustomizationOptions] = useState<any>(null);
+  const [customizationOptions, setCustomizationOptions] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [previewCode, setPreviewCode] = useState('');

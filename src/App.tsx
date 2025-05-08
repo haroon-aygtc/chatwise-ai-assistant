@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from "react";
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -56,53 +54,51 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="ui-theme">
         <AuthProvider>
-          <Router>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/components" element={<ComponentShowcasePage />} />
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/components" element={<ComponentShowcasePage />} />
 
-              {/* Auth routes - Use the page components directly which internally use AuthLayout */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="api-tester" element={<ApiTester />} />
+            {/* Auth routes - Use the page components directly which internally use AuthLayout */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="api-tester" element={<ApiTester />} />
 
-              {/* Protected routes */}
-              <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            {/* Protected routes */}
+            <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
 
-              {/* Admin routes */}
+            {/* Admin routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requiredPermission="access admin panel">
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/admin/dashboard" />} />
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="users" element={<UserManagementPage />} />
               <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute requiredPermission="access admin panel">
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="/admin/dashboard" />} />
-                <Route path="dashboard" element={<AdminDashboardPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="users" element={<UserManagementPage />} />
-                <Route
-                  path="ai-config"
-                  element={<AIConfigurationPage />}
-                />
-                <Route
-                  path="knowledge-base"
-                  element={<KnowledgeBasePage />}
-                />
-                <Route path="widget-builder" element={<WidgetBuilderPage />} />
-                <Route path="chat-sessions" element={<ChatSessionsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-              </Route>
+                path="ai-config"
+                element={<AIConfigurationPage />}
+              />
+              <Route
+                path="knowledge-base"
+                element={<KnowledgeBasePage />}
+              />
+              <Route path="widget-builder" element={<WidgetBuilderPage />} />
+              <Route path="chat-sessions" element={<ChatSessionsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
 
-              {/* Error pages */}
-              <Route path="/unauthorized" element={<UnauthorizedPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Router>
+            {/* Error pages */}
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
           <Toaster position="top-right" />
           <SessionExpirationModal />
         </AuthProvider>

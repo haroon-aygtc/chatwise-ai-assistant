@@ -14,13 +14,13 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolesAndPermissionsSeeder::class,
+            AdminPermissionsSeeder::class, // Add our new seeder to ensure admin has all permissions
             UserSeeder::class,
             PromptTemplateSeeder::class,
             KnowledgeBaseSeeder::class,
             ResponseFormatSeeder::class,
             FollowUpSeeder::class,
             ActivityLogSeeder::class,
-
         ]);
     }
 }
