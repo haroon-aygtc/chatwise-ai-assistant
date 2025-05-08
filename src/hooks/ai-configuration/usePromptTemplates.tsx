@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as promptTemplateService from "../../services/ai-configuration/promptTemplateService";
-import type { PromptTemplate } from "../../types/ai-configuration";
+import * as promptTemplateService from "@/services/ai-configuration/promptTemplateService";
+import type { PromptTemplate, PromptTemplateCategory } from "@/types/ai-configuration";
 
 // Define request types
 export interface CreatePromptTemplateRequest {
@@ -41,7 +42,7 @@ export function usePromptTemplates() {
 
   // Fetch templates
   const {
-    data: templatesData = [],
+    data: templates = [],
     isLoading,
     isError,
     refetch
@@ -150,7 +151,7 @@ export function usePromptTemplates() {
   };
 
   return {
-    templates: templatesData,
+    templates,
     categories,
     searchQuery,
     setSearchQuery,

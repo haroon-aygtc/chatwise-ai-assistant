@@ -1,21 +1,17 @@
 
-import * as React from "react";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import React from 'react';
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface OverviewProps {
   data: Array<{ date: string; count: number }>;
-  isLoading: boolean;
+  isLoading?: boolean;
 }
 
-export function Overview({ data, isLoading }: OverviewProps) {
+export function Overview({ data, isLoading = false }: OverviewProps) {
   if (isLoading) {
     return (
-      <div className="h-[350px] w-full flex items-center justify-center">
-        <div className="space-y-4 w-full">
-          <Skeleton className="h-[250px] w-full" />
-        </div>
+      <div className="h-[350px] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -37,7 +33,11 @@ export function Overview({ data, isLoading }: OverviewProps) {
           axisLine={false}
           tickFormatter={(value) => `${value}`}
         />
-        <Tooltip />
+        <Tooltip
+          cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+          labelFormatter={(label) => `Date: ${label}`}
+          formatter={(value: number) => [`${value} chats`, 'Count']}
+        />
         <Bar
           dataKey="count"
           fill="currentColor"

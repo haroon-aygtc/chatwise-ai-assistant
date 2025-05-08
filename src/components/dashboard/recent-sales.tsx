@@ -1,7 +1,6 @@
 
-import * as React from "react";
+import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface RecentSession {
   id: string;
@@ -16,20 +15,21 @@ interface RecentSession {
 
 interface RecentSalesProps {
   data: RecentSession[];
-  isLoading: boolean;
+  isLoading?: boolean;
 }
 
-export function RecentSales({ data, isLoading }: RecentSalesProps) {
+export function RecentSales({ data, isLoading = false }: RecentSalesProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center space-x-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-[200px]" />
-              <Skeleton className="h-4 w-[160px]" />
+          <div key={i} className="flex items-center animate-pulse">
+            <div className="h-10 w-10 rounded-full bg-muted mr-4"></div>
+            <div className="space-y-2 flex-1">
+              <div className="h-4 bg-muted rounded w-1/4"></div>
+              <div className="h-3 bg-muted rounded w-2/4"></div>
             </div>
+            <div className="h-4 bg-muted rounded w-16"></div>
           </div>
         ))}
       </div>
@@ -38,27 +38,33 @@ export function RecentSales({ data, isLoading }: RecentSalesProps) {
 
   return (
     <div className="space-y-8">
-      {data.map((session) => (
-        <div key={session.id} className="flex items-center">
-          <Avatar className="h-9 w-9">
-            <AvatarImage src={session.user.avatar} alt="Avatar" />
-            <AvatarFallback>
-              {session.user.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="ml-4 space-y-1">
-            <p className="text-sm font-medium leading-none">{session.user.name}</p>
-            <p className="text-sm text-muted-foreground">{session.user.email}</p>
+      {data.map((session) => {
+        // Get initials from user name
+        const initials = session.user.name
+          .split(' ')
+          .map(part => part[0])
+          .join('')
+          .toUpperCase();
+
+        return (
+          <div key={session.id} className="flex items-center">
+            <Avatar className="h-9 w-9 mr-4">
+              {session.user.avatar ? (
+                <AvatarImage src={session.user.avatar} alt={session.user.name} />
+              ) : null}
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <div className="ml-4 space-y-1 flex-1">
+              <p className="text-sm font-medium leading-none">{session.user.name}</p>
+              <p className="text-sm text-muted-foreground">{session.user.email}</p>
+            </div>
+            <div className="ml-auto text-right flex flex-col items-end">
+              <p className="text-sm font-medium">{session.messageCount} messages</p>
+              <p className="text-xs text-muted-foreground">{session.date}</p>
+            </div>
           </div>
-          <div className="ml-auto font-medium">
-            {session.messageCount} messages
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
