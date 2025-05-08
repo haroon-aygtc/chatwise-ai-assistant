@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User } from '@/types/user';
 import { Role } from '@/types';
@@ -50,15 +51,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Function to refresh authentication status
   const refreshAuth = useCallback(async (): Promise<void> => {
+    if (isLoading) return; // Prevent multiple simultaneous refresh attempts
+    
+    setIsLoading(true);
     try {
       if (tokenService.validateToken()) {
+        console.log('Refreshing authentication state...');
         const userData = await authService.getCurrentUser();
         // Convert the authService User to our domain User
         setUser({
           ...userData,
           id: String(userData.id), // Convert number id to string
         } as User);
+        console.log('Authentication refreshed successfully:', userData);
       } else {
+        console.log('No valid token found during refresh');
         setUser(null);
         tokenService.clearToken();
       }
@@ -66,14 +73,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Error refreshing auth:', error);
       setUser(null);
       tokenService.clearToken();
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [isLoading]);
 
   // Check if the user is authenticated on component mount
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
       try {
+        await tokenService.initCsrfToken(); // Make sure CSRF token is initialized first
+        
         if (tokenService.validateToken()) {
           console.log('Token is valid, fetching user data...');
           try {
@@ -132,6 +143,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Make sure CSRF token is initialized first
+      await tokenService.initCsrfToken();
+      
       const response = await authService.login({
         email,
         password,
@@ -144,11 +158,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: String(response.user.id),
       } as User);
 
-      // Toast is now handled in authService
       return true;
     } catch (error) {
       console.error('Login failed:', error);
-      // Error toast is handled in authService
       return false;
     } finally {
       setIsLoading(false);
@@ -159,6 +171,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signup = useCallback(async (data: SignupData): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Make sure CSRF token is initialized first
+      await tokenService.initCsrfToken();
+      
       const response = await authService.register({
         name: data.name,
         email: data.email,
@@ -172,11 +187,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: String(response.user.id), // Convert number id to string
       } as User);
 
-      // Toast is now handled in authService
       return true;
     } catch (error) {
       console.error('Signup failed:', error);
-      // Error toast is handled in authService
       return false;
     } finally {
       setIsLoading(false);
@@ -185,39 +198,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check if user has a specific role
   const hasRole = useCallback((role: string | string[]): boolean => {
-    if (!user || !user.roles) return false; // Return false if user or roles are not defined
+    if (!user || !user.roles) return false;
 
     if (Array.isArray(role)) {
       return role.some(r => {
-        const roleNames = (user.roles as Role[]).map(role => role.name || role);
+        const roleNames = Array.isArray(user.roles) 
+          ? user.roles.map(userRole => 
+              typeof userRole === 'object' && userRole.name ? userRole.name : userRole
+            )
+          : [];
         return roleNames.includes(r);
       });
     }
 
-    const roleNames = (user.roles as Role[]).map(role => role.name || role);
+    const roleNames = Array.isArray(user.roles) 
+      ? user.roles.map(userRole => 
+          typeof userRole === 'object' && userRole.name ? userRole.name : userRole
+        )
+      : [];
     return roleNames.includes(role);
   }, [user]);
 
   // Check if user has a specific permission
   const hasPermission = useCallback((permission: string | string[]): boolean => {
-    if (!user) return false; // Return false if user is not defined
+    if (!user) return false;
 
-    // Special case: admin users always have access to admin panel
+    // Special case: admin users always have all permissions
     if (user.roles && Array.isArray(user.roles)) {
-      const isAdmin = user.roles.some(role =>
-        (typeof role === 'object' && role.name === 'admin') || role.name === 'admin'
-      );
+      const isAdmin = user.roles.some(role => {
+        const roleName = typeof role === 'object' && role.name ? role.name : role;
+        return roleName === 'admin';
+      });
 
-      if (isAdmin) {
-        const adminPanelPermissions = ['access admin panel', 'access_admin_panel'];
-        if (Array.isArray(permission)) {
-          if (permission.some(p => adminPanelPermissions.includes(p))) {
-            return true;
-          }
-        } else if (adminPanelPermissions.includes(permission)) {
-          return true;
-        }
-      }
+      if (isAdmin) return true;
     }
 
     // Regular permission check
@@ -231,11 +244,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateUser = useCallback((userData: Partial<User>): void => {
     setUser(prevUser => {
       if (prevUser) {
-        // If we already have a user, update their properties
         return { ...prevUser, ...userData };
       } else {
-        // If we don't have a user yet (like during mock login),
-        // create a new user object with the provided data
         return userData as User;
       }
     });

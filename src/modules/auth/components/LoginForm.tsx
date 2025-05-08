@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,8 +15,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useToast } from "@/components/ui/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -32,6 +34,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,18 +48,24 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // Call login function from auth hook - CSRF token is handled in authService
+      // Call login function from auth hook
       const success = await login(values.email, values.password, values.remember);
 
       if (success) {
         // Check if there's a redirect URL in session storage
-        const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
-        if (redirectUrl) {
-          sessionStorage.removeItem('redirectAfterLogin');
-          navigate(redirectUrl);
-        } else {
-          navigate('/dashboard');
-        }
+        const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+        
+        // Display success toast
+        toast({
+          title: "Login successful",
+          description: "You have been successfully logged in",
+        });
+        
+        // Clear the redirect URL from session storage
+        sessionStorage.removeItem('redirectAfterLogin');
+        
+        // Navigate to the redirect URL
+        navigate(redirectUrl);
       }
     } catch (error) {
       console.error("Login error:", error);

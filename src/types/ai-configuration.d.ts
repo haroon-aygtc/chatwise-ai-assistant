@@ -3,7 +3,7 @@ export interface AIModel {
   id: string;
   name: string;
   provider: string;
-  version?: string; // Make version optional
+  version?: string;
   apiKey?: string;
   isActive: boolean;
   isDefault?: boolean;
