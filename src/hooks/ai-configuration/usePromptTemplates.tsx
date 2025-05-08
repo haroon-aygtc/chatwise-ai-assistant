@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as promptTemplateService from "@/services/ai-configuration/promptTemplateService";
-import { PromptTemplate } from "@/types/ai-configuration";
+import * as promptTemplateService from "../../services/ai-configuration/promptTemplateService";
+import type { PromptTemplate } from "../../types/ai-configuration";
 
 // Define request types
 export interface CreatePromptTemplateRequest {
@@ -41,7 +40,7 @@ export function usePromptTemplates() {
   };
 
   // Fetch templates
-  const { 
+  const {
     data: templatesData = [],
     isLoading,
     isError,
@@ -52,7 +51,7 @@ export function usePromptTemplates() {
   });
 
   // Fetch categories
-  const { 
+  const {
     data: categories = [],
   } = useQuery({
     queryKey: ['promptTemplateCategories'],
@@ -61,29 +60,31 @@ export function usePromptTemplates() {
 
   // Create template mutation
   const createTemplateMutation = useMutation({
-    mutationFn: (templateData: CreatePromptTemplateRequest) => 
+    mutationFn: (templateData: CreatePromptTemplateRequest) =>
       promptTemplateService.createTemplate(templateData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       setShowAddDialog(false);
       toast.success("Template created successfully");
     },
-    onError: (error: any) => {
-      toast.error(`Failed to create template: ${error.message || "Unknown error"}`);
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to create template: ${errorMessage}`);
     }
   });
 
   // Update template mutation
   const updateTemplateMutation = useMutation({
-    mutationFn: (params: { id: string, data: UpdatePromptTemplateRequest }) => 
+    mutationFn: (params: { id: string, data: UpdatePromptTemplateRequest }) =>
       promptTemplateService.updateTemplate(params.id, params.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       setShowEditDialog(false);
       toast.success("Template updated successfully");
     },
-    onError: (error: any) => {
-      toast.error(`Failed to update template: ${error.message || "Unknown error"}`);
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to update template: ${errorMessage}`);
     }
   });
 
@@ -94,8 +95,9 @@ export function usePromptTemplates() {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       toast.success("Template deleted successfully");
     },
-    onError: (error: any) => {
-      toast.error(`Failed to delete template: ${error.message || "Unknown error"}`);
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to delete template: ${errorMessage}`);
     }
   });
 
@@ -125,19 +127,22 @@ export function usePromptTemplates() {
 
   const handleSaveEditedTemplate = (templateData: UpdatePromptTemplateRequest) => {
     if (!currentTemplate) return;
-    updateTemplateMutation.mutate({ 
-      id: currentTemplate.id, 
-      data: templateData 
+    updateTemplateMutation.mutate({
+      id: currentTemplate.id,
+      data: templateData
     });
   };
 
   const handleCloneTemplate = (template: PromptTemplate) => {
+    // Extract variable names from PromptVariable objects
+    const variableNames = template.variables ? template.variables.map(v => v.name) : [];
+
     const clonedTemplate: CreatePromptTemplateRequest = {
       name: `${template.name} (Copy)`,
       description: template.description,
       template: template.template,
-      variables: template.variables,
-      category: template.category,
+      variables: variableNames, // Use the extracted variable names
+      category: template.category || "General", // Provide a default category if undefined
       isActive: template.isActive,
       isDefault: false, // Clone should never be default
     };

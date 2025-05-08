@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User } from '@/types/user';
 import { Role } from '@/types';
-import { AuthService, tokenService } from '@/services/auth';
+import authService, { tokenService } from '@/services/auth';
 import { SignupData } from '@/services/auth/types';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -29,7 +28,7 @@ interface AuthProviderProps {
 }
 
 // Auth provider component
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
@@ -38,25 +37,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      await AuthService.logout();
-      toast({
-        title: "Logout successful",
-        description: "You have been logged out.",
-        duration: 3000,
-      });
+      await authService.logout();
+      // Toast is now handled in authService
+      setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
+      // Error toast is handled in authService
     } finally {
-      setUser(null);
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   // Function to refresh authentication status
   const refreshAuth = useCallback(async (): Promise<void> => {
     try {
       if (tokenService.validateToken()) {
-        const userData = await AuthService.getCurrentUser();
+        const userData = await authService.getCurrentUser();
         // Convert the authService User to our domain User
         setUser({
           ...userData,
@@ -79,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       try {
         if (tokenService.validateToken()) {
-          const userData = await AuthService.getCurrentUser();
+          const userData = await authService.getCurrentUser();
           // Convert the authService User to our domain User
           setUser({
             ...userData,
@@ -120,71 +116,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user, logout, toast]); // Add dependencies to avoid stale closures
 
   // Login function
-  const login = useCallback(async (email: string, password: string, _rememberMe = false): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // AuthService.login only takes email and password
-      const response = await AuthService.login(email, password);
+      const response = await authService.login({
+        email,
+        password,
+        remember: rememberMe
+      });
 
       // Convert the response to our domain User type
       setUser({
-        ...response,
-        id: String(response.id), // Convert number id to string
+        ...response.user,
+        id: String(response.user.id), 
       } as User);
 
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${response.name}!`,
-        duration: 3000,
-      });
+      // Toast is now handled in authService
       return true;
     } catch (error) {
       console.error('Login failed:', error);
-      const message = error instanceof Error ? error.message : 'Failed to login. Please check your credentials.';
-      toast({
-        title: "Login failed",
-        description: message,
-        variant: "destructive",
-        duration: 5000,
-      });
+      // Error toast is handled in authService
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   // Signup function
   const signup = useCallback(async (data: SignupData): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const response = await AuthService.signup(data);
+      const response = await authService.register({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        password_confirmation: data.password_confirmation
+      });
 
       // Convert the response to our domain User type
       setUser({
-        ...response,
-        id: String(response.id), // Convert number id to string
+        ...response.user,
+        id: String(response.user.id), // Convert number id to string
       } as User);
 
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created.",
-        duration: 3000,
-      });
+      // Toast is now handled in authService
       return true;
     } catch (error) {
       console.error('Signup failed:', error);
-      const message = error instanceof Error ? error.message : 'Registration failed. Please try again.';
-      toast({
-        title: "Registration failed",
-        description: message,
-        variant: "destructive",
-        duration: 5000,
-      });
+      // Error toast is handled in authService
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   // Check if user has a specific role
   const hasRole = useCallback((role: string | string[]): boolean => {
@@ -237,13 +221,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+}
 
 // Hook to use the auth context
-export const useAuth = (): AuthContextType => {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

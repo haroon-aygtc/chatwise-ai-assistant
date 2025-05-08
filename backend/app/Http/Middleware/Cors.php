@@ -23,7 +23,18 @@ class Cors
         }
 
         // Get the allowed origins from config or env
-        $allowedOrigins = config('cors.allowed_origins', ['http://localhost:8080', 'http://localhost:8081']);
+        $allowedOrigins = config('cors.allowed_origins', [
+                'http://localhost:8080',
+                'http://localhost:8081',
+                'http://localhost:5173',
+                'http://localhost:5174',
+                'http://localhost:3000',
+                'http://127.0.0.1:8080',
+                'http://127.0.0.1:8081',
+                'http://127.0.0.1:5173',
+                'http://127.0.0.1:5174',
+                'http://127.0.0.1:3000'
+        ]);
 
         $origin = $request->header('Origin');
         if (in_array($origin, $allowedOrigins)) {
@@ -31,7 +42,7 @@ class Cors
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
             $response->headers->set('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, X-Token-Auth, Authorization, X-CSRF-TOKEN, X-XSRF-TOKEN');
-            $response->headers->set('Access-Control-Expose-Headers', 'Authorization');
+            $response->headers->set('Access-Control-Expose-Headers', '*');
         }
 
         return $response;

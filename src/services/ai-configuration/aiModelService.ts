@@ -1,4 +1,3 @@
-
 import apiService from '../api/api';
 import { AIModel, ModelProvider, RoutingRule } from '@/types/ai-configuration';
 
@@ -95,7 +94,7 @@ export const setDefaultModel = async (id: string): Promise<AIModel> => {
 /**
  * Test a model with a prompt
  */
-export const testModel = async (id: string, prompt: string, options?: Record<string, any>): Promise<string> => {
+export const testModel = async (id: string, prompt: string, options?: Record<string, unknown>): Promise<string> => {
   try {
     const response = await apiService.post<{ data: { response: string } }>(`/ai/models/${id}/test`, {
       prompt,

@@ -19,6 +19,7 @@ import { toast } from "@/components/ui/use-toast";
 import API_CONFIG_IMPORT, {
   getGlobalHeaders
 } from "./config";
+import tokenService from "../auth/tokenService";
 
 // Use the imported config
 const API_CONFIG = API_CONFIG_IMPORT;
@@ -49,100 +50,13 @@ export interface ApiErrorResponse {
 }
 
 /**
- * CSRF Token Management
- * Handles fetching and refreshing CSRF tokens for Laravel Sanctum
- */
-class CsrfTokenManager {
-  private xsrfTokenValue: string | null = null;
-
-  /**
-   * Fetch a fresh CSRF token from the server
-   */
-  public async fetchToken(): Promise<void> {
-    try {
-      // Extract base URL (removing /api if present)
-      const baseUrl = API_CONFIG.BASE_URL.replace(/\/api\/?$/, '');
-
-      // Make sure baseUrl is the actual domain root for proper cookie setting
-      const baseUrlObj = new URL(baseUrl, window.location.origin);
-      const csrfUrl = `${baseUrlObj.origin}/sanctum/csrf-cookie`;
-
-      console.log('Fetching CSRF token from:', csrfUrl);
-
-      // Make request to Sanctum endpoint
-      const response = await fetch(csrfUrl, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Cache-Control': 'no-cache, no-store',
-          ...getGlobalHeaders(),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`CSRF token fetch failed: ${response.status}`);
-      }
-
-      // Extract the CSRF token from cookies
-      const xsrfCookie = this.getXsrfCookieFromDocument();
-      if (xsrfCookie) {
-        const tokenParts = xsrfCookie.split('=');
-        if (tokenParts.length > 1) {
-          this.xsrfTokenValue = decodeURIComponent(tokenParts[1]);
-          console.log('CSRF token refreshed successfully');
-        } else {
-          console.error('CSRF token format invalid:', xsrfCookie);
-        }
-      } else {
-        console.error('No XSRF cookie found after fetch');
-      }
-
-      if (API_CONFIG.DEBUG) {
-        console.log('CSRF token refreshed successfully');
-      }
-    } catch (error) {
-      console.error('CSRF token fetch error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get the current CSRF token value
-   */
-  public getToken(): string | null {
-    return this.xsrfTokenValue;
-  }
-
-  /**
-   * Helper method to get XSRF cookie from document
-   */
-  private getXsrfCookieFromDocument(): string | undefined {
-    const cookies = document.cookie.split(';');
-    const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='));
-    if (xsrfCookie) {
-      console.log('Found XSRF cookie:', xsrfCookie);
-    } else {
-      console.log('No XSRF cookie found in document.cookie');
-      console.log('All cookies:', document.cookie);
-    }
-    return xsrfCookie;
-  }
-}
-
-/**
  * HTTP Client
  * Wraps axios with custom configuration and interceptors
  */
 class HttpClient {
   private instance: AxiosInstance;
-  private csrfManager: CsrfTokenManager;
 
   constructor() {
-    // Create CSRF manager
-    this.csrfManager = new CsrfTokenManager();
-
     // Create axios instance with default config
     this.instance = axios.create({
       baseURL: API_CONFIG.BASE_URL,
@@ -168,7 +82,7 @@ class HttpClient {
     this.instance.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         // Add auth token if available
-        const token = localStorage.getItem('auth_token');
+        const token = tokenService.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -180,7 +94,7 @@ class HttpClient {
         });
 
         // Explicitly add CSRF token if available
-        const csrfToken = this.csrfManager.getToken();
+        const csrfToken = tokenService.getCsrfToken();
         if (csrfToken) {
           config.headers['X-XSRF-TOKEN'] = csrfToken;
         }
@@ -237,7 +151,7 @@ class HttpClient {
         // Handle CSRF token expiry (status 419)
         if (response?.status === 419) {
           try {
-            await this.csrfManager.fetchToken();
+            await tokenService.initCsrfToken();
             // Retry the original request
             return this.instance(error.config as AxiosRequestConfig);
           } catch (csrfError) {
@@ -247,7 +161,7 @@ class HttpClient {
 
         // Handle authentication errors (status 401)
         if (response?.status === 401) {
-          localStorage.removeItem('auth_token');
+          tokenService.clearToken();
           if (!window.location.pathname.includes('/login')) {
             window.location.href = '/login?session=expired';
           }
@@ -286,7 +200,7 @@ class HttpClient {
    * Fetch CSRF token
    */
   public async fetchCsrfToken(): Promise<void> {
-    return this.csrfManager.fetchToken();
+    await tokenService.initCsrfToken();
   }
 
   /**

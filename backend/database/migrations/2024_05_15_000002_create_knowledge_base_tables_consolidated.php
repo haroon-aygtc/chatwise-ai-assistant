@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop tables if they exist to avoid conflicts
+        Schema::dropIfExists('knowledge_documents');
+        Schema::dropIfExists('document_categories');
+        Schema::dropIfExists('knowledge_base_settings');
+
         // Create document_categories table
         Schema::create('document_categories', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -47,6 +53,15 @@ return new class extends Migration
             $table->boolean('include_citations')->default(true);
             $table->timestamps();
         });
+
+        // Insert default settings
+        DB::table('knowledge_base_settings')->insert([
+            'is_enabled' => true,
+            'priority' => 'medium',
+            'include_citations' => true,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
     }
 
     /**

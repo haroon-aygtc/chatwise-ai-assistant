@@ -17,8 +17,12 @@ class ResponseFormat extends Model
     protected $fillable = [
         'name',
         'description',
+        'format',
+        'length',
+        'tone',
         'content',
         'system_instructions',
+        'options',
         'parameters',
         'is_default',
     ];
@@ -29,6 +33,7 @@ class ResponseFormat extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'options' => 'array',
         'parameters' => 'array',
         'is_default' => 'boolean',
     ];

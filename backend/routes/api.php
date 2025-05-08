@@ -56,7 +56,7 @@ use Illuminate\Support\Facades\Route;
 //     Route::get('/permissions/categories', [PermissionController::class, 'getByCategory']);
 // });
 
-// AI Model routes
+// AI Model routes - "AI Configuration"
 // Route::prefix('ai')->group(function () {
 //     // Public endpoints (no auth required)
 //     Route::get('/models/public', [AIModelController::class, 'getPublicModels']);
@@ -148,6 +148,9 @@ use Illuminate\Support\Facades\Route;
 
 // });
 
+//testapi
+Route::get('/users-all', [\App\Http\Controllers\API\UserController::class, 'getAllUsers']); // Test API
+
 
 
 // Authentication routes
@@ -165,8 +168,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'destroy']);
     Route::put('/users/{id}/status', [\App\Http\Controllers\API\UserController::class, 'updateStatus']);
     Route::put('/users/{id}/assign-roles', [\App\Http\Controllers\API\UserController::class, 'assignRoles']);
-
-
+    Route::get('/users/{id}/permissions', [\App\Http\Controllers\API\UserController::class, 'getUserPermissions']);
+    Route::put('/users/{id}/permissions', [\App\Http\Controllers\API\UserController::class, 'updateUserPermissions']);
 
     Route::get('/roles', [RoleController::class, 'index']);
     Route::get('/roles/{role}', [RoleController::class, 'show']);

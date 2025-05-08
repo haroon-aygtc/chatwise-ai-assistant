@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { cn } from "@/lib/utils";
-import { AuthProvider } from "@/hooks/auth/useAuth";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -20,7 +19,6 @@ const AuthLayout = ({
   className,
 }: AuthLayoutProps) => {
   return (
-    <AuthProvider>
       <div className="min-h-screen bg-background flex">
         {/* Left panel with image - only shown on larger screens */}
         {showImagePanel && (
@@ -295,7 +293,6 @@ const AuthLayout = ({
           </div>
         </div>
       </div>
-    </AuthProvider>
   );
 };
 

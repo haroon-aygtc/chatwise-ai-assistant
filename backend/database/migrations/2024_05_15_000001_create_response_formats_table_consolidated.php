@@ -11,14 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop the table if it exists to avoid conflicts
+        Schema::dropIfExists('response_formats');
+
         Schema::create('response_formats', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->text('content');
+            $table->string('format');
+            $table->string('length');
+            $table->string('tone');
+            $table->text('content')->nullable();
             $table->text('system_instructions')->nullable();
-            $table->json('parameters')->nullable();
             $table->boolean('is_default')->default(false);
+            $table->json('options');
+            $table->json('parameters')->nullable();
             $table->timestamps();
         });
     }

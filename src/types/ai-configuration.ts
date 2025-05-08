@@ -1,4 +1,3 @@
-
 import {
   Permission,
   PermissionCategory,
@@ -6,7 +5,7 @@ import {
   NewRole,
   EditedRole,
   DateRange,
-} from "./domain";
+} from './domain';
 
 export interface AIModel {
   id: string;
@@ -169,6 +168,17 @@ export interface SystemPrompt {
   updatedAt?: string;
   lastModifiedBy?: string;
   isActive?: boolean;
+}
+
+export interface ModelProvider {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  // Add more fields as needed based on backend structure
 }
 
 

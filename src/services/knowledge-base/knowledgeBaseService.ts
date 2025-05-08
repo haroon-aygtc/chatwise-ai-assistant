@@ -1,5 +1,5 @@
 
-import ApiService, { ApiParams } from "../api/api";
+import apiService, { ApiParams } from "../api/api";
 import { KnowledgeDocument, DocumentCategory, KnowledgeBaseSettings, CreateDocumentRequest, UpdateDocumentRequest, CreateCategoryRequest, UpdateCategoryRequest, UpdateSettingsRequest } from "@/types/knowledge-base";
 import { PaginatedResponse } from "../api/types";
 
@@ -17,14 +17,14 @@ class KnowledgeBaseService {
       per_page: perPage,
       ...filters
     };
-    return await ApiService.get<PaginatedResponse<KnowledgeDocument>>("/knowledge-base/documents", { params });
+    return await apiService.get<PaginatedResponse<KnowledgeDocument>>("/knowledge-base/documents", { params });
   }
 
   /**
    * Get document by ID
    */
   static async getDocumentById(id: string): Promise<KnowledgeDocument> {
-    return await ApiService.get<KnowledgeDocument>(`/knowledge-base/documents/${id}`);
+    return await apiService.get<KnowledgeDocument>(`/knowledge-base/documents/${id}`);
   }
 
   /**
@@ -49,31 +49,31 @@ class KnowledgeBaseService {
       // Add file
       formData.append('file', data.file);
 
-      return await ApiService.uploadFile<KnowledgeDocument>("/knowledge-base/documents/upload", formData);
+      return await apiService.uploadFile<KnowledgeDocument>("/knowledge-base/documents/upload", formData);
     }
 
-    return await ApiService.post<KnowledgeDocument>("/knowledge-base/documents", data);
+    return await apiService.post<KnowledgeDocument>("/knowledge-base/documents", data);
   }
 
   /**
    * Update an existing document
    */
   static async updateDocument(id: string, data: UpdateDocumentRequest): Promise<KnowledgeDocument> {
-    return await ApiService.put<KnowledgeDocument>(`/knowledge-base/documents/${id}`, data);
+    return await apiService.put<KnowledgeDocument>(`/knowledge-base/documents/${id}`, data);
   }
 
   /**
    * Delete a document
    */
   static async deleteDocument(id: string): Promise<void> {
-    await ApiService.delete(`/knowledge-base/documents/${id}`);
+    await apiService.delete(`/knowledge-base/documents/${id}`);
   }
 
   /**
    * Search documents
    */
   static async searchDocuments(query: string): Promise<PaginatedResponse<KnowledgeDocument>> {
-    return await ApiService.get<PaginatedResponse<KnowledgeDocument>>("/knowledge-base/documents/search", {
+    return await apiService.get<PaginatedResponse<KnowledgeDocument>>("/knowledge-base/documents/search", {
       params: { query }
     });
   }
@@ -82,49 +82,49 @@ class KnowledgeBaseService {
    * Get all categories
    */
   static async getAllCategories(): Promise<DocumentCategory[]> {
-    return await ApiService.get<DocumentCategory[]>("/knowledge-base/categories");
+    return await apiService.get<DocumentCategory[]>("/knowledge-base/categories");
   }
 
   /**
    * Get category by ID
    */
   static async getCategoryById(id: string): Promise<DocumentCategory> {
-    return await ApiService.get<DocumentCategory>(`/knowledge-base/categories/${id}`);
+    return await apiService.get<DocumentCategory>(`/knowledge-base/categories/${id}`);
   }
 
   /**
    * Create a new category
    */
   static async createCategory(data: CreateCategoryRequest): Promise<DocumentCategory> {
-    return await ApiService.post<DocumentCategory>("/knowledge-base/categories", data);
+    return await apiService.post<DocumentCategory>("/knowledge-base/categories", data);
   }
 
   /**
    * Update an existing category
    */
   static async updateCategory(id: string, data: UpdateCategoryRequest): Promise<DocumentCategory> {
-    return await ApiService.put<DocumentCategory>(`/knowledge-base/categories/${id}`, data);
+    return await apiService.put<DocumentCategory>(`/knowledge-base/categories/${id}`, data);
   }
 
   /**
    * Delete a category
    */
   static async deleteCategory(id: string): Promise<void> {
-    await ApiService.delete(`/knowledge-base/categories/${id}`);
+    await apiService.delete(`/knowledge-base/categories/${id}`);
   }
 
   /**
    * Get knowledge base settings
    */
   static async getSettings(): Promise<KnowledgeBaseSettings> {
-    return await ApiService.get<KnowledgeBaseSettings>("/knowledge-base/settings");
+    return await apiService.get<KnowledgeBaseSettings>("/knowledge-base/settings");
   }
 
   /**
    * Update knowledge base settings
    */
   static async updateSettings(settings: UpdateSettingsRequest): Promise<KnowledgeBaseSettings> {
-    return await ApiService.put<KnowledgeBaseSettings>("/knowledge-base/settings", settings);
+    return await apiService.put<KnowledgeBaseSettings>("/knowledge-base/settings", settings);
   }
 }
 

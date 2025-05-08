@@ -1,7 +1,8 @@
-
 /**
- * Service for managing authentication tokens
+ * Service for managing authentication and CSRF tokens
  */
+
+import axios from 'axios';
 
 const TOKEN_KEY = "auth_token";
 // Add a token expiration buffer (5 minutes) to refresh before actual expiration
@@ -25,17 +26,8 @@ class TokenService {
    */
   setToken(token: string, rememberMe: boolean = false): void {
     this.storageType = rememberMe ? 'localStorage' : 'sessionStorage';
-    if (rememberMe) {
-      // Store in localStorage for persistence across browser sessions
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(`${TOKEN_KEY}_created`, Date.now().toString());
-      localStorage.setItem(`${TOKEN_KEY}_remember`, "true");
-    } else {
-      // Store in sessionStorage for session-only persistence
-      sessionStorage.setItem(TOKEN_KEY, token);
-      sessionStorage.setItem(`${TOKEN_KEY}_created`, Date.now().toString());
-      sessionStorage.setItem(`${TOKEN_KEY}_remember`, "false");
-    }
+    const storage = this.getTokenStorage();
+    storage.setItem(TOKEN_KEY, token);
 
     // Log token expiration if available
     const decoded = this.decodeToken(token);
@@ -49,33 +41,21 @@ class TokenService {
    * Get the stored authentication token
    */
   getToken(): string | null {
-    // Get token from the appropriate storage
-    const storage = this.getTokenStorage();
-    if (storage === 'localStorage') {
-      return localStorage.getItem(TOKEN_KEY) || null;
-    }
-    return sessionStorage.getItem(TOKEN_KEY) || null;
+    return this.getTokenStorage().getItem(TOKEN_KEY);
   }
 
   /**
-   * Clear the stored authentication token and related data
+   * Clear the stored authentication token
    */
-  private getTokenStorage(): 'localStorage' | 'sessionStorage' {
-    return this.storageType;
+  clearToken(): void {
+    this.getTokenStorage().removeItem(TOKEN_KEY);
   }
 
-  clearToken(): void {
-    // Clear token storage based on where it was stored
-    const storage = this.getTokenStorage();
-    if (storage === 'localStorage') {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(`${TOKEN_KEY}_created`);
-      localStorage.removeItem(`${TOKEN_KEY}_remember`);
-    } else {
-      sessionStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(`${TOKEN_KEY}_created`);
-      sessionStorage.removeItem(`${TOKEN_KEY}_remember`);
-    }
+  /**
+   * Get the appropriate storage based on remember me setting
+   */
+  private getTokenStorage(): Storage {
+    return this.storageType === 'localStorage' ? localStorage : sessionStorage;
   }
 
   /**
@@ -106,43 +86,17 @@ class TokenService {
    */
   isTokenExpired(bufferSeconds: number = TOKEN_EXPIRY_BUFFER): boolean {
     const token = this.getToken();
-    if (!token) {
-      return true;
-    }
-
-    try {
-      const decoded = this.decodeToken(token);
-      if (!decoded) {
-        return true;
-      }
-
-      // If token doesn't have an expiration claim
-      if (!decoded.exp) {
-        // Check if token was created more than 24 hours ago as a fallback
-        const createdTime =
-          localStorage.getItem(`${TOKEN_KEY}_created`) ||
-          sessionStorage.getItem(`${TOKEN_KEY}_created`);
-
-        if (createdTime) {
-          const tokenAge = (Date.now() - parseInt(createdTime)) / 1000; // in seconds
-          const maxAge = 24 * 60 * 60; // 24 hours in seconds
-          return tokenAge > maxAge;
-        } else {
-          // If we can't determine when the token was created, consider it expired
-          return true;
-        }
-      }
-
-      // exp is in seconds, Date.now() is in milliseconds
-      const currentTime = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = decoded.exp - currentTime;
-
-      // Check if token is expired or will expire soon (within buffer)
-      return timeUntilExpiry <= bufferSeconds;
-    } catch (error) {
-      console.error("Error checking token expiration:", error);
-      return true;
-    }
+    if (!token) return true;
+    
+    const decoded = this.decodeToken(token);
+    if (!decoded) return true;
+    
+    // If no expiration in token, consider it not expired
+    if (!decoded.exp) return false;
+    
+    // Check if token has expired with buffer time
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decoded.exp - bufferSeconds <= currentTime;
   }
 
   /**
@@ -152,24 +106,7 @@ class TokenService {
   validateToken(): boolean {
     const token = this.getToken();
     if (!token) return false;
-
-    // Check if token is expired
-    if (this.isTokenExpired()) {
-      return false;
-    }
-
-    // Check if token is properly formatted
-    try {
-      const decoded = this.decodeToken(token);
-      if (!decoded) {
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Token validation error:", error);
-      return false;
-    }
+    return !this.isTokenExpired();
   }
 
   /**
@@ -184,6 +121,8 @@ class TokenService {
    */
   setCsrfToken(token: string): void {
     this.csrfToken = token;
+    // Also set in axios defaults
+    axios.defaults.headers.common['X-XSRF-TOKEN'] = token;
   }
 
   /**
@@ -202,70 +141,68 @@ class TokenService {
       if (existingCookie) {
         const token = decodeURIComponent(existingCookie.split("=")[1]);
         this.setCsrfToken(token);
+        console.log('Using existing CSRF token from cookie:', token);
         return token;
       }
 
       // Get the API URL from config
-      const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
+      const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
 
-      // For development environment with cross-domain API, use simulated token
-      if (
-        import.meta.env.DEV &&
-        !apiBaseUrl.includes(window.location.hostname)
-      ) {
-        const simulatedToken = "dev-csrf-token-" + Date.now();
-        this.setCsrfToken(simulatedToken);
-        return simulatedToken;
-      }
+      console.log('Fetching CSRF token from:', `${baseUrl}/sanctum/csrf-cookie`);
+      console.log('Current cookies:', document.cookie);
 
       // Make a request to get the CSRF cookie
-      const csrfUrl = apiBaseUrl.endsWith("/api")
-        ? `${apiBaseUrl.substring(
-            0,
-            apiBaseUrl.length - 4
-          )}/sanctum/csrf-cookie`
-        : `${apiBaseUrl}/sanctum/csrf-cookie`;
-
-      const response = await fetch(csrfUrl, {
+      const response = await fetch(`${baseUrl}/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
         headers: {
-          Accept: "application/json",
-          "Cache-Control": "no-cache",
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+          "Cache-Control": "no-cache, no-store",
+          "Content-Type": "application/json",
         },
       });
 
+      console.log('CSRF Response status:', response.status);
+      console.log('CSRF Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(
-          `Failed to fetch CSRF token: ${response.status} ${response.statusText}`
-        );
+        throw new Error(`Failed to fetch CSRF token: ${response.status}`);
       }
+
+      // Wait a moment for cookies to be set
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Extract the CSRF token from cookies
       const xsrfCookie = this.getXsrfCookieFromDocument();
-
       if (xsrfCookie) {
         const token = decodeURIComponent(xsrfCookie.split("=")[1]);
         this.setCsrfToken(token);
+        console.log('CSRF token refreshed successfully:', token);
         return token;
-      } else if (import.meta.env.DEV) {
+      }
+
+      console.error('No XSRF cookie found after fetch');
+      if (import.meta.env.DEV) {
         // In development, provide a fallback token
         const fallbackToken = "fallback-csrf-token-" + Date.now();
         this.setCsrfToken(fallbackToken);
+        console.log('Using fallback CSRF token for development:', fallbackToken);
         return fallbackToken;
       }
 
       return null;
     } catch (error) {
       console.error("Failed to initialize CSRF token:", error);
-
-      // In development, provide a fallback token
+      
       if (import.meta.env.DEV) {
-        const fallbackToken = "fallback-csrf-token-" + Date.now();
+        // In development, provide a fallback token on error
+        const fallbackToken = "error-fallback-csrf-token-" + Date.now();
         this.setCsrfToken(fallbackToken);
         return fallbackToken;
       }
-
+      
       return null;
     }
   }
@@ -275,10 +212,17 @@ class TokenService {
    */
   private getXsrfCookieFromDocument(): string | undefined {
     const cookies = document.cookie.split(";");
-    return cookies.find((cookie) => cookie.trim().startsWith("XSRF-TOKEN="));
+    const xsrfCookie = cookies.find((cookie) => cookie.trim().startsWith("XSRF-TOKEN="));
+    if (xsrfCookie) {
+      console.log('Found XSRF cookie:', xsrfCookie);
+    } else {
+      console.log('No XSRF cookie found in document.cookie');
+      console.log('All cookies:', document.cookie);
+    }
+    return xsrfCookie;
   }
 }
 
 // Create and export a singleton instance
-const tokenServiceInstance = new TokenService();
-export default tokenServiceInstance;
+const tokenService = new TokenService();
+export default tokenService;

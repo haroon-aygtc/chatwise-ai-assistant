@@ -23,21 +23,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Register web middleware group
         $middleware->web([
-            \Illuminate\Cookie\Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
-
-        // Configure Sanctum for stateful API
-        $middleware->statefulApi();
 
         // Register API middleware group
         $middleware->api([
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Http\Middleware\HandleCors::class,
+
         ]);
 
         // Register named middleware aliases
@@ -59,11 +52,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // Configure exception handling to return JSON for API routes
         $exceptions->renderable(function (\Throwable $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
+                $status = 500;
+                if ($e instanceof \Illuminate\Session\TokenMismatchException) {
+                    $status = 419;
+                } elseif ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    $status = 401;
+                } elseif ($e instanceof \Illuminate\Validation\ValidationException) {
+                    $status = 422;
+                }
+
                 return response()->json([
                     'success' => false,
                     'message' => $e->getMessage(),
                     'error' => $e->getMessage(),
-                ], 500);
+                ], $status);
             }
         });
     })->create();

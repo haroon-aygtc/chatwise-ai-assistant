@@ -230,4 +230,30 @@ class UserController extends Controller
             'user' => $user->load('roles'),
         ]);
     }
+
+    public function updateUserPermissions(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+        ]);
+
+        // If you're modifying your own permissions
+        if ($user->id === auth()->id() && !auth()->user()->hasRole('admin')) {
+            return response()->json([
+                'message' => 'You cannot modify your own permissions unless you are an admin'
+            ], 403);
+        }
+    }
+
+    public function getUserPermissions(User $user)
+    {
+        return response()->json($user->getAllPermissions()->pluck('name'));
+    }
+
+    public function getAllUsers(Request $request)
+    {
+        $users = User::all();
+        return response()->json($users);
+    }
 }

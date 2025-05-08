@@ -44,6 +44,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import type { EndpointDefinition } from "@/services/api-tester/registry";
 
 interface ApiTestRequest {
   id: string;
@@ -61,7 +62,7 @@ interface ApiTestResponse {
   status: number;
   statusText: string;
   headers: Record<string, string>;
-  body: any;
+  body: unknown;
   time: number;
 }
 
@@ -185,7 +186,11 @@ const ApiTester = () => {
   const [response, setResponse] = useState<ApiTestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedRequests, setSavedRequests] = useState<SavedRequest[]>([]);
-  const [registryEndpoints, setRegistryEndpoints] = useState<any[]>([]);
+  const [registryEndpoints, setRegistryEndpoints] = useState<{
+    category: string;
+    endpoint: string;
+    definition: EndpointDefinition;
+  }[]>([]);
   const [headerKeys, setHeaderKeys] = useState<string[]>(
     Object.keys(DEFAULT_HEADERS),
   );
@@ -429,7 +434,7 @@ const ApiTester = () => {
     setActiveTab("request");
   };
 
-  const handleLoadFromRegistry = (endpoint: any) => {
+  const handleLoadFromRegistry = (endpoint) => {
     // Extract path parameters from the endpoint path
     const pathParamMatches =
       endpoint.definition.path.match(/:[a-zA-Z0-9_]+/g) || [];
@@ -670,14 +675,14 @@ const ApiTester = () => {
                 <Accordion type="multiple" className="w-full">
                   {Object.entries(
                     registryEndpoints.reduce(
-                      (acc, endpoint) => {
+                      (acc, endpoint: { category: string; endpoint: string; definition: EndpointDefinition }) => {
                         if (!acc[endpoint.category]) {
                           acc[endpoint.category] = [];
                         }
                         acc[endpoint.category].push(endpoint);
                         return acc;
                       },
-                      {} as Record<string, any[]>,
+                      {} as Record<string, typeof registryEndpoints>,
                     ),
                   ).map(([category, endpoints]) => (
                     <AccordionItem key={category} value={category}>
@@ -702,7 +707,7 @@ const ApiTester = () => {
                                         : endpoint.definition.method === "PUT"
                                           ? "outline"
                                           : endpoint.definition.method ===
-                                              "DELETE"
+                                            "DELETE"
                                             ? "destructive"
                                             : "outline"
                                   }
@@ -979,7 +984,7 @@ const ApiTester = () => {
                           onValueChange={(value) => {
                             const templates =
                               EXAMPLE_TEMPLATES[
-                                request.contentType as keyof typeof EXAMPLE_TEMPLATES
+                              request.contentType as keyof typeof EXAMPLE_TEMPLATES
                               ] || [];
                             const template = templates.find(
                               (t) => t.name === value,
@@ -995,7 +1000,7 @@ const ApiTester = () => {
                           <SelectContent>
                             {(
                               EXAMPLE_TEMPLATES[
-                                request.contentType as keyof typeof EXAMPLE_TEMPLATES
+                              request.contentType as keyof typeof EXAMPLE_TEMPLATES
                               ] || []
                             ).map((template, index) => (
                               <SelectItem key={index} value={template.name}>

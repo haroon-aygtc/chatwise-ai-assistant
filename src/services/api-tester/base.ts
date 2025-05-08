@@ -6,7 +6,7 @@ const BASE_URL = "/api";
 
 // API tester functions
 export const apiTester = {
-  get: async (endpoint: string, params?: any) => {
+  get: async (endpoint: string, params?: unknown) => {
     try {
       const url = `${BASE_URL}${endpoint}`;
       const config: AxiosRequestConfig = { params };
@@ -27,7 +27,7 @@ export const apiTester = {
         headers: response.headers,
         success: true,
       };
-    } catch (error: any) {
+    } catch (error) {
       return {
         status: error.response?.status,
         data: error.response?.data,
@@ -37,7 +37,7 @@ export const apiTester = {
     }
   },
 
-  post: async (endpoint: string, data?: any) => {
+  post: async (endpoint: string, data?: unknown) => {
     try {
       const url = `${BASE_URL}${endpoint}`;
       const config: AxiosRequestConfig = {};
@@ -58,7 +58,7 @@ export const apiTester = {
         headers: response.headers,
         success: true,
       };
-    } catch (error: any) {
+    } catch (error) {
       return {
         status: error.response?.status,
         data: error.response?.data,
@@ -68,7 +68,7 @@ export const apiTester = {
     }
   },
 
-  put: async (endpoint: string, data?: any) => {
+  put: async (endpoint: string, data?: unknown) => {
     try {
       const url = `${BASE_URL}${endpoint}`;
       const config: AxiosRequestConfig = {};
@@ -89,7 +89,7 @@ export const apiTester = {
         headers: response.headers,
         success: true,
       };
-    } catch (error: any) {
+    } catch (error) {
       return {
         status: error.response?.status,
         data: error.response?.data,
@@ -120,7 +120,7 @@ export const apiTester = {
         headers: response.headers,
         success: true,
       };
-    } catch (error: any) {
+    } catch (error) {
       return {
         status: error.response?.status,
         data: error.response?.data,
@@ -142,7 +142,7 @@ export const apiTester = {
   },
 
   // Get status for test badge
-  testStatus: (response: any) => {
+  testStatus: (response) => {
     if (!response) return "error";
     if (response.success) return "success";
     if (response.status >= 400 && response.status < 500) return "client-error";

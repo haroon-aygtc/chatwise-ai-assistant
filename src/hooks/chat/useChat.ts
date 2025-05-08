@@ -64,8 +64,9 @@ export const useChat = (sessionId?: string) => {
       setCurrentSession(newSession);
       toast.success('New chat session created');
     },
-    onError: (error: any) => {
-      toast.error(`Failed to create chat session: ${error.message || "Unknown error"}`);
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to create chat session: ${errorMessage}`);
     }
   });
 
@@ -81,8 +82,9 @@ export const useChat = (sessionId?: string) => {
         queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
       }
     },
-    onError: (error: any) => {
-      toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to send message: ${errorMessage}`);
     }
   });
 
