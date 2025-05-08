@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { Overview } from "@/components/dashboard/overview";
 import { RecentSales } from "@/components/dashboard/recent-sales";
 import { FileDown, RefreshCw } from 'lucide-react';
 import * as analyticsService from '@/services/analytics/analyticsService';
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 // Combined analytics data interface
 interface CombinedAnalyticsData {
@@ -116,15 +115,10 @@ const Analytics = () => {
       format as 'csv' | 'json' | 'excel'
     ),
     onSuccess: () => {
-      toast({
-        title: "Analytics data exported successfully"
-      });
+      toast("Analytics data exported successfully");
     },
     onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: `Export failed: ${error.message}`
-      });
+      toast(`Export failed: ${error.message}`);
     }
   });
 
@@ -188,7 +182,7 @@ const Analytics = () => {
               >
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                <path d="M22 21v-2a4 4 0 0 1 0 7.75" />
               </svg>
             </CardHeader>
             <CardContent>
