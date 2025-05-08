@@ -75,16 +75,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       try {
         if (tokenService.validateToken()) {
-          const userData = await authService.getCurrentUser();
-          // Convert the authService User to our domain User
-          setUser({
-            ...userData,
-            id: String(userData.id), // Convert number id to string
-          } as User);
+          console.log('Token is valid, fetching user data...');
+          try {
+            const userData = await authService.getCurrentUser();
+            console.log('User data fetched successfully:', userData);
+            // Convert the authService User to our domain User
+            setUser({
+              ...userData,
+              id: String(userData.id), // Convert number id to string
+            } as User);
+          } catch (userError) {
+            console.error('Failed to fetch user data:', userError);
+            // If we can't fetch the user data, clear the token
+            tokenService.clearToken();
+            setUser(null);
+          }
+        } else {
+          console.log('No valid token found');
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         tokenService.clearToken();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -128,7 +141,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Convert the response to our domain User type
       setUser({
         ...response.user,
-        id: String(response.user.id), 
+        id: String(response.user.id),
       } as User);
 
       // Toast is now handled in authService
@@ -172,22 +185,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check if user has a specific role
   const hasRole = useCallback((role: string | string[]): boolean => {
-    if (!user || !user.roles) return false;
+    if (!user || !user.roles) return false; // Return false if user or roles are not defined
 
     if (Array.isArray(role)) {
       return role.some(r => {
-        const roleNames = (user.roles as Role[]).map(role => role.name);
+        const roleNames = (user.roles as Role[]).map(role => role.name || role);
         return roleNames.includes(r);
       });
     }
 
-    const roleNames = (user.roles as Role[]).map(r => r.name);
+    const roleNames = (user.roles as Role[]).map(role => role.name || role);
     return roleNames.includes(role);
   }, [user]);
 
   // Check if user has a specific permission
   const hasPermission = useCallback((permission: string | string[]): boolean => {
-    if (!user || !user.permissions) return false;
+    if (!user) return false; // Return false if user is not defined
+
+    // Special case: admin users always have access to admin panel
+    if (user.roles && Array.isArray(user.roles)) {
+      const isAdmin = user.roles.some(role =>
+        (typeof role === 'object' && role.name === 'admin') || role.name === 'admin'
+      );
+
+      if (isAdmin) {
+        const adminPanelPermissions = ['access admin panel', 'access_admin_panel'];
+        if (Array.isArray(permission)) {
+          if (permission.some(p => adminPanelPermissions.includes(p))) {
+            return true;
+          }
+        } else if (adminPanelPermissions.includes(permission)) {
+          return true;
+        }
+      }
+    }
+
+    // Regular permission check
+    if (!user.permissions) return false;
 
     const permissions = Array.isArray(permission) ? permission : [permission];
     return permissions.some(p => user.permissions?.includes(p));

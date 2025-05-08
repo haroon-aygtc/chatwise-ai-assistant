@@ -32,18 +32,26 @@ const ProtectedRoute = ({
     // Store the current location to redirect back after login
     const currentPath = window.location.pathname;
     sessionStorage.setItem('redirectAfterLogin', currentPath);
-    
+
     return <Navigate to={redirectTo} replace />;
   }
 
-  // Check role requirement if specified
-  if (requiredRole && !hasRole(requiredRole)) {
-    return <Navigate to="/unauthorized" replace />;
+  // Special case for admin users trying to access admin panel
+  if (requiredPermission === 'access admin panel' && hasRole('admin')) {
+    // Always allow admin users to access admin panel, no need to check role
+    return <>{children}</>;
   }
+  // Otherwise, check role and permission requirements
+  else {
+    // Check role requirement if specified
+    if (requiredRole && !hasRole(requiredRole)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
 
-  // Check permission requirement if specified
-  if (requiredPermission && !hasPermission(requiredPermission)) {
-    return <Navigate to="/unauthorized" replace />;
+    // Check permission requirement if specified
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   // If all checks pass, render children

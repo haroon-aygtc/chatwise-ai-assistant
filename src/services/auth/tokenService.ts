@@ -17,7 +17,7 @@ interface DecodedToken {
 
 class TokenService {
   private csrfToken: string | null = null;
-  private storageType: 'localStorage' | 'sessionStorage' = 'sessionStorage';
+  private storageType: 'localStorage' | 'sessionStorage' = 'localStorage'; // Using localStorage for persistence across page refreshes
 
   /**
    * Store the authentication token
@@ -87,13 +87,13 @@ class TokenService {
   isTokenExpired(bufferSeconds: number = TOKEN_EXPIRY_BUFFER): boolean {
     const token = this.getToken();
     if (!token) return true;
-    
+
     const decoded = this.decodeToken(token);
     if (!decoded) return true;
-    
+
     // If no expiration in token, consider it not expired
     if (!decoded.exp) return false;
-    
+
     // Check if token has expired with buffer time
     const currentTime = Math.floor(Date.now() / 1000);
     return decoded.exp - bufferSeconds <= currentTime;
@@ -195,14 +195,14 @@ class TokenService {
       return null;
     } catch (error) {
       console.error("Failed to initialize CSRF token:", error);
-      
+
       if (import.meta.env.DEV) {
         // In development, provide a fallback token on error
         const fallbackToken = "error-fallback-csrf-token-" + Date.now();
         this.setCsrfToken(fallbackToken);
         return fallbackToken;
       }
-      
+
       return null;
     }
   }

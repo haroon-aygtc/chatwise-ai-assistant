@@ -161,8 +161,14 @@ class HttpClient {
 
         // Handle authentication errors (status 401)
         if (response?.status === 401) {
-          tokenService.clearToken();
+          // Don't immediately clear the token or redirect
+          // Instead, let the auth hook handle token refresh
+          console.log('Authentication error detected, auth hook will handle refresh');
+
+          // Only redirect if we're not already on the login page
           if (!window.location.pathname.includes('/login')) {
+            // Store the current URL to redirect back after login
+            sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
             window.location.href = '/login?session=expired';
           }
         }
