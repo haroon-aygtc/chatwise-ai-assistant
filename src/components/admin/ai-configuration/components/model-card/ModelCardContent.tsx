@@ -69,7 +69,7 @@ export const ModelCardContent: React.FC<ModelCardContentProps> = ({
         {model.version && (
           <div className="space-y-2">
             <Label>Model Version</Label>
-            <Select defaultValue={model.version}>
+            <Select defaultValue={model.version || ""}>
               <SelectTrigger>
                 <SelectValue placeholder="Select model version" />
               </SelectTrigger>

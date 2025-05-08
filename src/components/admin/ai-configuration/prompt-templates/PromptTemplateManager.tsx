@@ -4,7 +4,8 @@ import { SystemPromptCard } from "./SystemPromptCard";
 import { AddTemplateDialog } from "./AddTemplateDialog";
 import { EditTemplateDialog } from "./EditTemplateDialog";
 import { TemplateManagerHeader, TemplatesContent } from "./components";
-import { usePromptTemplates, useSystemPrompt } from "./hooks";
+import { usePromptTemplates } from "@/hooks/ai-configuration/usePromptTemplates";
+import { useSystemPrompt } from "@/hooks/ai-configuration/useSystemPrompt";
 
 export interface PromptTemplateManagerProps {
   standalone?: boolean;
@@ -14,6 +15,8 @@ const PromptTemplateManager = ({
   standalone = false,
 }: PromptTemplateManagerProps) => {
   const {
+    templates,
+    categories,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -23,8 +26,6 @@ const PromptTemplateManager = ({
     showEditDialog,
     setShowEditDialog,
     currentTemplate,
-    templates,
-    categories,
     isLoading,
     handleRefresh,
     handleAddTemplate,
