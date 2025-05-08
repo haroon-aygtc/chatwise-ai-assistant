@@ -1,15 +1,10 @@
+
 import axios from 'axios';
 import { AUTH_ENDPOINTS } from '../api/config';
 import API_CONFIG from '../api/config';
 import tokenService from './tokenService';
 import { toast } from 'sonner';
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  token?: string;
-}
+import { User } from '@/types/user';
 
 interface AuthResponse {
   user: User;
@@ -41,7 +36,7 @@ interface PasswordResetRequestData {
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = API_CONFIG.BASE_URL;
 
-// Add response interceptor to handle CSRF token mismatches
+// Add response interceptor to handle CSRF token mismatches and authentication errors
 axios.interceptors.response.use(
   response => response,
   async error => {
@@ -60,13 +55,41 @@ axios.interceptors.response.use(
         return Promise.reject(error);
       }
     }
+    
+    // Handle unauthorized errors (status 401)
+    if (error.response && error.response.status === 401) {
+      // Only clear token if it's not a login attempt
+      if (error.config && !error.config.url.includes('login')) {
+        console.log("Unauthorized access detected, clearing token...");
+        tokenService.clearToken();
+        
+        // Show an error message
+        toast.error("Session expired", {
+          description: "Your session has expired. Please log in again."
+        });
+      }
+    }
 
     return Promise.reject(error);
   }
 );
 
-const authService = {
+// Add request interceptor to automatically add token
+axios.interceptors.request.use(
+  config => {
+    const token = tokenService.getToken();
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
 
+const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
       // Get CSRF token first using our centralized token service
@@ -157,11 +180,12 @@ const authService = {
         description: "You have been logged out.",
       });
     } catch (error: any) {
+      // Even if the server request fails, we should clear the token
       tokenService.clearToken();
 
       // Show error toast
       toast.error("Logout Error", {
-        description: "There was an issue logging you out.",
+        description: "There was an issue logging you out. Your local session has been cleared.",
       });
 
       throw error.response?.data || { message: "Network error occurred" };
@@ -170,9 +194,19 @@ const authService = {
 
   async getCurrentUser(): Promise<User> {
     try {
-      const response = await axios.get(AUTH_ENDPOINTS.CURRENT_USER);
+      // Make sure authorization header is set
+      const token = tokenService.getToken();
+      const response = await axios.get(AUTH_ENDPOINTS.CURRENT_USER, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : ''
+        }
+      });
       return response.data;
     } catch (error: any) {
+      // If we can't get the current user, then the token is probably invalid
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        tokenService.clearToken();
+      }
       throw error.response?.data || { message: "Network error occurred" };
     }
   },

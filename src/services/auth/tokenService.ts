@@ -1,8 +1,10 @@
+
 /**
  * Service for managing authentication and CSRF tokens
  */
 
 import axios from 'axios';
+import jwtDecode from 'jwt-decode';
 
 const TOKEN_KEY = "auth_token";
 // Add a token expiration buffer (5 minutes) to refresh before actual expiration
@@ -29,6 +31,9 @@ class TokenService {
     const storage = this.getTokenStorage();
     storage.setItem(TOKEN_KEY, token);
 
+    // Automatically set the authorization header for all future requests
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
     // Log token expiration if available
     const decoded = this.decodeToken(token);
     if (decoded && decoded.exp) {
@@ -41,14 +46,23 @@ class TokenService {
    * Get the stored authentication token
    */
   getToken(): string | null {
-    return this.getTokenStorage().getItem(TOKEN_KEY);
+    // Try localStorage first, then sessionStorage
+    const localStorageToken = localStorage.getItem(TOKEN_KEY);
+    const sessionStorageToken = sessionStorage.getItem(TOKEN_KEY);
+    
+    return localStorageToken || sessionStorageToken;
   }
 
   /**
    * Clear the stored authentication token
    */
   clearToken(): void {
-    this.getTokenStorage().removeItem(TOKEN_KEY);
+    // Remove from both storages to ensure it's completely gone
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    
+    // Also clear the authorization header
+    delete axios.defaults.headers.common['Authorization'];
   }
 
   /**
@@ -106,6 +120,11 @@ class TokenService {
   validateToken(): boolean {
     const token = this.getToken();
     if (!token) return false;
+    
+    // Set the authorization header if we have a token
+    // This ensures the header is always set after a page refresh
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    
     return !this.isTokenExpired();
   }
 

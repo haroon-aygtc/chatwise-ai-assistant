@@ -1,6 +1,6 @@
 
-import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { ReactNode, useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/auth/useAuth";
 
 interface ProtectedRouteProps {
@@ -16,9 +16,15 @@ const ProtectedRoute = ({
   requiredPermission,
   redirectTo = "/login",
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, hasRole, hasPermission } = useAuth();
+  const { isAuthenticated, isLoading, hasRole, hasPermission, refreshAuth } = useAuth();
+  const location = useLocation();
 
-  // If still loading auth state, show nothing (or a loading spinner)
+  // When this component mounts, refresh the auth state to ensure we have the latest data
+  useEffect(() => {
+    refreshAuth();
+  }, [refreshAuth]);
+
+  // If still loading auth state, show a loading spinner
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -30,7 +36,7 @@ const ProtectedRoute = ({
   // Check if user is authenticated
   if (!isAuthenticated) {
     // Store the current location to redirect back after login
-    const currentPath = window.location.pathname;
+    const currentPath = location.pathname;
     sessionStorage.setItem('redirectAfterLogin', currentPath);
 
     return <Navigate to={redirectTo} replace />;
