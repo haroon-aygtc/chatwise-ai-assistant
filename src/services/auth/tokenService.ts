@@ -1,5 +1,5 @@
 
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 const tokenService = {
   getToken: (): string | null => {
@@ -44,7 +44,7 @@ const tokenService = {
   // Decode JWT token
   decodeToken: (token: string): any => {
     try {
-      return jwt_decode(token);
+      return jwtDecode(token);
     } catch (error) {
       console.error('Failed to decode token:', error);
       return null;
@@ -57,7 +57,7 @@ const tokenService = {
     if (!token) return false;
 
     try {
-      const decoded: any = jwt_decode(token);
+      const decoded: any = jwtDecode(token);
       // Check if token is expired
       if (decoded.exp && decoded.exp < Date.now() / 1000) {
         return false;
@@ -74,7 +74,7 @@ const tokenService = {
     if (!token) return true;
 
     try {
-      const decoded: any = jwt_decode(token);
+      const decoded: any = jwtDecode(token);
       return decoded.exp ? decoded.exp < Date.now() / 1000 : true;
     } catch (error) {
       return true;
