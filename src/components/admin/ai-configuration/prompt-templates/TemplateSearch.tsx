@@ -1,5 +1,4 @@
 
-import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -8,49 +7,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-
-interface CategoryOption {
-  id: string;
-  name: string;
-}
+import { PromptTemplateCategory } from "@/types/ai-configuration";
 
 interface TemplateSearchProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
-  categoryOptions: CategoryOption[];
+  categoryOptions: PromptTemplateCategory[];
   onAddTemplate: () => void;
 }
 
-export const TemplateSearch = ({
+export const TemplateSearch: React.FC<TemplateSearchProps> = ({
   searchQuery,
   setSearchQuery,
   selectedCategory,
   setSelectedCategory,
   categoryOptions,
-  onAddTemplate,
-}: TemplateSearchProps) => {
+}) => {
   return (
-    <div className="flex flex-col md:flex-row gap-4 justify-between">
-      <div className="relative flex-1">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex-1">
         <Input
           placeholder="Search templates..."
-          className="pl-8"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full"
         />
       </div>
-      <div className="flex gap-2">
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by category" />
+      <div className="w-full md:w-1/3 lg:w-1/4">
+        <Select
+          value={selectedCategory}
+          onValueChange={setSelectedCategory}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="all">All categories</SelectItem>
             {categoryOptions.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
@@ -58,9 +52,6 @@ export const TemplateSearch = ({
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={onAddTemplate}>
-          <Plus className="mr-2 h-4 w-4" /> Add Template
-        </Button>
       </div>
     </div>
   );

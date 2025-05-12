@@ -1,73 +1,81 @@
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save } from "lucide-react";
+import { useState } from "react";
 import { SystemPrompt } from "@/types/ai-configuration";
 
 interface SystemPromptCardProps {
-  systemPrompt: SystemPrompt | null | undefined;
-  onSave: (content: string) => void;
+  systemPrompt: SystemPrompt | null;
+  onSave: (content: string) => Promise<boolean>;
   isSaving: boolean;
 }
 
-export function SystemPromptCard({ 
-  systemPrompt, 
+export const SystemPromptCard: React.FC<SystemPromptCardProps> = ({
+  systemPrompt,
   onSave,
   isSaving,
-}: SystemPromptCardProps) {
-  const [content, setContent] = useState("");
+}) => {
+  const [content, setContent] = useState(systemPrompt?.content || "");
+  const [editing, setEditing] = useState(false);
+  const [isChanged, setIsChanged] = useState(false);
 
-  useEffect(() => {
-    if (systemPrompt) {
-      setContent(systemPrompt.content);
-    }
-  }, [systemPrompt]);
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+    setIsChanged(e.target.value !== systemPrompt?.content);
+  };
 
-  const handleSave = () => {
-    if (content.trim()) {
-      onSave(content);
+  const handleSave = async () => {
+    const success = await onSave(content);
+    if (success) {
+      setEditing(false);
+      setIsChanged(false);
     }
   };
 
+  const handleCancel = () => {
+    setContent(systemPrompt?.content || "");
+    setEditing(false);
+    setIsChanged(false);
+  };
+
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle>System Prompt</CardTitle>
-        <CardDescription>
-          The system prompt is sent at the beginning of every conversation to instruct the AI how to behave
-        </CardDescription>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <div>System Prompt</div>
+          {!editing ? (
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={!isChanged || isSaving}
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4">
-          <Textarea
-            placeholder="Enter your system prompt..."
-            className="min-h-[150px] resize-y"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleSave} 
-              className="w-full md:w-auto"
-              disabled={!content.trim() || isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save System Prompt
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+        <Textarea
+          value={content}
+          onChange={handleContentChange}
+          placeholder="Enter system prompt..."
+          rows={10}
+          className="font-mono"
+          readOnly={!editing}
+        />
+        <p className="text-xs text-muted-foreground mt-2">
+          The system prompt sets the AI's behavior for all conversations.
+        </p>
       </CardContent>
     </Card>
   );
-}
+};
