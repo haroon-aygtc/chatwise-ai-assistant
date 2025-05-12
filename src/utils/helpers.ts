@@ -1,3 +1,4 @@
+
 export const getRoleBadgeVariant = (role: string) => {
   switch (role.toLowerCase()) {
     case "admin":
@@ -7,7 +8,7 @@ export const getRoleBadgeVariant = (role: string) => {
     case "editor":
       return "secondary";
     case "user":
-      return "ghost";
+      return "secondary"; // Changed from "ghost" to "secondary"
     default:
       return "outline";
   }
@@ -37,4 +38,12 @@ export const handleApiError = (error: unknown): void => {
   
   // Toast notification or other error handling here
   console.error(errorMessage);
+};
+
+// Add getCookie function for CsrfDebugger
+export const getCookie = (name: string): string | undefined => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return undefined;
 };
