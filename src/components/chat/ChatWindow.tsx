@@ -27,6 +27,7 @@ export function ChatWindow({ session, onClose, onBack, className }: ChatWindowPr
   useEffect(() => {
     // Load messages for this session
     if (session?.id) {
+      // Pass session ID directly without options object
       fetchMessages(session.id);
       
       // Mark messages as read when opening the chat

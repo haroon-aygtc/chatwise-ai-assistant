@@ -245,7 +245,7 @@ const UsersList = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role) === "ghost" ? "secondary" : getRoleBadgeVariant(user.role)}>
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
                         {user.role}
                       </Badge>
                     </TableCell>
