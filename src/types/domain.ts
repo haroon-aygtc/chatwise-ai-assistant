@@ -102,3 +102,17 @@ export interface DateRange {
   from: Date | undefined;
   to: Date | undefined;
 }
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  terms?: boolean;
+}

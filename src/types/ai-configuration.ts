@@ -38,7 +38,7 @@ export interface ResponseFormat {
   systemInstructions?: string;
   content?: string;
   sources?: string[];
-  active: boolean;
+  active: boolean; // Required field - not optional
   createdAt?: string;
   updatedAt?: string;
   
@@ -62,7 +62,7 @@ export interface CreateResponseFormatRequest {
   systemInstructions?: string;
   content?: string;
   sources?: string[];
-  active?: boolean;
+  active?: boolean; // Optional in request, we set default in service
   
   // Added fields to match other usages
   length?: string;
