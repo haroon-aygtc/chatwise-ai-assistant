@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { Message, Session } from "@/types/chat";
+import { Session } from "@/types/chat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatList } from "./ChatList";
 import { ChatInput } from "./ChatInput";
@@ -26,7 +26,9 @@ export function ChatWindow({ session, onClose, onBack, className }: ChatWindowPr
 
   useEffect(() => {
     if (session?.id) {
-      fetchMessages(session.id); // ✅ No type error
+      // Call refetchMessages with the correct parameter structure
+      fetchMessages();
+      
       if (session.unread > 0) {
         markAsRead(session.id);
       }
