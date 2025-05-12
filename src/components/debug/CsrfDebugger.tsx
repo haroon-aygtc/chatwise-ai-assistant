@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCookie } from "@/utils/helpers";
 import axios from "axios";
-
-// Import from environment or define directly
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_URL } from "@/services/api/config";
 
 export function CsrfDebugger() {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
@@ -21,7 +19,7 @@ export function CsrfDebugger() {
       setError(null);
       
       // Get CSRF cookie
-      await axios.get(`${API_BASE_URL}/sanctum/csrf-cookie`, {
+      await axios.get(`${API_URL}/sanctum/csrf-cookie`, {
         withCredentials: true
       });
       
@@ -44,7 +42,7 @@ export function CsrfDebugger() {
       
       // Test endpoint that requires CSRF protection
       const response = await axios.post(
-        `${API_BASE_URL}/api/csrf-test`,
+        `${API_URL}/api/csrf-test`,
         { test: "data" },
         {
           withCredentials: true,

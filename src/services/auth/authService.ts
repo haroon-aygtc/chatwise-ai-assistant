@@ -1,7 +1,7 @@
 
 import axios, { AxiosHeaders, AxiosRequestConfig } from "axios";
 import { User, LoginCredentials, RegisterData } from "@/types/domain";
-import { API_URL } from "../api/config";
+import API_CONFIG from "../api/config";
 import tokenService from "./tokenService";
 
 const authService = {
@@ -9,7 +9,7 @@ const authService = {
    * Login a user
    */
   async login(credentials: LoginCredentials) {
-    const response = await axios.post(`${API_URL}/auth/login`, credentials);
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/login`, credentials);
     const { user, token } = response.data;
     tokenService.setToken(token);
     return { user, token };
@@ -19,7 +19,7 @@ const authService = {
    * Register a new user
    */
   async register(data: RegisterData) {
-    const response = await axios.post(`${API_URL}/auth/register`, data);
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/register`, data);
     return response.data.user;
   },
 
@@ -30,7 +30,7 @@ const authService = {
     const headers = this.getAuthHeaders();
     try {
       await axios.post(
-        `${API_URL}/auth/logout`,
+        `${API_CONFIG.BASE_URL}/auth/logout`,
         {},
         { headers }
       );
@@ -46,7 +46,7 @@ const authService = {
    */
   async getProfile() {
     const headers = this.getAuthHeaders();
-    const response = await axios.get(`${API_URL}/profile`, { headers });
+    const response = await axios.get(`${API_CONFIG.BASE_URL}/profile`, { headers });
     return response.data.user;
   },
 
@@ -68,7 +68,7 @@ const authService = {
    * Request password reset
    */
   async requestPasswordReset(email: string) {
-    const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/forgot-password`, { email });
     return response.data;
   },
 
@@ -76,7 +76,7 @@ const authService = {
    * Reset password with token
    */
   async resetPassword(token: string, password: string, password_confirmation: string) {
-    const response = await axios.post(`${API_URL}/auth/reset-password`, {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/reset-password`, {
       token,
       password,
       password_confirmation
@@ -95,7 +95,7 @@ const authService = {
       }
       
       const headers = this.getAuthHeaders(token);
-      const response = await axios.get(`${API_URL}/auth/user`, { headers });
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/auth/user`, { headers });
       return response.data.user;
     } catch (error) {
       tokenService.removeToken();

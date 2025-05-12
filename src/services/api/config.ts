@@ -1,3 +1,4 @@
+
 /**
  * API Configuration
  *
@@ -17,6 +18,9 @@ const API_CONFIG = Object.freeze({
 });
 
 export default API_CONFIG;
+
+// Also export API_URL for backward compatibility
+export const API_URL = API_CONFIG.BASE_URL;
 
 /**
  * API Endpoints
