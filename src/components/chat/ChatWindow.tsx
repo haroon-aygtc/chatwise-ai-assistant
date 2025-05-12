@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Message, Session } from "@/types/chat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatList } from "./ChatList";
@@ -23,14 +23,10 @@ export function ChatWindow({ session, onClose, onBack, className }: ChatWindowPr
     sendMessage: sendChatMessage,
     markAsRead
   } = useChat();
-  
+
   useEffect(() => {
-    // Load messages for this session
     if (session?.id) {
-      // Pass session ID directly as it's expected
-      fetchMessages(session.id);
-      
-      // Mark messages as read when opening the chat
+      fetchMessages(session.id); // ✅ No type error
       if (session.unread > 0) {
         markAsRead(session.id);
       }
@@ -39,8 +35,6 @@ export function ChatWindow({ session, onClose, onBack, className }: ChatWindowPr
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || !session?.id) return;
-    
-    // Send the message
     await sendChatMessage(content, session.id);
   };
 
