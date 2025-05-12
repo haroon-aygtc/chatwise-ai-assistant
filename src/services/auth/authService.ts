@@ -1,120 +1,107 @@
 
-import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
-import { handleApiError } from "@/utils/helpers";
-import { AxiosHeaders } from "axios";
+import axios, { AxiosHeaders, AxiosRequestConfig } from "axios";
+import { User, LoginCredentials, RegisterData } from "@/types/domain";
+import { API_URL } from "../api/config";
+import tokenService from "./tokenService";
 
-// Define these types here since they're not exported from @/types
-export interface LoginCredentials {
-  email: string;
-  password: string;
-  remember?: boolean;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar?: string;
-  status: string;
-  lastActive: string;
-}
-
-export interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-
-/**
- * Login user with credentials
- * @param credentials User login credentials
- * @returns User data
- */
-export const login = async (
-  credentials: LoginCredentials,
-): Promise<{ user: User; token: string }> => {
-  try {
-    const response = await axios.post(`${API_URL}/auth/login`, credentials, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error) {
-    handleApiError(error);
-    throw error;
-  }
-};
-
-/**
- * Register a new user
- * @param data User registration data
- * @returns Registered user data
- */
-export const register = async (data: RegisterData): Promise<User> => {
-  try {
-    const response = await axios.post(`${API_URL}/auth/register`, data, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error) {
-    handleApiError(error);
-    throw error;
-  }
-};
-
-/**
- * Logout the current user
- */
-export const logout = async (): Promise<void> => {
-  try {
-    await axios.post(`${API_URL}/auth/logout`, {}, {
-      withCredentials: true,
-    });
-  } catch (error) {
-    handleApiError(error);
-    throw error;
-  }
-};
-
-/**
- * Get the authenticated user profile
- * @returns User profile data
- */
-export const getProfile = async (): Promise<User> => {
-  try {
-    const response = await axios.get(`${API_URL}/auth/user`, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error) {
-    handleApiError(error);
-    throw error;
-  }
-};
-
-/**
- * Create request headers with authentication token
- * @param token Authentication token
- * @returns Request headers object
- */
-export const getAuthHeaders = (token?: string): AxiosRequestConfig["headers"] => {
-  if (!token) return new AxiosHeaders();
-  
-  const headers = new AxiosHeaders();
-  headers.set('Authorization', `Bearer ${token}`);
-  return headers;
-};
-
-// Create a default export for the authService
 const authService = {
-  login,
-  register,
-  logout,
-  getProfile,
-  getAuthHeaders
+  /**
+   * Login a user
+   */
+  async login(credentials: LoginCredentials) {
+    const response = await axios.post(`${API_URL}/auth/login`, credentials);
+    const { user, token } = response.data;
+    tokenService.setToken(token);
+    return { user, token };
+  },
+
+  /**
+   * Register a new user
+   */
+  async register(data: RegisterData) {
+    const response = await axios.post(`${API_URL}/auth/register`, data);
+    return response.data.user;
+  },
+
+  /**
+   * Logout the current user
+   */
+  async logout() {
+    const headers = this.getAuthHeaders();
+    try {
+      await axios.post(
+        `${API_URL}/auth/logout`,
+        {},
+        { headers }
+      );
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    tokenService.removeToken();
+    return { success: true };
+  },
+
+  /**
+   * Get current user profile
+   */
+  async getProfile() {
+    const headers = this.getAuthHeaders();
+    const response = await axios.get(`${API_URL}/profile`, { headers });
+    return response.data.user;
+  },
+
+  /**
+   * Get authentication headers
+   */
+  getAuthHeaders(token?: string): AxiosHeaders {
+    const authToken = token || tokenService.getToken();
+    const headers = new AxiosHeaders();
+    
+    if (authToken) {
+      headers.set('Authorization', `Bearer ${authToken}`);
+    }
+    
+    return headers;
+  },
+  
+  /**
+   * Request password reset
+   */
+  async requestPasswordReset(email: string) {
+    const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+    return response.data;
+  },
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, password: string, password_confirmation: string) {
+    const response = await axios.post(`${API_URL}/auth/reset-password`, {
+      token,
+      password,
+      password_confirmation
+    });
+    return response.data;
+  },
+  
+  /**
+   * Get current user
+   */
+  async getCurrentUser() {
+    try {
+      const token = tokenService.getToken();
+      if (!token) {
+        return null;
+      }
+      
+      const headers = this.getAuthHeaders(token);
+      const response = await axios.get(`${API_URL}/auth/user`, { headers });
+      return response.data.user;
+    } catch (error) {
+      tokenService.removeToken();
+      return null;
+    }
+  }
 };
 
 export default authService;
