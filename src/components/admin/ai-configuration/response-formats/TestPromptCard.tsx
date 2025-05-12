@@ -3,7 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { PlayCircle, Loader2 } from 'lucide-react';
-import { TestPromptCardProps } from './types';
+
+export interface TestPromptCardProps {
+  value: string;
+  onChange: (value: string) => void;
+  selectedFormatId: string;
+  onTest: () => void;
+  isLoading?: boolean;
+}
 
 export function TestPromptCard({
   value,

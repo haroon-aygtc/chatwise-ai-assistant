@@ -1,3 +1,6 @@
+// This file is deprecated as we're now using inline interfaces in our component files.
+// Types are exported directly from the component files for better maintainability.
+// Keeping this file to avoid breaking changes in case there are any references to it.
 
 import { ResponseFormat } from "@/types/ai-configuration";
 
