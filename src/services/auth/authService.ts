@@ -1,7 +1,31 @@
+
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
-import { LoginCredentials, User, RegisterData } from "@/types";
 import { handleApiError } from "@/utils/helpers";
 import { AxiosHeaders } from "axios";
+
+// Define these types here since they're not exported from @/types
+export interface LoginCredentials {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  status: string;
+  lastActive: string;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
@@ -83,3 +107,14 @@ export const getAuthHeaders = (token?: string): AxiosRequestConfig["headers"] =>
   headers.set('Authorization', `Bearer ${token}`);
   return headers;
 };
+
+// Create a default export for the authService
+const authService = {
+  login,
+  register,
+  logout,
+  getProfile,
+  getAuthHeaders
+};
+
+export default authService;

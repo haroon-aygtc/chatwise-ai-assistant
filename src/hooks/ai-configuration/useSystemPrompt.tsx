@@ -43,6 +43,7 @@ export function useSystemPrompt() {
 
   return {
     systemPrompt,
+    isLoading: isLoadingPrompt,
     isLoadingPrompt,
     isUpdatingPrompt: saveSystemPromptMutation.isPending,
     promptError,

@@ -74,7 +74,7 @@ export function FormatSettingsCard({
           <Textarea
             id="content"
             value={formatSettings.content || ""}
-            onChange={(e) => handleFieldChange("content", e.target.value as any)}
+            onChange={(e) => handleFieldChange("content", e.target.value)}
             placeholder="Enter the response template..."
             className="min-h-[150px] font-mono text-sm"
           />
@@ -88,7 +88,7 @@ export function FormatSettingsCard({
           <Textarea
             id="systemInstructions"
             value={formatSettings.systemInstructions || ""}
-            onChange={(e) => handleFieldChange("systemInstructions", e.target.value as any)}
+            onChange={(e) => handleFieldChange("systemInstructions", e.target.value)}
             placeholder="Instructions for the AI on how to format responses..."
             className="min-h-[80px]"
           />
