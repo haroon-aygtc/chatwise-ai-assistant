@@ -58,10 +58,18 @@ const ResponseFormatterManager = () => {
     setFormatSettings({
       name: 'New Format',
       description: '',
-      template: '',
+      format: '',
+      content: '', // Use content instead of template
       systemInstructions: '',
-      parameters: {},
+      length: 'medium',
+      tone: 'neutral',
       isDefault: false,
+      options: {
+        useHeadings: false,
+        useBulletPoints: false,
+        includeLinks: false,
+        formatCodeBlocks: true,
+      }
     });
   };
 

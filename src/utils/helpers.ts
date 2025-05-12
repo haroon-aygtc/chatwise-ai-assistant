@@ -1,117 +1,116 @@
-import { useToast } from "@/components/ui/use-toast";
-import { Role } from '@/types/domain';
+/**
+ * Helper utility functions for the application
+ */
+
+import { toast } from "sonner";
+import { AxiosError } from 'axios';
 
 /**
- * Helper function for handling permission changes in UI components
+ * Format date to readable string
  */
-export const handlePermissionChange = (
-  permissionId: string,
-  isChecked: boolean,
-  setState: Function,
-  currentState: any
-) => {
-  if (isChecked) {
-    // Add the permission if it's not already in the array
-    if (!currentState.permissions.includes(permissionId)) {
-      setState({
-        ...currentState,
-        permissions: [...currentState.permissions, permissionId],
-      });
-    }
-  } else {
-    // Remove the permission if it's in the array
-    setState({
-      ...currentState,
-      permissions: currentState.permissions.filter((id: string) => id !== permissionId),
-    });
-  }
-};
-
-/**
- * Format a date string for display
- */
-export const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return 'N/A';
+export const formatDate = (date: string | Date): string => {
+  if (!date) return '';
   
-  const options: Intl.DateTimeFormatOptions = {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  };
-  
-  return new Date(dateString).toLocaleDateString(undefined, options);
-};
-
-/**
- * Generate initials from a name
- */
-export const getInitials = (name: string | null | undefined): string => {
-  if (!name) return '?';
-  
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2);
-};
-
-/**
- * Add or remove item from array
- */
-export const toggleArrayItem = <T>(array: T[], item: T): T[] => {
-  const index = array.indexOf(item);
-  
-  if (index === -1) {
-    return [...array, item];
-  }
-  
-  return [...array.slice(0, index), ...array.slice(index + 1)];
-};
-
-/**
- * Helper function to get a role badge variant
- */
-export const getRoleBadgeVariant = (role: string): "default" | "secondary" | "outline" | "destructive" => {
-  switch (role.toLowerCase()) {
-    case "admin":
-      return "destructive";
-    case "manager":
-      return "default";
-    case "editor":
-      return "secondary";
-    default:
-      return "outline";
-  }
-};
-
-/**
- * Generic error handler for API operations
- */
-export const handleApiError = (error: unknown, setError: (error: string | null) => void, toast: unknown, message: string): boolean => {
-  setError(error.message || message);
-  toast({
-    title: "Error",
-    description: error.message || message,
-    variant: "destructive",
   });
-  return false;
 };
 
 /**
- * Update role state in array
+ * Format number with commas
  */
-export const updateRoleState = (roles: Role[], updatedRole: Role): Role[] => {
-  return roles.map(role => role.id === updatedRole.id ? updatedRole : role);
+export const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat().format(num);
 };
 
 /**
- * Toggle loading state
+ * Format currency with $ sign and 2 decimal places
  */
-export const toggleLoadingState = (setState: (state: boolean) => void) => {
-  return (isLoading: boolean) => {
-    setState(isLoading);
-  };
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
 };
+
+/**
+ * Truncate text with ellipsis
+ */
+export const truncateText = (text: string, maxLength: number): string => {
+  if (!text) return '';
+  return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+};
+
+/**
+ * Convert camelCase to Title Case
+ */
+export const camelCaseToTitleCase = (text: string): string => {
+  if (!text) return '';
+  
+  const result = text.replace(/([A-Z])/g, ' $1');
+  return result.charAt(0).toUpperCase() + result.slice(1);
+};
+
+/**
+ * Delay execution (sleep)
+ */
+export const delay = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+/**
+ * Get initials from name
+ */
+export const getInitials = (name: string): string => {
+  if (!name) return '';
+  
+  const names = name.split(' ');
+  if (names.length === 1) {
+    return names[0].charAt(0).toUpperCase();
+  }
+  
+  return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+};
+
+/**
+ * Display error toast based on error object
+ */
+export const handleApiError = (error: unknown): void => {
+  console.error("API Error:", error);
+  
+  if (error instanceof AxiosError) {
+    const errorMessage = error.response?.data?.message || error.message || "An unknown error occurred";
+    toast.error(errorMessage);
+    return;
+  }
+  
+  // For other types of errors
+  const errorObj = error as Error;
+  toast.error(errorObj.message || "An unknown error occurred");
+};
+
+/**
+ * Generate random string ID
+ */
+export const generateId = (length = 8): string => {
+  return Math.random().toString(36).substring(2, length + 2);
+};
+
+/**
+ * Get cookie value by name
+ */
+export function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}

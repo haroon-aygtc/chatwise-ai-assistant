@@ -3,40 +3,35 @@ export interface AIModel {
   id: string;
   name: string;
   provider: string;
-  version?: string;
-  apiKey?: string;
+  modelId: string;
   isActive: boolean;
-  isDefault?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  configuration: {
-    temperature: number;
-    maxTokens: number;
-    [key: string]: any;
+  isDefault: boolean;
+  capabilities: {
+    chat: boolean;
+    completion: boolean;
+    embeddings: boolean;
+    vision: boolean;
   };
-}
-
-export interface ModelProvider {
-  id: string;
-  name: string;
-  slug: string;
-  apiEndpoint?: string;
-  apiKeyRequired: boolean;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  pricePerToken: number;
+  contextSize: number;
+  createdAt: string;
+  updatedAt: string;
+  description?: string;
+  version?: string; // Added version property
+  configuration: Record<string, unknown>;
+  context?: Record<string, unknown>;
+  apiKey?: string;
+  baseUrl?: string;
 }
 
 export interface RoutingRule {
   id: string;
   name: string;
-  description?: string;
   modelId: string;
   conditions: RuleCondition[];
   priority: number;
   isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  description?: string;
 }
 
 export interface RuleCondition {
@@ -45,56 +40,139 @@ export interface RuleCondition {
   value: string;
 }
 
-export interface PromptTemplateVariable {
-  name: string;
-  description?: string;
-  defaultValue?: string;
-  required?: boolean;
-}
-
 export interface PromptTemplate {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   template: string;
-  category: string;
-  variables: PromptTemplateVariable[];
-  isActive: boolean;
+  variables: PromptVariable[];
+  content?: string;
   isDefault?: boolean;
+  category?: string;
   usageCount?: number;
   createdAt?: string;
   updatedAt?: string;
+  isActive?: boolean;
+}
+
+export interface PromptVariable {
+  name: string;
+  description?: string;
+  type?: string;
+  defaultValue?: string;
+  required?: boolean;
 }
 
 export interface PromptTemplateCategory {
   id: string;
   name: string;
-  slug: string;
   description?: string;
-  count?: number;
+  templates?: PromptTemplate[];
 }
 
-export interface SystemPrompt {
+export interface FollowUpSuggestion {
   id: string;
-  content: string;
+  text: string;
+  category: string;
+  description?: string;
+  order?: number;
+  is_active?: boolean;
+  trigger_conditions?: string[];
+  createdAt?: string;
   updatedAt?: string;
+}
+
+export interface BrandVoice {
+  id: string;
+  name: string;
+  description: string;
+  tone: string[];
+  positioning: string;
+  brandName: string;
+  signature: string;
+  examples: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DocumentCategory {
+  id: string;
+  name: string;
+  description?: string;
+  documentCount: number;
 }
 
 export interface KnowledgeDocument {
   id: string;
   title: string;
+  description: string;
   content: string;
   categoryId: string;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  fileType: string;
+  fileSize: number;
+  tags: string[];
+  uploadedAt: string;
+  lastUpdated: string;
+  status: string;
 }
 
-export interface KnowledgeCategory {
+export interface ResponseFormat {
   id: string;
   name: string;
   description?: string;
-  documentCount?: number;
+  format: string;
+  content?: string; // Add content property
+  template?: string; // Add template property
+  systemInstructions?: string; // Add systemInstructions property
+  length: string;
+  tone: string;
+  isDefault?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  options: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
+}
+
+export interface CreateResponseFormatRequest {
+  name: string;
+  description?: string;
+  format: string;
+  length: string;
+  tone: string;
+  isDefault?: boolean;
+  options: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
+}
+
+/**
+ * System Prompt
+ * Represents the system-wide prompt template used as a base for all AI interactions
+ */
+export interface SystemPrompt {
+  id: string;
+  content: string;
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  lastModifiedBy?: string;
+  isActive?: boolean;
+}
+
+export interface ModelProvider {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  // Add more fields as needed based on backend structure
 }

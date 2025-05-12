@@ -74,12 +74,12 @@ export function FormatSettingsCard({
           <Textarea
             id="content"
             value={formatSettings.content || ""}
-            onChange={(e) => handleFieldChange("content", e.target.value)}
+            onChange={(e) => handleFieldChange("content", e.target.value as any)}
             placeholder="Enter the response template..."
             className="min-h-[150px] font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            Use variables like {{content}} and {{sources}} in your template.
+            Use variables like {'{content}'} and {'{sources}'} in your template.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export function FormatSettingsCard({
           <Textarea
             id="systemInstructions"
             value={formatSettings.systemInstructions || ""}
-            onChange={(e) => handleFieldChange("systemInstructions", e.target.value)}
+            onChange={(e) => handleFieldChange("systemInstructions", e.target.value as any)}
             placeholder="Instructions for the AI on how to format responses..."
             className="min-h-[80px]"
           />
