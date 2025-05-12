@@ -1,6 +1,6 @@
 
-import axios, { AxiosHeaders, AxiosRequestConfig } from "axios";
-import { User, LoginCredentials, RegisterData } from "@/types/domain";
+import axios, { AxiosHeaders } from "axios";
+import { LoginCredentials, RegisterData } from "@/types/domain";
 import API_CONFIG from "../api/config";
 import tokenService from "./tokenService";
 

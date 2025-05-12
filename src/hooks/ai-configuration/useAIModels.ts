@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { AIModel, RoutingRule } from "@/types/ai-configuration";
 
@@ -12,6 +13,7 @@ export function useAIModels() {
       modelId: "gpt-4",
       isActive: true,
       isDefault: true,
+      status: 'active', // Added the required status property
       capabilities: {
         chat: true,
         completion: true,
@@ -39,6 +41,7 @@ export function useAIModels() {
       modelId: "gemini-pro",
       isActive: true,
       isDefault: false,
+      status: 'active', // Added the required status property
       capabilities: {
         chat: true,
         completion: true,

@@ -36,6 +36,7 @@ export const useModelForm = (onSuccess: (model: AIModel) => void, onOpenChange: 
       maxTokens: maxTokens,
       temperature: temperature,
       isActive: true,
+      status: 'active', // Added the required status property
       apiKey: apiKey || undefined,
       configuration: {
         temperature: temperature,

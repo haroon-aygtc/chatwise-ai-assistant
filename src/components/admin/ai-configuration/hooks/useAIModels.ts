@@ -13,6 +13,7 @@ export function useAIModels() {
       maxTokens: 1000,
       temperature: 0.7,
       isActive: true,
+      status: 'active', // Added the required status property
       configuration: {
         temperature: 0.7,
         maxTokens: 1000,
@@ -30,6 +31,7 @@ export function useAIModels() {
       maxTokens: 1000,
       temperature: 0.6,
       isActive: true,
+      status: 'active', // Added the required status property
       configuration: {
         temperature: 0.6,
         maxTokens: 1000,
