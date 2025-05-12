@@ -96,13 +96,13 @@ export function FormatSettingsCard({
 
         <div className="flex items-center space-x-2">
           <Switch
-            id="isDefault"
-            checked={formatSettings.isDefault || false}
+            id="active"
+            checked={formatSettings.active || false}
             onCheckedChange={(checked) =>
-              handleFieldChange("isDefault", checked)
+              handleFieldChange("active", checked)
             }
           />
-          <Label htmlFor="isDefault">Set as default format</Label>
+          <Label htmlFor="active">Set as active format</Label>
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
@@ -115,7 +115,7 @@ export function FormatSettingsCard({
                   variant="destructive"
                   size="sm"
                   onClick={onDelete}
-                  disabled={isLoading || formatSettings.isDefault}
+                  disabled={isLoading}
                 >
                   Yes, Delete
                 </Button>
@@ -131,7 +131,7 @@ export function FormatSettingsCard({
               <Button
                 variant="outline"
                 onClick={() => setShowConfirmDelete(true)}
-                disabled={isLoading || formatSettings.isDefault}
+                disabled={isLoading}
               >
                 <Trash className="mr-2 h-4 w-4" /> Delete Format
               </Button>

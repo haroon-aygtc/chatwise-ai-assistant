@@ -1,7 +1,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { PreviewCardProps } from './types';
+
+export interface PreviewCardProps {
+  formattedResponse: string;
+  isLoading?: boolean;
+}
 
 export function PreviewCard({ formattedResponse, isLoading = false }: PreviewCardProps) {
   return (

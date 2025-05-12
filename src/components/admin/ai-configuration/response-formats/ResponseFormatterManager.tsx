@@ -2,11 +2,11 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import FormatSettingsCard from "./FormatSettingsCard";
-import SavedFormatsCard from "./SavedFormatsCard";
-import PreviewCard from "./PreviewCard";
-import TestPromptCard from "./TestPromptCard";
-import FormatPreviewTab from "./FormatPreviewTab";
+import { FormatSettingsCard } from "./FormatSettingsCard";
+import { SavedFormatsCard } from "./SavedFormatsCard";
+import { PreviewCard } from "./PreviewCard";
+import { TestPromptCard } from "./TestPromptCard";
+import { FormatPreviewTab } from "./FormatPreviewTab";
 import { Separator } from "@/components/ui/separator";
 import { ResponseFormat, CreateResponseFormatRequest } from "@/types/ai-configuration";
 import { useResponseFormats } from "@/hooks/ai-configuration/useResponseFormats";
@@ -17,9 +17,9 @@ const ResponseFormatterManager = () => {
     name: "",
     description: "",
     format: "json",
-    template: "", // Use the template property
-    systemInstructions: "", // Use systemInstructions
-    content: "", // Use content
+    template: "", 
+    systemInstructions: "", 
+    content: "", 
     active: true
   });
 
@@ -30,8 +30,14 @@ const ResponseFormatterManager = () => {
     createFormat, 
     updateFormat, 
     deleteFormat,
-    selectFormat 
+    setSelectedFormat,
+    isSaving,
+    testFormat
   } = useResponseFormats();
+
+  const [testPrompt, setTestPrompt] = useState("");
+  const [formattedResponse, setFormattedResponse] = useState("");
+  const [isTestingFormat, setIsTestingFormat] = useState(false);
 
   const handleFormatChange = (field: keyof ResponseFormat, value: any) => {
     setCurrentFormat((prev) => ({ ...prev, [field]: value }));
@@ -74,6 +80,37 @@ const ResponseFormatterManager = () => {
     }
   };
 
+  const handleDeleteFormat = async () => {
+    if (!currentFormat.id) return;
+    await deleteFormat(currentFormat.id);
+    setCurrentFormat({
+      name: "",
+      description: "",
+      format: "json",
+      template: "",
+      systemInstructions: "",
+      content: "",
+      active: true
+    });
+  };
+
+  const handleTestFormat = async () => {
+    if (!currentFormat.id || !testPrompt.trim()) return;
+    
+    setIsTestingFormat(true);
+    try {
+      const result = await testFormat(currentFormat.id, testPrompt);
+      if (result) {
+        setFormattedResponse(result.formatted);
+        setActiveTab("preview");
+      }
+    } catch (error) {
+      console.error("Error testing format:", error);
+    } finally {
+      setIsTestingFormat(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -95,28 +132,53 @@ const ResponseFormatterManager = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                   <FormatSettingsCard
-                    format={currentFormat}
-                    onFormatChange={handleFormatChange}
-                    onSave={handleSaveFormat}
+                    formatSettings={currentFormat}
+                    setFormatSettings={setCurrentFormat}
+                    handleSave={handleSaveFormat}
+                    onDelete={handleDeleteFormat}
+                    isNew={!currentFormat.id}
+                    isLoading={isSaving}
                   />
-                  <TestPromptCard />
+                  <TestPromptCard
+                    value={testPrompt}
+                    onChange={setTestPrompt}
+                    selectedFormatId={currentFormat.id || ""}
+                    onTest={handleTestFormat}
+                    isLoading={isTestingFormat}
+                  />
                 </div>
                 <div>
                   <SavedFormatsCard
                     formats={formats}
-                    isLoading={isLoading}
-                    onSelect={(format) => {
+                    selectedFormatId={currentFormat.id || ""}
+                    onSelectFormat={(format) => {
                       setCurrentFormat(format);
-                      selectFormat(format.id!);
+                      setSelectedFormat(format);
                     }}
-                    onDelete={deleteFormat}
+                    onNewFormat={() => {
+                      setCurrentFormat({
+                        name: "",
+                        description: "",
+                        format: "json",
+                        template: "",
+                        systemInstructions: "",
+                        content: "",
+                        active: true
+                      });
+                    }}
+                    isLoading={isLoading}
                   />
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent value="preview">
-              <FormatPreviewTab format={currentFormat} />
+              <FormatPreviewTab 
+                testPrompt={testPrompt}
+                testResponse={formattedResponse}
+                formatSettings={currentFormat}
+                onGoToSettings={() => setActiveTab("settings")}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
