@@ -1,3 +1,4 @@
+
 import {
   Permission,
   PermissionCategory,
@@ -12,6 +13,7 @@ export interface AIModel {
   name: string;
   provider: string;
   modelId: string;
+  version?: string;
   isActive: boolean;
   isDefault: boolean;
   capabilities: {
@@ -128,6 +130,8 @@ export interface ResponseFormat {
   name: string;
   description?: string;
   format: string;
+  content?: string;
+  systemInstructions?: string;
   length: string;
   tone: string;
   isDefault?: boolean;

@@ -1,223 +1,248 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { FormatSettingsCard } from "./FormatSettingsCard";
+import { FormatPreviewTab } from "./FormatPreviewTab";
+import { useResponseFormats } from "@/hooks/ai-configuration/useResponseFormats";
+import { ResponseFormat } from "@/types/ai-configuration";
+import { Loader2 } from "lucide-react";
 
-import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { FormatSettingsCard } from './FormatSettingsCard';
-import { SavedFormatsCard } from './SavedFormatsCard';
-import { TestPromptCard } from './TestPromptCard';
-import { PreviewCard } from './PreviewCard';
-import { FormatPreviewTab } from './FormatPreviewTab';
-import * as responseFormatService from '@/services/ai-configuration/responseFormatService';
-import { ResponseFormat } from '@/types/ai-configuration';
+export function ResponseFormatterManager() {
+  const [activeTab, setActiveTab] = useState("settings");
+  const [testPrompt, setTestPrompt] = useState("Explain the theory of relativity");
+  const [testResponse, setTestResponse] = useState("");
+  const [isNew, setIsNew] = useState(false);
+  const {
+    formats,
+    defaultFormat,
+    selectedFormat,
+    setSelectedFormat,
+    isLoadingFormats,
+    isLoadingDefaultFormat,
+    isSaving,
+    isDeleting,
+    isSettingDefault,
+    isTesting,
+    formatsError,
+    createFormat,
+    updateFormat,
+    deleteFormat,
+    setDefaultFormat,
+    testFormat,
+    refetchFormats,
+  } = useResponseFormats();
 
-const ResponseFormatterManager = () => {
-  const [activeTab, setActiveTab] = useState('settings');
-  const [formats, setFormats] = useState<ResponseFormat[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedFormatId, setSelectedFormatId] = useState('');
-  const [formatSettings, setFormatSettings] = useState<Partial<ResponseFormat>>({});
-  const [testPrompt, setTestPrompt] = useState('How can I help you today?');
-  const [testResponse, setTestResponse] = useState('');
-  const [isTestLoading, setIsTestLoading] = useState(false);
-  const { toast } = useToast();
+  const [formatSettings, setFormatSettings] = useState<Partial<ResponseFormat>>({
+    name: "",
+    description: "",
+    content: "# {title}\n\n{content}\n\nSources:\n{sources}",
+    systemInstructions: "You are a helpful AI assistant. Format your responses using the template provided.",
+    length: "medium",
+    tone: "neutral",
+    options: {
+      useHeadings: true,
+      useBulletPoints: true,
+      includeLinks: true,
+      formatCodeBlocks: true,
+    },
+  });
 
   useEffect(() => {
-    loadFormats();
-  }, []);
-
-  const loadFormats = async () => {
-    try {
-      setIsLoading(true);
-      const data = await responseFormatService.getAllFormats();
-      setFormats(data);
-      if (data.length > 0 && !selectedFormatId) {
-        const defaultFormat = data.find(f => f.isDefault) || data[0];
-        setSelectedFormatId(defaultFormat.id);
-        setFormatSettings(defaultFormat);
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load response formats',
-        variant: 'destructive',
+    if (selectedFormat) {
+      setFormatSettings(selectedFormat);
+      setIsNew(false);
+    } else {
+      setFormatSettings({
+        name: "",
+        description: "",
+        content: "# {title}\n\n{content}\n\nSources:\n{sources}",
+        systemInstructions: "You are a helpful AI assistant. Format your responses using the template provided.",
+        length: "medium",
+        tone: "neutral",
+        options: {
+          useHeadings: true,
+          useBulletPoints: true,
+          includeLinks: true,
+          formatCodeBlocks: true,
+        },
       });
-      console.error(error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [selectedFormat]);
 
-  const handleSelectFormat = (format: ResponseFormat) => {
-    setSelectedFormatId(format.id);
-    setFormatSettings(format);
-  };
-
-  const handleNewFormat = () => {
-    setSelectedFormatId('');
-    setFormatSettings({
-      name: 'New Format',
-      description: '',
-      format: '',
-      content: '', // Use content instead of template
-      systemInstructions: '',
-      length: 'medium',
-      tone: 'neutral',
-      isDefault: false,
-      options: {
-        useHeadings: false,
-        useBulletPoints: false,
-        includeLinks: false,
-        formatCodeBlocks: true,
-      }
-    });
+  const handleCreateFormat = async () => {
+    setFormatSettings((prev) => ({
+      ...prev,
+      content: prev.content || "# {title}\n\n{content}\n\nSources:\n{sources}",
+    }));
+    setIsNew(true);
+    setSelectedFormat(null);
+    setActiveTab("settings");
   };
 
   const handleSaveFormat = async () => {
-    try {
-      setIsLoading(true);
-      let savedFormat;
-
-      if (selectedFormatId) {
-        // Update existing format
-        savedFormat = await responseFormatService.updateFormat(selectedFormatId, formatSettings);
-        toast({
-          title: 'Success',
-          description: 'Format updated successfully',
-        });
-      } else {
-        // Create new format
-        savedFormat = await responseFormatService.createFormat(formatSettings as Omit<ResponseFormat, 'id'>);
-        setSelectedFormatId(savedFormat.id);
-        toast({
-          title: 'Success',
-          description: 'New format created successfully',
-        });
+    if (isNew) {
+      const success = await createFormat(formatSettings);
+      if (success) {
+        refetchFormats();
+        setIsNew(false);
       }
-
-      await loadFormats();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to save format',
-        variant: 'destructive',
-      });
-      console.error(error);
-    } finally {
-      setIsLoading(false);
+    } else if (selectedFormat) {
+      const success = await updateFormat(selectedFormat.id, formatSettings);
+      if (success) {
+        refetchFormats();
+      }
     }
   };
 
   const handleDeleteFormat = async () => {
-    if (!selectedFormatId) return;
-    
-    try {
-      setIsLoading(true);
-      await responseFormatService.deleteFormat(selectedFormatId);
-      toast({
-        title: 'Success',
-        description: 'Format deleted successfully',
+    if (selectedFormat) {
+      await deleteFormat(selectedFormat.id);
+      setSelectedFormat(null);
+      setFormatSettings({
+        name: "",
+        description: "",
+        content: "# {title}\n\n{content}\n\nSources:\n{sources}",
+        systemInstructions: "You are a helpful AI assistant. Format your responses using the template provided.",
+        length: "medium",
+        tone: "neutral",
+        options: {
+          useHeadings: true,
+          useBulletPoints: true,
+          includeLinks: true,
+          formatCodeBlocks: true,
+        },
       });
-      setSelectedFormatId('');
-      setFormatSettings({});
-      await loadFormats();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete format',
-        variant: 'destructive',
-      });
-      console.error(error);
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  const handleSetDefaultFormat = async () => {
+    if (selectedFormat) {
+      await setDefaultFormat(selectedFormat.id);
     }
   };
 
   const handleTestFormat = async () => {
-    if (!selectedFormatId || !testPrompt) return;
-    
-    try {
-      setIsTestLoading(true);
-      const result = await responseFormatService.testFormat(selectedFormatId, testPrompt);
-      setTestResponse(result.formatted);
-      setActiveTab('preview');
-    } catch (error) {
+    if (formatSettings.id) {
+      const result = await testFormat(formatSettings.id, testPrompt);
+      setTestResponse(result?.formatted || "Test failed.");
+      setActiveTab("preview");
+    } else {
       toast({
-        title: 'Error',
-        description: 'Failed to test format',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please save the format first.",
+        variant: "destructive",
       });
-      console.error(error);
-    } finally {
-      setIsTestLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Response Format Manager</h2>
-          <p className="text-muted-foreground">Create and manage response formats for your AI</p>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Response Formatting
+          </h2>
+          <p className="text-muted-foreground">
+            Customize how AI responses are structured and presented
+          </p>
         </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <Button onClick={handleCreateFormat}>Add Format</Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <SavedFormatsCard
-          formats={formats}
-          selectedFormatId={selectedFormatId}
-          onSelectFormat={handleSelectFormat}
-          onNewFormat={handleNewFormat}
-          isLoading={isLoading}
-        />
-
-        <div className="lg:col-span-2">
-          <Tabs value={activeTab} className="w-full">
-            <TabsContent value="settings">
-              <FormatSettingsCard
-                formatSettings={formatSettings}
-                setFormatSettings={setFormatSettings}
-                handleSave={handleSaveFormat}
-                onDelete={handleDeleteFormat}
-                isNew={!selectedFormatId}
-                isLoading={isLoading}
-              />
-            </TabsContent>
-            <TabsContent value="preview">
-              <FormatPreviewTab
-                testPrompt={testPrompt}
-                testResponse={testResponse}
-                formatSettings={formatSettings}
-                onGoToSettings={() => setActiveTab('settings')}
-              />
-            </TabsContent>
-          </Tabs>
-
-          <div className="mt-6">
-            <TestPromptCard
-              value={testPrompt}
-              onChange={setTestPrompt}
-              selectedFormatId={selectedFormatId}
-              onTest={handleTestFormat}
-              isLoading={isTestLoading}
+      <Tabs defaultValue="settings" className="space-y-4" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="bg-background">
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
+        </TabsList>
+        <TabsContent value="settings" className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>Available Formats</CardTitle>
+                  <CardDescription>
+                    Select a format to edit or create a new one
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingFormats ? (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading formats...
+                    </div>
+                  ) : formatsError ? (
+                    <div className="text-red-500">Error: {formatsError.message}</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {formats.map((format) => (
+                        <Button
+                          key={format.id}
+                          variant={selectedFormat?.id === format.id ? "secondary" : "outline"}
+                          className="w-full justify-start"
+                          onClick={() => setSelectedFormat(format)}
+                        >
+                          {format.name} {format.isDefault ? "(Default)" : ""}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <FormatSettingsCard
+              formatSettings={formatSettings}
+              setFormatSettings={setFormatSettings}
+              handleSave={handleSaveFormat}
+              onDelete={handleDeleteFormat}
+              isNew={isNew}
+              isLoading={isSaving || isDeleting}
             />
           </div>
-
-          {testResponse && (
-            <div className="mt-6">
-              <PreviewCard formattedResponse={testResponse} isLoading={isTestLoading} />
-            </div>
-          )}
-        </div>
-      </div>
+        </TabsContent>
+        <TabsContent value="preview" className="space-y-4">
+          <FormatPreviewTab
+            testPrompt={testPrompt}
+            testResponse={testResponse}
+            formatSettings={formatSettings}
+            onGoToSettings={() => setActiveTab("settings")}
+          />
+          <div className="flex items-center space-x-4">
+            <Input
+              type="text"
+              placeholder="Enter test prompt"
+              value={testPrompt}
+              onChange={(e) => setTestPrompt(e.target.value)}
+            />
+            <Button onClick={handleTestFormat} disabled={isTesting}>
+              {isTesting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                "Test Format"
+              )}
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-};
-
-export default ResponseFormatterManager;
+}
