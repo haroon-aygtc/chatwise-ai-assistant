@@ -8,6 +8,7 @@ import { RecentSales } from "@/components/dashboard/recent-sales";
 import { FileDown, RefreshCw } from 'lucide-react';
 import * as analyticsService from '@/services/analytics/analyticsService';
 import { toast } from "sonner";
+import { DateRange } from "react-day-picker";
 
 // Combined analytics data interface
 interface CombinedAnalyticsData {
@@ -41,7 +42,7 @@ interface CombinedAnalyticsData {
 }
 
 const Analytics = () => {
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date()
   });
@@ -121,6 +122,16 @@ const Analytics = () => {
       toast(`Export failed: ${error.message}`);
     }
   });
+
+  // Update the setDateRange wrapper to handle DateRange type
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (range && range.from) {
+      setDateRange({
+        from: range.from,
+        to: range.to || range.from
+      });
+    }
+  };
 
   const handleRefresh = () => {
     refetch();
@@ -311,7 +322,7 @@ const Analytics = () => {
             </Button>
           </div>
         </div>
-        <CalendarDateRangePicker date={dateRange} setDate={setDateRange} />
+        <CalendarDateRangePicker date={dateRange} setDate={handleDateRangeChange} />
       </div>
     </div>
   );

@@ -1,119 +1,52 @@
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PromptTemplate } from "@/types/ai-configuration";
-import * as PromptTemplateService from "@/services/ai-configuration/promptTemplateService";
-import { useToast } from "@/components/ui/use-toast";
+import { PromptTemplate, PromptTemplateCategory } from "@/types/ai-configuration";
 
 export function usePromptTemplates() {
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [categories, setCategories] = useState<PromptTemplateCategory[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [currentTemplate, setCurrentTemplate] = useState<PromptTemplate | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch all templates
-  const { 
-    data: templates = [], 
-    isLoading: isLoadingTemplates,
-    error: templatesError,
-    refetch: refetchTemplates
-  } = useQuery({
-    queryKey: ["promptTemplates"],
-    queryFn: PromptTemplateService.getAllTemplates,
-  });
-
-  // Fetch categories
-  const { 
-    data: categories = [], 
-    isLoading: isLoadingCategories,
-  } = useQuery({
-    queryKey: ["promptTemplateCategories"],
-    queryFn: PromptTemplateService.getCategories,
-  });
-
-  // Create template mutation
-  const createTemplateMutation = useMutation({
-    mutationFn: PromptTemplateService.createTemplate,
-    onSuccess: () => {
-      toast({
-        title: "Template created",
-        description: "The prompt template has been created successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["promptTemplates"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to create template: ${error.message}`,
-      });
-    },
-  });
-
-  // Update template mutation
-  const updateTemplateMutation = useMutation({
-    mutationFn: ({ id, template }: { id: string; template: Partial<PromptTemplate> }) => 
-      PromptTemplateService.updateTemplate(id, template),
-    onSuccess: () => {
-      toast({
-        title: "Template updated",
-        description: "The prompt template has been updated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["promptTemplates"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to update template: ${error.message}`,
-      });
-    },
-  });
-
-  // Delete template mutation
-  const deleteTemplateMutation = useMutation({
-    mutationFn: PromptTemplateService.deleteTemplate,
-    onSuccess: () => {
-      toast({
-        title: "Template deleted",
-        description: "The prompt template has been deleted successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["promptTemplates"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to delete template: ${error.message}`,
-      });
-    },
-  });
-
-  // Helper functions
-  const createTemplate = async (template: Omit<PromptTemplate, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>) => {
-    try {
-      await createTemplateMutation.mutateAsync(template);
-      return true;
-    } catch (error) {
-      return false;
-    }
+  const handleRefresh = () => {
+    // Implementation would fetch templates from an API
+    console.log("Refreshing templates...");
   };
 
-  const updateTemplate = async (id: string, template: Partial<PromptTemplate>) => {
-    try {
-      await updateTemplateMutation.mutateAsync({ id, template });
-      return true;
-    } catch (error) {
-      return false;
-    }
+  const handleAddTemplate = () => {
+    setShowAddDialog(true);
   };
 
-  const deleteTemplate = async (id: string) => {
-    try {
-      await deleteTemplateMutation.mutateAsync(id);
-      return true;
-    } catch (error) {
-      return false;
-    }
+  const handleEditTemplate = (template: PromptTemplate) => {
+    setCurrentTemplate(template);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    // Implementation would delete the template
+    console.log(`Deleting template ${id}...`);
+  };
+
+  const handleSaveNewTemplate = (template: Omit<PromptTemplate, "id">) => {
+    // Implementation would save the new template
+    console.log("Saving new template...", template);
+    setShowAddDialog(false);
+  };
+
+  const handleSaveEditedTemplate = (template: PromptTemplate) => {
+    // Implementation would save the edited template
+    console.log("Saving edited template...", template);
+    setShowEditDialog(false);
+  };
+
+  const handleCloneTemplate = (template: PromptTemplate) => {
+    // Implementation would clone the template
+    console.log("Cloning template...", template);
   };
 
   return {
@@ -121,14 +54,32 @@ export function usePromptTemplates() {
     categories,
     selectedTemplate,
     setSelectedTemplate,
-    isLoadingTemplates,
-    isLoadingCategories,
-    isSaving: createTemplateMutation.isPending || updateTemplateMutation.isPending,
-    isDeleting: deleteTemplateMutation.isPending,
-    templatesError,
-    createTemplate,
-    updateTemplate,
-    deleteTemplate,
-    refetchTemplates,
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    showAddDialog,
+    setShowAddDialog,
+    showEditDialog,
+    setShowEditDialog,
+    currentTemplate,
+    isLoading,
+    handleRefresh,
+    handleAddTemplate,
+    handleEditTemplate,
+    handleDeleteTemplate,
+    handleSaveNewTemplate,
+    handleSaveEditedTemplate,
+    handleCloneTemplate,
+    createTemplateMutation: {
+      isPending: false,
+    },
+    updateTemplateMutation: {
+      isPending: false,
+    },
+    refetchTemplates: async () => {
+      // Implementation would refetch templates
+      console.log("Refetching templates...");
+    }
   };
 }

@@ -1,3 +1,3 @@
 
-export * from "./TemplateManagerHeader";
-export * from "./TemplatesContent";
+export { TemplateManagerHeader } from './TemplateManagerHeader';
+export { TemplatesContent } from './TemplatesContent';
