@@ -1,13 +1,15 @@
 
-import jwtDecode, { JwtPayload } from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import API_CONFIG from "../api/config";
 
 const TOKEN_KEY = "authToken";
 
 // Custom interface for our JWT payload
-interface CustomJwtPayload extends JwtPayload {
+interface CustomJwtPayload {
+  exp?: number;
   permissions?: string[];
+  [key: string]: any;
 }
 
 // Add a mock token key for handling admin mocks
