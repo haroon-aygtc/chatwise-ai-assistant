@@ -65,16 +65,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       'access admin panel'
     ];
 
-    return {
+    // Create a proper User object with Role objects that match the expected type
+    const user: User = {
       id: 'admin-mock-1',
       name: 'Admin User',
       email: 'admin@example.com',
       status: 'active',
-      roles: [{ id: 'role-1', name: 'admin' }],
+      roles: [{ 
+        id: 'role-1', 
+        name: 'admin',
+        description: 'Administrator',
+        permissions: allPermissions
+      }],
       permissions: allPermissions,
       last_active: new Date().toISOString(),
       created_at: new Date().toISOString()
-    } as User;
+    };
+    
+    return user;
   };
 
   // Define logout function with useCallback to avoid dependency issues
@@ -101,12 +109,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (tokenService.validateToken()) {
         console.log('Refreshing authentication state...');
         const userData = await authService.getCurrentUser();
-        // Convert the authService User to our domain User
-        setUser({
-          ...userData,
-          id: String(userData.id), // Convert number id to string
-        } as User);
-        console.log('Authentication refreshed successfully:', userData);
+        
+        if (userData) {
+          // Convert the authService User to our domain User
+          setUser({
+            ...userData,
+            id: String(userData.id), // Convert number id to string
+            // Ensure the roles array is properly formatted to match the Role type
+            roles: userData.roles ? userData.roles.map(role => ({
+              id: String(role.id),
+              name: role.name,
+              description: role.description || '',
+              permissions: role.permissions || []
+            })) : []
+          } as User);
+          console.log('Authentication refreshed successfully:', userData);
+        }
       } else {
         console.log('No valid token found during refresh');
         setUser(null);
@@ -133,11 +151,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
           try {
             const userData = await authService.getCurrentUser();
             console.log('User data fetched successfully:', userData);
-            // Convert the authService User to our domain User
-            setUser({
-              ...userData,
-              id: String(userData.id), // Convert number id to string
-            } as User);
+            
+            if (userData) {
+              // Convert the authService User to our domain User
+              setUser({
+                ...userData,
+                id: String(userData.id), // Convert number id to string
+                // Ensure the roles array is properly formatted to match the Role type
+                roles: userData.roles ? userData.roles.map(role => ({
+                  id: String(role.id),
+                  name: role.name,
+                  description: role.description || '',
+                  permissions: role.permissions || []
+                })) : []
+              } as User);
+            }
           } catch (userError) {
             console.error('Failed to fetch user data:', userError);
             // If we can't fetch the user data, clear the token
@@ -212,11 +240,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         remember: rememberMe
       });
 
-      // Convert the response to our domain User type
-      setUser({
-        ...response.user,
-        id: String(response.user.id),
-      } as User);
+      if (response && response.user) {
+        // Convert the response to our domain User type
+        setUser({
+          ...response.user,
+          id: String(response.user.id),
+          // Ensure the roles array is properly formatted to match the Role type
+          roles: response.user.roles ? response.user.roles.map(role => ({
+            id: String(role.id),
+            name: role.name,
+            description: role.description || '',
+            permissions: role.permissions || []
+          })) : []
+        } as User);
+      }
 
       return true;
     } catch (error) {
@@ -234,18 +271,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Make sure CSRF token is initialized first
       await tokenService.initCsrfToken();
       
-      const response = await authService.register({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        password_confirmation: data.password_confirmation
-      });
+      const response = await authService.register(data);
 
-      // Convert the response to our domain User type
-      setUser({
-        ...response.user,
-        id: String(response.user.id), // Convert number id to string
-      } as User);
+      if (response && response.user) {
+        // Convert the response to our domain User type
+        setUser({
+          ...response.user,
+          id: String(response.user.id), // Convert number id to string
+          // Ensure the roles array is properly formatted to match the Role type
+          roles: response.user.roles ? response.user.roles.map(role => ({
+            id: String(role.id),
+            name: role.name,
+            description: role.description || '',
+            permissions: role.permissions || []
+          })) : []
+        } as User);
+      }
 
       return true;
     } catch (error) {

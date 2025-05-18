@@ -126,6 +126,18 @@ const tokenService = {
   },
 
   /**
+   * Decode token and return its payload
+   */
+  decodeToken(token: string): CustomJwtPayload | null {
+    try {
+      return jwtDecode<CustomJwtPayload>(token);
+    } catch (error) {
+      console.error('Error decoding token', error);
+      return null;
+    }
+  },
+
+  /**
    * Get permissions from token if available
    */
   getPermissionsFromToken() {

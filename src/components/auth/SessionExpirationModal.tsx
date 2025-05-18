@@ -29,21 +29,25 @@ const SessionExpirationModal = () => {
       const token = tokenService.getToken();
       if (!token) return;
 
-      // Decode the token to get expiration
-      const decoded = tokenService.decodeToken(token);
-      if (!decoded || !decoded.exp) return;
+      try {
+        // Use jwtDecode directly since we've added the decodeToken method
+        const decoded = tokenService.decodeToken(token);
+        if (!decoded || !decoded.exp) return;
 
-      // Calculate time until expiration in seconds
-      const currentTime = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = decoded.exp - currentTime;
+        // Calculate time until expiration in seconds
+        const currentTime = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = decoded.exp - currentTime;
 
-      // If within warning threshold, show dialog
-      if (timeUntilExpiry > 0 && timeUntilExpiry <= WARNING_THRESHOLD) {
-        setSecondsLeft(timeUntilExpiry);
-        setOpen(true);
-      } else if (timeUntilExpiry <= 0) {
-        // Token already expired
-        logout();
+        // If within warning threshold, show dialog
+        if (timeUntilExpiry > 0 && timeUntilExpiry <= WARNING_THRESHOLD) {
+          setSecondsLeft(timeUntilExpiry);
+          setOpen(true);
+        } else if (timeUntilExpiry <= 0) {
+          // Token already expired
+          logout();
+        }
+      } catch (error) {
+        console.error("Token decoding error:", error);
       }
     };
 

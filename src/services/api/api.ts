@@ -1,323 +1,131 @@
-/**
- * API Service
- *
- * A clean, reusable API client built on axios with:
- * - Type safety
- * - CSRF protection for Laravel Sanctum
- * - Automatic error handling
- * - Request/response interceptors
- * - Centralized configuration
- */
 
-import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosRequestConfig,
-  InternalAxiosRequestConfig
-} from "axios";
-import { toast } from "@/components/ui/use-toast";
-import API_CONFIG_IMPORT, {
-  getGlobalHeaders
-} from "./config";
-import tokenService from "../auth/tokenService";
+import axios, { AxiosResponse, AxiosRequestConfig, AxiosHeaders } from 'axios';
+import { tokenService } from '@/services/auth';
 
-// Use the imported config
-const API_CONFIG = API_CONFIG_IMPORT;
+// Create a base API instance
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  withCredentials: true, // Important for cookies/sessions
+});
 
-/**
- * Type definitions for better type safety
- * These types provide more specific constraints than 'any'
- */
-
-// Request parameters type (for query strings)
-export type ApiParams = Record<string, unknown>;
-
-// Request data type (for request bodies)
-export type ApiData =
-  | Record<string, unknown>
-  | FormData
-  | string
-  | number
-  | boolean
-  | null
-  | undefined;
-
-export interface ApiErrorResponse {
-  message?: string;
-  error?: string;
-  errors?: Record<string, string[]>;
-  status?: number;
-}
-
-/**
- * HTTP Client
- * Wraps axios with custom configuration and interceptors
- */
-class HttpClient {
-  private instance: AxiosInstance;
-
-  constructor() {
-    // Create axios instance with default config
-    this.instance = axios.create({
-      baseURL: API_CONFIG.BASE_URL,
-      timeout: API_CONFIG.TIMEOUT,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      withCredentials: true, // Always include credentials for CSRF to work
-      withXSRFToken: true,
-    });
-
-    // Set up interceptors
-    this.setupInterceptors();
-  }
-
-  /**
-   * Configure request and response interceptors
-   */
-  private setupInterceptors(): void {
-    // Request interceptor
-    this.instance.interceptors.request.use(
-      async (config: InternalAxiosRequestConfig) => {
-        // Add auth token if available
-        const token = tokenService.getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-
-        // Add global headers
-        const globalHeaders = getGlobalHeaders();
-        Object.keys(globalHeaders).forEach(key => {
-          config.headers[key] = globalHeaders[key];
-        });
-
-        // Explicitly add CSRF token if available
-        const csrfToken = tokenService.getCsrfToken();
-        if (csrfToken) {
-          config.headers['X-XSRF-TOKEN'] = csrfToken;
-        }
-
-        // Log request in debug mode
-        if (API_CONFIG.DEBUG) {
-          console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
-            params: config.params,
-            data: config.data,
-            headers: config.headers
-          });
-        }
-
-        return config;
-      },
-      (error) => {
-        console.error('Request error:', error);
-        return Promise.reject(error);
-      }
-    );
-
-    // Response interceptor
-    this.instance.interceptors.response.use(
-      (response) => {
-        // Log response in debug mode
-        if (API_CONFIG.DEBUG) {
-          console.log(`✅ Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
-            status: response.status,
-            data: response.data
-          });
-        }
-
-        return response;
-      },
-      async (error: AxiosError) => {
-        const response = error.response;
-
-        // Handle HTML responses (usually server errors)
-        if (response?.data && typeof response.data === 'string' && response.data.includes('<!DOCTYPE')) {
-          toast({
-            title: 'Server Error',
-            description: 'Invalid HTML response from server. Contact support.',
-            variant: 'destructive',
-          });
-          return Promise.reject(new Error('Invalid HTML response received'));
-        }
-
-        // Extract error message
-        const responseData = response?.data as ApiErrorResponse | undefined;
-        const message = responseData?.message ||
-          responseData?.error ||
-          'An unexpected error occurred';
-
-        // Handle CSRF token expiry (status 419)
-        if (response?.status === 419) {
-          try {
-            await tokenService.initCsrfToken();
-            // Retry the original request
-            return this.instance(error.config as AxiosRequestConfig);
-          } catch (csrfError) {
-            console.error('CSRF token refresh failed:', csrfError);
-          }
-        }
-
-        // Handle authentication errors (status 401)
-        if (response?.status === 401) {
-          // Don't immediately clear the token or redirect
-          // Instead, let the auth hook handle token refresh
-          console.log('Authentication error detected, auth hook will handle refresh');
-
-          // Only redirect if we're not already on the login page
-          if (!window.location.pathname.includes('/login')) {
-            // Store the current URL to redirect back after login
-            sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
-            window.location.href = '/login?session=expired';
-          }
-        }
-
-        // Show toast for all errors except validation errors (status 422)
-        if (response?.status !== 422) {
-          toast({
-            title: 'Error',
-            description: message,
-            variant: 'destructive',
-          });
-        }
-
-        // Log error in debug mode
-        if (API_CONFIG.DEBUG) {
-          console.error(`❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
-            status: response?.status,
-            data: response?.data
-          });
-        }
-
-        return Promise.reject(error);
-      }
-    );
-  }
-
-  /**
-   * Get the underlying axios instance
-   */
-  public getAxiosInstance(): AxiosInstance {
-    return this.instance;
-  }
-
-  /**
-   * Fetch CSRF token
-   */
-  public async fetchCsrfToken(): Promise<void> {
-    await tokenService.initCsrfToken();
-  }
-
-  /**
-   * Make a GET request
-   */
-  public async get<T = unknown>(url: string, params?: ApiParams): Promise<T> {
-    const response = await this.instance.get<T>(url, { params });
-    return response.data;
-  }
-
-  /**
-   * Make a POST request
-   */
-  public async post<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before POST requests
-    await this.fetchCsrfToken();
-
-    try {
-      const response = await this.instance.post<T>(url, data);
-      return response.data;
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.response?.status === 419 ||
-        (axiosError.response?.data as ApiErrorResponse)?.message === 'CSRF token mismatch.') {
-        console.log('CSRF token mismatch detected, retrying with fresh token');
-        // Try once more with a fresh token
-        await this.fetchCsrfToken();
-        const response = await this.instance.post<T>(url, data);
-        return response.data;
-      }
-      throw error;
+// Request interceptor - add auth token if available
+api.interceptors.request.use(
+  async (config) => {
+    // Get token from storage
+    const token = tokenService.getToken();
+    
+    // If token exists, add to authorization header
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
+
+    // For mutation requests (POST, PUT, PATCH, DELETE)
+    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+      try {
+        // Try to initialize CSRF token before the request
+        await tokenService.initCsrfToken();
+      } catch (error) {
+        console.error('Error initializing CSRF token:', error);
+      }
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
 
-  /**
-   * Make a PUT request
-   */
-  public async put<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before PUT requests
-    await this.fetchCsrfToken();
-    const response = await this.instance.put<T>(url, data);
-    return response.data;
+// Response interceptor
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Check if the error is due to an expired token (401 Unauthorized)
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Attempt to refresh the token 
+        // This would call your refresh token endpoint
+        // const refreshResponse = await api.post('/auth/refresh');
+        // const newToken = refreshResponse.data.token;
+        
+        // For now, we'll just clear the token and redirect to login
+        tokenService.clearToken();
+        window.location.href = '/login';
+        
+        return Promise.reject(error);
+      } catch (refreshError) {
+        // If refresh fails, clear token and redirect to login
+        tokenService.clearToken();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
   }
+);
 
-  /**
-   * Make a PATCH request
-   */
-  public async patch<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before PATCH requests
-    await this.fetchCsrfToken();
-    const response = await this.instance.patch<T>(url, data);
-    return response.data;
+// Helper function to get CSRF token
+const getCsrf = async (): Promise<void> => {
+  try {
+    await tokenService.initCsrfToken();
+  } catch (error) {
+    console.error('Failed to get CSRF token', error);
+    throw error;
   }
-
-  /**
-   * Make a DELETE request
-   */
-  public async delete<T = unknown>(url: string): Promise<T> {
-    // Fetch CSRF token before DELETE requests
-    await this.fetchCsrfToken();
-    const response = await this.instance.delete<T>(url);
-    return response.data;
-  }
-
-  /**
-   * Upload a file
-   */
-  public async uploadFile<T = unknown>(url: string, formData: FormData): Promise<T> {
-    // Fetch CSRF token before file uploads
-    await this.fetchCsrfToken();
-
-    const config: AxiosRequestConfig = {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    };
-
-    const response = await this.instance.post<T>(url, formData, config);
-    return response.data;
-  }
-}
-
-// Create and export a singleton instance
-const httpClient = new HttpClient();
-
-// Export the API service with all methods
-const apiService = {
-  get: <T = unknown>(url: string, params?: ApiParams) =>
-    httpClient.get<T>(url, params),
-
-  post: <T = unknown>(url: string, data?: ApiData) =>
-    httpClient.post<T>(url, data),
-
-  put: <T = unknown>(url: string, data?: ApiData) =>
-    httpClient.put<T>(url, data),
-
-  patch: <T = unknown>(url: string, data?: ApiData) =>
-    httpClient.patch<T>(url, data),
-
-  delete: <T = unknown>(url: string) =>
-    httpClient.delete<T>(url),
-
-  uploadFile: <T = unknown>(url: string, formData: FormData) =>
-    httpClient.uploadFile<T>(url, formData),
-
-  // For backward compatibility and advanced use cases
-  fetchCsrfToken: () => httpClient.fetchCsrfToken(),
-  getAxiosInstance: () => httpClient.getAxiosInstance(),
-  axios: httpClient.getAxiosInstance(),
 };
 
-// Export for use in other modules
-export default apiService;
+// Generic request methods
+const get = <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  return api.get(url, config).then((response: AxiosResponse) => response.data);
+};
 
-// Export the getCsrfToken function for backward compatibility
-export const getCsrfToken = () => httpClient.fetchCsrfToken();
+const post = <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  return api.post(url, data, config).then((response: AxiosResponse) => response.data);
+};
+
+const put = <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  return api.put(url, data, config).then((response: AxiosResponse) => response.data);
+};
+
+const patch = <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  return api.patch(url, data, config).then((response: AxiosResponse) => response.data);
+};
+
+const del = <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  return api.delete(url, config).then((response: AxiosResponse) => response.data);
+};
+
+// Create auth headers utility
+const createAuthHeaders = (): AxiosHeaders => {
+  const token = tokenService.getToken();
+  const headers = new AxiosHeaders();
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  
+  return headers;
+};
+
+export default {
+  get,
+  post,
+  put,
+  patch,
+  delete: del,
+  getCsrf,
+  createAuthHeaders,
+  instance: api,
+};
