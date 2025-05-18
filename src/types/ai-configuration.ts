@@ -1,27 +1,82 @@
 
-import {
-  Permission,
-  PermissionCategory,
-  Role,
-  NewRole,
-  EditedRole,
-  DateRange,
-} from "./domain";
-
 export interface AIModel {
   id: string;
   name: string;
   provider: string;
   version: string;
-  maxTokens: number;
-  temperature: number;
-  isActive: boolean;
   description?: string;
-  configuration: Record<string, any>;
-  context?: Record<string, any>;
+  maxTokens?: number;
+  temperature?: number;
   apiKey?: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+  
+  // Added properties to match all usages in the codebase
+  modelId?: string;
+  isActive?: boolean;
+  isDefault?: boolean;
+  capabilities?: {
+    chat: boolean;
+    completion: boolean;
+    embeddings: boolean;
+    vision: boolean;
+  };
+  pricePerToken?: number;
+  contextSize?: number;
+  configuration?: Record<string, unknown>;
+  context?: Record<string, unknown>;
+  baseUrl?: string;
 }
 
+export interface ResponseFormat {
+  id: string;
+  name: string;
+  description?: string;
+  format: string;
+  template?: string;
+  systemInstructions?: string;
+  content?: string;
+  sources?: string[];
+  active: boolean; // Required field - not optional
+  createdAt?: string;
+  updatedAt?: string;
+  
+  // Added properties to match other usages in the codebase
+  isDefault?: boolean;
+  length?: string;
+  tone?: string;
+  options?: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
+}
+
+export interface CreateResponseFormatRequest {
+  name: string;
+  description?: string;
+  format: string;
+  template?: string;
+  systemInstructions?: string;
+  content?: string;
+  sources?: string[];
+  active?: boolean; // Optional in request, we set default in service
+  
+  // Added fields to match other usages
+  length?: string;
+  tone?: string;
+  isDefault?: boolean;
+  options?: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
+}
+
+// Added missing types that are used in other files
 export interface RoutingRule {
   id: string;
   name: string;
@@ -59,6 +114,13 @@ export interface PromptVariable {
   type?: string;
   defaultValue?: string;
   required?: boolean;
+}
+
+export interface PromptTemplateCategory {
+  id: string;
+  name: string;
+  description?: string;
+  templates?: PromptTemplate[];
 }
 
 export interface FollowUpSuggestion {
@@ -107,20 +169,22 @@ export interface KnowledgeDocument {
   status: string;
 }
 
-export interface ResponseFormat {
+export interface SystemPrompt {
   id: string;
-  name: string;
-  description?: string;
-  format: string;
-  length: string;
-  tone: string;
-  isDefault?: boolean;
+  content: string;
+  version?: number;
   createdAt?: string;
   updatedAt?: string;
-  options: {
-    useHeadings: boolean;
-    useBulletPoints: boolean;
-    includeLinks: boolean;
-    formatCodeBlocks: boolean;
-  };
+  lastModifiedBy?: string;
+  isActive?: boolean;
+}
+
+export interface ModelProvider {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }

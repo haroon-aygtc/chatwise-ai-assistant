@@ -1,117 +1,49 @@
-import { useToast } from "@/components/ui/use-toast";
-import { Role } from '@/types/domain';
 
-/**
- * Helper function for handling permission changes in UI components
- */
-export const handlePermissionChange = (
-  permissionId: string,
-  isChecked: boolean,
-  setState: Function,
-  currentState: any
-) => {
-  if (isChecked) {
-    // Add the permission if it's not already in the array
-    if (!currentState.permissions.includes(permissionId)) {
-      setState({
-        ...currentState,
-        permissions: [...currentState.permissions, permissionId],
-      });
-    }
-  } else {
-    // Remove the permission if it's in the array
-    setState({
-      ...currentState,
-      permissions: currentState.permissions.filter((id: string) => id !== permissionId),
-    });
-  }
-};
-
-/**
- * Format a date string for display
- */
-export const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return 'N/A';
-  
-  const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  };
-  
-  return new Date(dateString).toLocaleDateString(undefined, options);
-};
-
-/**
- * Generate initials from a name
- */
-export const getInitials = (name: string | null | undefined): string => {
-  if (!name) return '?';
-  
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2);
-};
-
-/**
- * Add or remove item from array
- */
-export const toggleArrayItem = <T>(array: T[], item: T): T[] => {
-  const index = array.indexOf(item);
-  
-  if (index === -1) {
-    return [...array, item];
-  }
-  
-  return [...array.slice(0, index), ...array.slice(index + 1)];
-};
-
-/**
- * Helper function to get a role badge variant
- */
-export const getRoleBadgeVariant = (role: string): "default" | "secondary" | "outline" | "destructive" => {
+export const getRoleBadgeVariant = (role: string) => {
   switch (role.toLowerCase()) {
     case "admin":
-      return "destructive";
-    case "manager":
       return "default";
+    case "manager":
+      return "outline";
     case "editor":
       return "secondary";
+    case "user":
+      return "secondary"; // Changed from "ghost" to "secondary"
     default:
       return "outline";
   }
 };
 
-/**
- * Generic error handler for API operations
- */
-export const handleApiError = (error: any, setError: (error: string | null) => void, toast: any, message: string): boolean => {
-  setError(error.message || message);
-  toast({
-    title: "Error",
-    description: error.message || message,
-    variant: "destructive",
-  });
-  return false;
+export const handlePermissionChange = (
+  permissionId: string,
+  checked: boolean,
+  currentPermissions: string[],
+  setSelectedPermissions: (permissions: string[]) => void
+) => {
+  if (checked) {
+    setSelectedPermissions([...currentPermissions, permissionId]);
+  } else {
+    setSelectedPermissions(currentPermissions.filter(id => id !== permissionId));
+  }
 };
 
-/**
- * Update role state in array
- */
-export const updateRoleState = (roles: Role[], updatedRole: Role): Role[] => {
-  return roles.map(role => role.id === updatedRole.id ? updatedRole : role);
+export const handleApiError = (error: unknown): void => {
+  console.error("API Error:", error);
+  
+  let errorMessage = "An unexpected error occurred";
+  
+  if (error && typeof error === 'object' && 'message' in error) {
+    errorMessage = String(error.message);
+  }
+  
+  // Toast notification or other error handling here
+  console.error(errorMessage);
 };
 
-/**
- * Toggle loading state
- */
-export const toggleLoadingState = (setState: (state: boolean) => void) => {
-  return (isLoading: boolean) => {
-    setState(isLoading);
-  };
+// Add getCookie function for CsrfDebugger
+export const getCookie = (name: string): string | undefined => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return undefined;
 };

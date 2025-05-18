@@ -6,7 +6,7 @@ import { API_BASE_URL } from "./config";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-interface EndpointDefinition {
+export interface EndpointDefinition {
   path: string;
   method: HttpMethod;
   requiresAuth: boolean;
@@ -118,6 +118,13 @@ export const apiRegistry: ApiRegistry = {
       requiresAuth: true,
       description: "Change user status (activate/deactivate)",
     },
+
+    getallusers: {
+      path: "/users/all",
+      method: "GET",
+      requiresAuth: true,
+      description: "Get all users",
+    },
   },
   roles: {
     list: {
@@ -187,7 +194,7 @@ export const apiRegistry: ApiRegistry = {
       description: "Update permissions for a role",
     },
     userPermissions: {
-      path: "/user/permissions",
+      path: "/users/:id/permissions",
       method: "GET",
       requiresAuth: true,
       description: "Get permissions for the current user",

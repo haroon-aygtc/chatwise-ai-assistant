@@ -1,5 +1,4 @@
-
-import ApiService from "../api/base";
+import apiService from "../api/api";
 import { ApiRequestParams } from "../api/types";
 
 export interface ActivityLog {
@@ -17,7 +16,7 @@ export interface ActivityLog {
 }
 
 export interface ActivityLogResponse {
-  meta: any;
+  meta: Record<string, unknown>;
   data: ActivityLog[];
   total: number;
   per_page: number;
@@ -32,14 +31,14 @@ class ActivityLogService {
   static async getActivityLogs(
     params: ApiRequestParams = {}
   ): Promise<ActivityLogResponse> {
-    return await ApiService.get<ActivityLogResponse>("/activity-logs", params);
+    return await apiService.get<ActivityLogResponse>("/activity-logs", params);
   }
 
   /**
    * Get all available action types for filtering
    */
   static async getActionTypes(): Promise<string[]> {
-    return await ApiService.get<string[]>("/activity-logs/action-types");
+    return await apiService.get<string[]>("/activity-logs/action-types");
   }
 
   /**
@@ -48,7 +47,7 @@ class ActivityLogService {
   static async exportActivityLogs(
     params: ApiRequestParams = {}
   ): Promise<Blob> {
-    const response = await ApiService.getAxiosInstance().get(
+    const response = await apiService.getAxiosInstance().get(
       "/activity-logs/export",
       {
         params,
@@ -62,7 +61,7 @@ class ActivityLogService {
    * Get activity log by ID
    */
   static async getActivityLog(id: string): Promise<ActivityLog> {
-    return await ApiService.get<ActivityLog>(`/activity-logs/${id}`);
+    return await apiService.get<ActivityLog>(`/activity-logs/${id}`);
   }
 }
 

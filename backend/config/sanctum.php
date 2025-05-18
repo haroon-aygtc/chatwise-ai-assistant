@@ -17,8 +17,8 @@ return [
 
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
         '%s%s',
-        'localhost,localhost:3000,localhost:8080,127.0.0.1,127.0.0.1:8000,127.0.0.1:8080,::1',
-        Sanctum::currentApplicationUrlWithPort(),
+        'localhost,localhost:3000,localhost:5173,localhost:5174,localhost:8080,127.0.0.1,127.0.0.1:8000,127.0.0.1:5173,127.0.0.1:5174,127.0.0.1:8080,::1',
+        Sanctum::currentApplicationUrlWithPort()
     ))),
 
     /*
@@ -46,7 +46,7 @@ return [
     |
     */
 
-    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 60 * 24), // 24 hours by default
+    'expiration' => 120,
 
     /*
     |--------------------------------------------------------------------------
@@ -56,6 +56,8 @@ return [
     | Sanctum can prefix new tokens in order to take advantage of numerous
     | security scanning initiatives maintained by open source platforms
     | that notify developers if they commit tokens into repositories.
+    |
+    | See: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning
     |
     */
 

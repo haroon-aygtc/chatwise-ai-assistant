@@ -1,5 +1,4 @@
-
-import ApiService from "../api/base";
+import apiService from '../api/api';
 
 export interface DataSourceSettings {
   enabled: boolean;
@@ -12,7 +11,7 @@ export interface DataSource {
   name: string;
   type: 'database' | 'storage' | 'knowledge-base' | 'website' | 'file' | 'context' | 'rule';
   description?: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   isActive: boolean;
   priority: number;
   createdAt?: string;
@@ -24,7 +23,7 @@ export interface DataSource {
  */
 export const getAllDataSources = async (): Promise<DataSource[]> => {
   try {
-    return await ApiService.get('/data-sources');
+    return await apiService.get('/data-sources');
   } catch (error) {
     console.error('Error fetching data sources:', error);
     return [];
@@ -36,7 +35,7 @@ export const getAllDataSources = async (): Promise<DataSource[]> => {
  */
 export const getDataSourceById = async (id: string): Promise<DataSource | null> => {
   try {
-    return await ApiService.get(`/data-sources/${id}`);
+    return await apiService.get(`/data-sources/${id}`);
   } catch (error) {
     console.error(`Error fetching data source ${id}:`, error);
     return null;
@@ -47,21 +46,21 @@ export const getDataSourceById = async (id: string): Promise<DataSource | null> 
  * Create a new data source
  */
 export const createDataSource = async (dataSource: Omit<DataSource, 'id'>): Promise<DataSource> => {
-  return await ApiService.post('/data-sources', dataSource);
+  return await apiService.post('/data-sources', dataSource);
 };
 
 /**
  * Update an existing data source
  */
 export const updateDataSource = async (id: string, dataSource: Partial<DataSource>): Promise<DataSource> => {
-  return await ApiService.put(`/data-sources/${id}`, dataSource);
+  return await apiService.put(`/data-sources/${id}`, dataSource);
 };
 
 /**
  * Delete a data source
  */
 export const deleteDataSource = async (id: string): Promise<void> => {
-  await ApiService.delete(`/data-sources/${id}`);
+  await apiService.delete(`/data-sources/${id}`);
 };
 
 /**
@@ -69,7 +68,7 @@ export const deleteDataSource = async (id: string): Promise<void> => {
  */
 export const getDataSourceSettings = async (): Promise<DataSourceSettings> => {
   try {
-    return await ApiService.get('/data-sources/settings');
+    return await apiService.get('/data-sources/settings');
   } catch (error) {
     console.error('Error fetching data source settings:', error);
     return {
@@ -84,7 +83,7 @@ export const getDataSourceSettings = async (): Promise<DataSourceSettings> => {
  * Update data source settings
  */
 export const updateDataSourceSettings = async (settings: DataSourceSettings): Promise<DataSourceSettings> => {
-  return await ApiService.put('/data-sources/settings', settings);
+  return await apiService.put('/data-sources/settings', { ...settings });
 };
 
 /**
@@ -94,5 +93,5 @@ export const testDataSource = async (id: string, query: string): Promise<{
   result: string;
   sources: Array<{ title: string; url?: string; }>
 }> => {
-  return await ApiService.post(`/data-sources/${id}/test`, { query });
+  return await apiService.post(`/data-sources/${id}/test`, { query });
 };

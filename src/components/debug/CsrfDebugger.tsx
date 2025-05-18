@@ -1,131 +1,113 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { getCSRFToken, refreshCSRFToken, testCSRFProtection, runCsrfDiagnostics, testCsrfEndpoint } from '@/services/api/csrf-debug';
-import { addGlobalHeader, removeGlobalHeader } from '@/services/api/config';
-import { API_BASE_URL } from '@/services/api/config';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { getCookie } from "@/utils/helpers";
+import axios from "axios";
+import { API_URL } from "@/services/api/config";
 
 export function CsrfDebugger() {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<boolean | null>(null);
-  const [diagResult, setDiagResult] = useState<any>(null);
-  const [endpointResult, setEndpointResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleGetToken = () => {
-    const token = getCSRFToken();
-    setCsrfToken(token);
-  };
-
-  const handleRefreshToken = async () => {
-    const token = await refreshCSRFToken();
-    setCsrfToken(token);
-  };
-
-  const handleTestProtection = async () => {
-    const result = await testCSRFProtection();
-    setTestResult(result);
-  };
-
-  const handleRunDiagnostics = async () => {
-    const result = await runCsrfDiagnostics();
-    setDiagResult(result);
-  };
-
-  const handleTestEndpoint = async () => {
-    const result = await testCsrfEndpoint();
-    setEndpointResult(result);
-  };
-
-  const handleAddHeader = () => {
-    const token = getCSRFToken();
-    if (token) {
-      addGlobalHeader('X-CSRF-TOKEN', token);
+  const refreshToken = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Get CSRF cookie
+      await axios.get(`${API_URL}/sanctum/csrf-cookie`, {
+        withCredentials: true
+      });
+      
+      // Read the CSRF token from cookies
+      const token = getCookie("XSRF-TOKEN");
       setCsrfToken(token);
+      setTestResult(null);
+    } catch (err) {
+      setError("Failed to refresh CSRF token");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRemoveHeader = () => {
-    removeGlobalHeader('X-CSRF-TOKEN');
+  const testCsrf = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Test endpoint that requires CSRF protection
+      const response = await axios.post(
+        `${API_URL}/api/csrf-test`,
+        { test: "data" },
+        {
+          withCredentials: true,
+          headers: {
+            "X-XSRF-TOKEN": csrfToken,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          }
+        }
+      );
+      
+      setTestResult(JSON.stringify(response.data, null, 2));
+    } catch (err) {
+      setError("CSRF test failed");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  useEffect(() => {
+    // Get initial token when component mounts
+    const token = getCookie("XSRF-TOKEN");
+    setCsrfToken(token);
+  }, []);
+
   return (
-    <Card className="w-full max-w-3xl mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>CSRF Debugger</CardTitle>
-        <CardDescription>
-          Test and debug Cross-Site Request Forgery (CSRF) protection
-        </CardDescription>
+        <CardTitle className="flex items-center justify-between">
+          CSRF Token Debugger
+          <Badge variant={csrfToken ? "outline" : "destructive"}>
+            {csrfToken ? "Token Present" : "No Token"}
+          </Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label>API Base URL</Label>
-          <div className="p-2 bg-muted rounded-md text-sm mt-1">{API_BASE_URL}</div>
+        <div className="flex gap-2">
+          <Button onClick={refreshToken} disabled={isLoading}>
+            {isLoading ? "Loading..." : "Refresh Token"}
+          </Button>
+          <Button onClick={testCsrf} disabled={isLoading || !csrfToken} variant="outline">
+            Test CSRF Protection
+          </Button>
         </div>
 
-        <div>
-          <Label>Current CSRF Token</Label>
-          <div className="p-2 bg-muted rounded-md text-sm mt-1 break-all">
-            {csrfToken || 'No token found'}
+        {csrfToken && (
+          <div className="rounded-md bg-muted p-4 overflow-x-auto">
+            <code className="text-xs">{csrfToken}</code>
           </div>
-        </div>
+        )}
 
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={handleGetToken}>
-            Get Token
-          </Button>
-          <Button size="sm" onClick={handleRefreshToken}>
-            Refresh Token
-          </Button>
-          <Button size="sm" onClick={handleAddHeader}>
-            Add as Header
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleRemoveHeader}>
-            Remove Header
-          </Button>
-        </div>
-
-        <Separator />
-
-        <div>
-          <Label>Protection Test Result</Label>
-          <div className="p-2 bg-muted rounded-md text-sm mt-1">
-            {testResult === null ? 'Not tested' : testResult ? 'Success ✅' : 'Failed ❌'}
+        {testResult && (
+          <div className="rounded-md bg-muted p-4 overflow-x-auto">
+            <h4 className="text-sm font-medium mb-2">Test Result:</h4>
+            <pre className="text-xs">{testResult}</pre>
           </div>
-          <Button size="sm" className="mt-2" onClick={handleTestProtection}>
-            Test Protection
-          </Button>
-        </div>
+        )}
 
-        <Separator />
-
-        <div>
-          <Label>Diagnostics Result</Label>
-          <div className="p-2 bg-muted rounded-md text-sm mt-1 max-h-32 overflow-auto whitespace-pre">
-            {diagResult ? JSON.stringify(diagResult, null, 2) : 'No results'}
+        {error && (
+          <div className="rounded-md bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">{error}</p>
           </div>
-          <Button size="sm" className="mt-2" onClick={handleRunDiagnostics}>
-            Run Diagnostics
-          </Button>
-        </div>
-
-        <Separator />
-
-        <div>
-          <Label>Test Endpoint Result</Label>
-          <div className="p-2 bg-muted rounded-md text-sm mt-1 max-h-32 overflow-auto whitespace-pre">
-            {endpointResult ? JSON.stringify(endpointResult, null, 2) : 'No results'}
-          </div>
-          <Button size="sm" className="mt-2" onClick={handleTestEndpoint}>
-            Test Endpoint
-          </Button>
-        </div>
+        )}
       </CardContent>
-      <CardFooter className="text-sm text-muted-foreground">
-        CSRF tokens help protect your application from cross-site request forgery attacks.
-      </CardFooter>
     </Card>
   );
 }

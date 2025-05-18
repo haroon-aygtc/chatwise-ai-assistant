@@ -1,5 +1,4 @@
-
-import ApiService from '../api/base';
+import apiService from '../api/api';
 import { AIModel, ModelProvider, RoutingRule } from '@/types/ai-configuration';
 
 /**
@@ -7,7 +6,7 @@ import { AIModel, ModelProvider, RoutingRule } from '@/types/ai-configuration';
  */
 export const getAllModels = async (): Promise<AIModel[]> => {
   try {
-    const response = await ApiService.get<{ data: AIModel[] }>('/ai/models');
+    const response = await apiService.get<{ data: AIModel[] }>('/ai/models');
     return response.data;
   } catch (error) {
     console.error('Error fetching AI models:', error);
@@ -20,7 +19,7 @@ export const getAllModels = async (): Promise<AIModel[]> => {
  */
 export const getPublicModels = async (): Promise<AIModel[]> => {
   try {
-    const response = await ApiService.get<{ data: AIModel[] }>('/ai/models/public');
+    const response = await apiService.get<{ data: AIModel[] }>('/ai/models/public');
     return response.data;
   } catch (error) {
     console.error('Error fetching public AI models:', error);
@@ -33,7 +32,7 @@ export const getPublicModels = async (): Promise<AIModel[]> => {
  */
 export const getModelById = async (id: string): Promise<AIModel> => {
   try {
-    const response = await ApiService.get<{ data: AIModel }>(`/ai/models/${id}`);
+    const response = await apiService.get<{ data: AIModel }>(`/ai/models/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching AI model ${id}:`, error);
@@ -46,7 +45,7 @@ export const getModelById = async (id: string): Promise<AIModel> => {
  */
 export const createModel = async (model: Omit<AIModel, 'id' | 'createdAt' | 'updatedAt'>): Promise<AIModel> => {
   try {
-    const response = await ApiService.post<{ data: AIModel }>('/ai/models', model);
+    const response = await apiService.post<{ data: AIModel }>('/ai/models', model);
     return response.data;
   } catch (error) {
     console.error('Error creating AI model:', error);
@@ -59,7 +58,7 @@ export const createModel = async (model: Omit<AIModel, 'id' | 'createdAt' | 'upd
  */
 export const updateModel = async (id: string, model: Partial<AIModel>): Promise<AIModel> => {
   try {
-    const response = await ApiService.put<{ data: AIModel }>(`/ai/models/${id}`, model);
+    const response = await apiService.put<{ data: AIModel }>(`/ai/models/${id}`, model);
     return response.data;
   } catch (error) {
     console.error(`Error updating AI model ${id}:`, error);
@@ -72,7 +71,7 @@ export const updateModel = async (id: string, model: Partial<AIModel>): Promise<
  */
 export const deleteModel = async (id: string): Promise<void> => {
   try {
-    await ApiService.delete<{ success: boolean }>(`/ai/models/${id}`);
+    await apiService.delete<{ success: boolean }>(`/ai/models/${id}`);
   } catch (error) {
     console.error(`Error deleting AI model ${id}:`, error);
     throw error;
@@ -84,7 +83,7 @@ export const deleteModel = async (id: string): Promise<void> => {
  */
 export const setDefaultModel = async (id: string): Promise<AIModel> => {
   try {
-    const response = await ApiService.post<{ data: AIModel }>(`/ai/models/${id}/default`);
+    const response = await apiService.post<{ data: AIModel }>(`/ai/models/${id}/default`);
     return response.data;
   } catch (error) {
     console.error(`Error setting default model ${id}:`, error);
@@ -95,9 +94,9 @@ export const setDefaultModel = async (id: string): Promise<AIModel> => {
 /**
  * Test a model with a prompt
  */
-export const testModel = async (id: string, prompt: string, options?: Record<string, any>): Promise<string> => {
+export const testModel = async (id: string, prompt: string, options?: Record<string, unknown>): Promise<string> => {
   try {
-    const response = await ApiService.post<{ data: { response: string } }>(`/ai/models/${id}/test`, { 
+    const response = await apiService.post<{ data: { response: string } }>(`/ai/models/${id}/test`, {
       prompt,
       options
     });
@@ -113,7 +112,7 @@ export const testModel = async (id: string, prompt: string, options?: Record<str
  */
 export const getAllProviders = async (): Promise<ModelProvider[]> => {
   try {
-    const response = await ApiService.get<{ data: ModelProvider[] }>('/ai/providers');
+    const response = await apiService.get<{ data: ModelProvider[] }>('/ai/providers');
     return response.data;
   } catch (error) {
     console.error('Error fetching model providers:', error);
@@ -126,7 +125,7 @@ export const getAllProviders = async (): Promise<ModelProvider[]> => {
  */
 export const getProviderById = async (id: string): Promise<ModelProvider> => {
   try {
-    const response = await ApiService.get<{ data: ModelProvider }>(`/ai/providers/${id}`);
+    const response = await apiService.get<{ data: ModelProvider }>(`/ai/providers/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching model provider ${id}:`, error);
@@ -139,7 +138,7 @@ export const getProviderById = async (id: string): Promise<ModelProvider> => {
  */
 export const createProvider = async (provider: Omit<ModelProvider, 'id' | 'createdAt' | 'updatedAt' | 'slug'>): Promise<ModelProvider> => {
   try {
-    const response = await ApiService.post<{ data: ModelProvider }>('/ai/providers', provider);
+    const response = await apiService.post<{ data: ModelProvider }>('/ai/providers', provider);
     return response.data;
   } catch (error) {
     console.error('Error creating model provider:', error);
@@ -152,7 +151,7 @@ export const createProvider = async (provider: Omit<ModelProvider, 'id' | 'creat
  */
 export const updateProvider = async (id: string, provider: Partial<ModelProvider>): Promise<ModelProvider> => {
   try {
-    const response = await ApiService.put<{ data: ModelProvider }>(`/ai/providers/${id}`, provider);
+    const response = await apiService.put<{ data: ModelProvider }>(`/ai/providers/${id}`, provider);
     return response.data;
   } catch (error) {
     console.error(`Error updating model provider ${id}:`, error);
@@ -165,7 +164,7 @@ export const updateProvider = async (id: string, provider: Partial<ModelProvider
  */
 export const deleteProvider = async (id: string): Promise<void> => {
   try {
-    await ApiService.delete<{ success: boolean }>(`/ai/providers/${id}`);
+    await apiService.delete<{ success: boolean }>(`/ai/providers/${id}`);
   } catch (error) {
     console.error(`Error deleting model provider ${id}:`, error);
     throw error;
@@ -177,7 +176,7 @@ export const deleteProvider = async (id: string): Promise<void> => {
  */
 export const getRoutingRules = async (): Promise<RoutingRule[]> => {
   try {
-    const response = await ApiService.get<{ data: RoutingRule[] }>('/ai/routing-rules');
+    const response = await apiService.get<{ data: RoutingRule[] }>('/ai/routing-rules');
     return response.data;
   } catch (error) {
     console.error('Error fetching routing rules:', error);
@@ -190,7 +189,7 @@ export const getRoutingRules = async (): Promise<RoutingRule[]> => {
  */
 export const createRoutingRule = async (rule: Omit<RoutingRule, 'id' | 'createdAt' | 'updatedAt'>): Promise<RoutingRule> => {
   try {
-    const response = await ApiService.post<{ data: RoutingRule }>('/ai/routing-rules', rule);
+    const response = await apiService.post<{ data: RoutingRule }>('/ai/routing-rules', rule);
     return response.data;
   } catch (error) {
     console.error('Error creating routing rule:', error);
@@ -203,7 +202,7 @@ export const createRoutingRule = async (rule: Omit<RoutingRule, 'id' | 'createdA
  */
 export const updateRoutingRule = async (id: string, rule: Partial<RoutingRule>): Promise<RoutingRule> => {
   try {
-    const response = await ApiService.put<{ data: RoutingRule }>(`/ai/routing-rules/${id}`, rule);
+    const response = await apiService.put<{ data: RoutingRule }>(`/ai/routing-rules/${id}`, rule);
     return response.data;
   } catch (error) {
     console.error(`Error updating routing rule ${id}:`, error);
@@ -216,7 +215,7 @@ export const updateRoutingRule = async (id: string, rule: Partial<RoutingRule>):
  */
 export const deleteRoutingRule = async (id: string): Promise<void> => {
   try {
-    await ApiService.delete<{ success: boolean }>(`/ai/routing-rules/${id}`);
+    await apiService.delete<{ success: boolean }>(`/ai/routing-rules/${id}`);
   } catch (error) {
     console.error(`Error deleting routing rule ${id}:`, error);
     throw error;

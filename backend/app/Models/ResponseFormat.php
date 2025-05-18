@@ -20,12 +20,11 @@ class ResponseFormat extends Model
         'format',
         'length',
         'tone',
-        'options',
-        'is_default',
-        // Keep the old fields for backward compatibility
         'content',
         'system_instructions',
+        'options',
         'parameters',
+        'is_default',
     ];
 
     /**

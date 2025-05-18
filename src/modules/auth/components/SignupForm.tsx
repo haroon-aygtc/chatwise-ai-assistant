@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -15,7 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useSignupValidation } from "../hooks/useSignupValidation";
 import { useAuth } from "@/hooks/auth/useAuth";
@@ -43,9 +42,9 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { toast } = useToast();
   const { validatePassword } = useSignupValidation();
   const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,13 +59,14 @@ export function SignupForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+
     try {
-      await signup({
-        name: values.name,
-        email: values.email,
-        password: values.password,
-        password_confirmation: values.confirmPassword,
-      });
+      await signup(
+        values.name,
+        values.email,
+        values.password,
+        values.confirmPassword
+      );
       
       toast({
         title: "Account created successfully!",
@@ -76,11 +76,7 @@ export function SignupForm() {
       // Redirect to login page or dashboard
     } catch (error) {
       console.error("Signup error:", error);
-      toast({
-        variant: "destructive",
-        title: "Sign up failed",
-        description: error instanceof Error ? error.message : "Please try again later.",
-      });
+      // Error handling is now centralized in authService
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +99,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="email"
@@ -117,7 +113,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="password"
@@ -158,7 +154,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="confirmPassword"
@@ -192,7 +188,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="agreeTerms"
@@ -228,7 +224,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          
+
           <Button
             type="submit"
             className="w-full"
@@ -238,13 +234,10 @@ export function SignupForm() {
           </Button>
         </form>
       </Form>
-      
+
       <div className="text-center text-sm">
         Already have an account?{" "}
-        <Link
-          to="/login"
-          className="text-primary font-medium hover:underline"
-        >
+        <Link to="/login" className="text-primary font-medium hover:underline">
           Sign in
         </Link>
       </div>

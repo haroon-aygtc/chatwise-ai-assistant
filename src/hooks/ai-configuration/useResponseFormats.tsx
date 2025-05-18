@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ResponseFormat, CreateResponseFormatRequest } from "@/types/ai-configuration";
@@ -32,7 +31,14 @@ export function useResponseFormats() {
 
   // Create format mutation
   const createFormatMutation = useMutation({
-    mutationFn: (formatData: CreateResponseFormatRequest) => ResponseFormatService.createFormat(formatData),
+    mutationFn: (formatData: CreateResponseFormatRequest) => {
+      // Ensure active property is set before passing to service
+      const formatWithRequired = {
+        ...formatData,
+        active: formatData.active !== undefined ? formatData.active : true,
+      };
+      return ResponseFormatService.createFormat(formatWithRequired as Omit<ResponseFormat, "id">);
+    },
     onSuccess: () => {
       toast({
         title: "Format created",
@@ -116,7 +122,11 @@ export function useResponseFormats() {
   // Helper functions
   const createFormat = async (format: CreateResponseFormatRequest) => {
     try {
-      await createFormatMutation.mutateAsync(format);
+      const formatWithRequired = {
+        ...format,
+        active: format.active !== undefined ? format.active : true,
+      };
+      await createFormatMutation.mutateAsync(formatWithRequired);
       return true;
     } catch (error) {
       return false;
@@ -170,13 +180,13 @@ export function useResponseFormats() {
     defaultFormat,
     selectedFormat,
     setSelectedFormat,
-    isLoadingFormats,
+    isLoading: isLoadingFormats,
     isLoadingDefaultFormat,
     isSaving: createFormatMutation.isPending || updateFormatMutation.isPending,
     isDeleting: deleteFormatMutation.isPending,
     isSettingDefault: setDefaultFormatMutation.isPending,
     isTesting: testFormatMutation.isPending,
-    formatsError,
+    error: formatsError,
     createFormat,
     updateFormat,
     deleteFormat,

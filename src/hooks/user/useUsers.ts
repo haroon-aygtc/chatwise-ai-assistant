@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { User } from "@/types/domain";
 import { useQuery } from "@tanstack/react-query";
-import ApiService from "@/services/api/base";
+import apiService from "@/services/api/api";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "@/constants";
 import { PaginatedResponse, ApiRequestParams } from "@/services/api/types";
 
@@ -24,7 +24,7 @@ export function useUsers() {
   // Function to fetch users from the API
   const fetchUsers = async (params: UpdateQueryParams) => {
     try {
-      return await ApiService.get<PaginatedResponse<User>>("/users", params);
+      return await apiService.get<PaginatedResponse<User>>("/users", params);
     } catch (error) {
       console.error("Error fetching users:", error);
       throw error;

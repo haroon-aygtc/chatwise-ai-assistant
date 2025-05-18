@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import KnowledgeBaseService from "@/services/knowledge-base/knowledgeBaseService";
-import { KnowledgeDocument, DocumentCategory } from '@/types/knowledge-base';
+import KnowledgeBaseService from "../../services/knowledge-base/knowledgeBaseService";
+import type { DocumentCategory, CreateDocumentRequest } from "../../types/knowledge-base";
 
 export function useKnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -11,8 +11,8 @@ export function useKnowledgeBase() {
   const queryClient = useQueryClient();
 
   // Fetch documents
-  const { 
-    data: documents = { data: [], total: 0, current_page: 1, last_page: 1 }, 
+  const {
+    data: documents = { data: [], total: 0, current_page: 1, last_page: 1 },
     isLoading: isLoadingDocuments,
     isError: isDocumentsError,
     refetch: refetchDocuments
@@ -25,7 +25,7 @@ export function useKnowledgeBase() {
   });
 
   // Fetch categories
-  const { 
+  const {
     data: categories = [] as DocumentCategory[],
     isLoading: isLoadingCategories
   } = useQuery({
@@ -41,8 +41,9 @@ export function useKnowledgeBase() {
       toast.success("Document added successfully");
       setIsUploadDialogOpen(false);
     },
-    onError: (error: any) => {
-      toast.error(`Failed to add document: ${error.message || "Unknown error"}`);
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to add document: ${errorMessage}`);
     }
   });
 
@@ -54,14 +55,15 @@ export function useKnowledgeBase() {
       setSelectedDocumentId(null);
       toast.success("Document deleted successfully");
     },
-    onError: (error: any) => {
-      toast.error(`Failed to delete document: ${error.message || "Unknown error"}`);
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to delete document: ${errorMessage}`);
     }
   });
 
   // Filter documents based on search query
-  const filteredDocuments = documents.data.filter(doc => 
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredDocuments = documents.data.filter(doc =>
+    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -73,7 +75,7 @@ export function useKnowledgeBase() {
   };
 
   // Handle document upload
-  const handleUploadDocument = (documentData: any) => {
+  const handleUploadDocument = (documentData: CreateDocumentRequest) => {
     addDocumentMutation.mutate(documentData);
   };
 

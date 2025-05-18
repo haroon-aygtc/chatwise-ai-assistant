@@ -1,15 +1,9 @@
 
-/**
- * Types for AI Configuration System
- */
-
 export interface AIModel {
   id: string;
   name: string;
   provider: string;
   modelId: string;
-  apiKey?: string;
-  baseUrl?: string;
   isActive: boolean;
   isDefault: boolean;
   capabilities: {
@@ -22,20 +16,51 @@ export interface AIModel {
   contextSize: number;
   createdAt: string;
   updatedAt: string;
+  description?: string;
+  version?: string; // Added version property
+  configuration: Record<string, unknown>;
+  context?: Record<string, unknown>;
+  apiKey?: string;
+  baseUrl?: string;
+}
+
+export interface RoutingRule {
+  id: string;
+  name: string;
+  modelId: string;
+  conditions: RuleCondition[];
+  priority: number;
+  isActive?: boolean;
+  description?: string;
+}
+
+export interface RuleCondition {
+  field: string;
+  operator: string;
+  value: string;
 }
 
 export interface PromptTemplate {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   template: string;
-  variables: string[];
-  category: string;
-  isActive: boolean;
-  isDefault: boolean;
-  usageCount: number;
-  createdAt: string;
-  updatedAt: string;
+  variables: PromptVariable[];
+  content?: string;
+  isDefault?: boolean;
+  category?: string;
+  usageCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  isActive?: boolean;
+}
+
+export interface PromptVariable {
+  name: string;
+  description?: string;
+  type?: string;
+  defaultValue?: string;
+  required?: boolean;
 }
 
 export interface PromptTemplateCategory {
@@ -45,36 +70,66 @@ export interface PromptTemplateCategory {
   templates?: PromptTemplate[];
 }
 
-export interface RoutingRule {
+export interface FollowUpSuggestion {
+  id: string;
+  text: string;
+  category: string;
+  description?: string;
+  order?: number;
+  is_active?: boolean;
+  trigger_conditions?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BrandVoice {
+  id: string;
+  name: string;
+  description: string;
+  tone: string[];
+  positioning: string;
+  brandName: string;
+  signature: string;
+  examples: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DocumentCategory {
   id: string;
   name: string;
   description?: string;
-  condition: {
-    field: string;
-    operator: string;
-    value: string | number | boolean;
-  }[];
-  modelId: string;
-  priority: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  documentCount: number;
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  categoryId: string;
+  fileType: string;
+  fileSize: number;
+  tags: string[];
+  uploadedAt: string;
+  lastUpdated: string;
+  status: string;
 }
 
 export interface ResponseFormat {
   id: string;
   name: string;
   description?: string;
-  content: string;
-  systemInstructions?: string;
-  parameters?: Record<string, any>;
-  isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
-  length?: string;
-  format?: string;
-  tone?: string;
-  options?: {
+  format: string;
+  content?: string; // Add content property
+  template?: string; // Add template property
+  systemInstructions?: string; // Add systemInstructions property
+  length: string;
+  tone: string;
+  isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  options: {
     useHeadings: boolean;
     useBulletPoints: boolean;
     includeLinks: boolean;
@@ -85,26 +140,30 @@ export interface ResponseFormat {
 export interface CreateResponseFormatRequest {
   name: string;
   description?: string;
-  content: string;
-  systemInstructions?: string;
-  parameters?: Record<string, any>;
+  format: string;
+  length: string;
+  tone: string;
   isDefault?: boolean;
+  options: {
+    useHeadings: boolean;
+    useBulletPoints: boolean;
+    includeLinks: boolean;
+    formatCodeBlocks: boolean;
+  };
 }
 
-export interface KnowledgeBaseSource {
-  id: string;
-  name: string;
-  type: 'document' | 'webpage' | 'database' | 'api';
-  configuration: Record<string, any>;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
+/**
+ * System Prompt
+ * Represents the system-wide prompt template used as a base for all AI interactions
+ */
 export interface SystemPrompt {
   id: string;
   content: string;
-  updatedAt: string;
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  lastModifiedBy?: string;
+  isActive?: boolean;
 }
 
 export interface ModelProvider {
@@ -112,20 +171,8 @@ export interface ModelProvider {
   name: string;
   slug: string;
   description?: string;
-  apiKeyName: string;
-  apiKeyRequired: boolean;
-  baseUrlRequired: boolean;
-  baseUrlName?: string;
   isActive: boolean;
-  logoUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-  models?: AIModel[];
-}
-
-export interface ModelCapability {
-  id: string;
-  name: string;
-  description: string;
-  models?: AIModel[];
+  createdAt?: string;
+  updatedAt?: string;
+  // Add more fields as needed based on backend structure
 }

@@ -4,7 +4,7 @@
 
 // Base URL for API requests
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  import.meta.env.VITE_API_URL || "http://localhost:8000"; 
 
 // Default request timeout in milliseconds
 export const API_TIMEOUT = 30000;

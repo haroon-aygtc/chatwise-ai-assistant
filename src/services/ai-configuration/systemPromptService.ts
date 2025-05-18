@@ -1,17 +1,24 @@
 
-import ApiService from '../api/base';
+import apiService from '../api/api';
 import { SystemPrompt } from '@/types/ai-configuration';
 
 /**
  * System prompt service for managing the system-wide prompt templates
  */
 
-// Get the system prompt
+/**
+ * Get the current system prompt
+ * @returns The system prompt configuration
+ */
 export const getSystemPrompt = async (): Promise<SystemPrompt> => {
-  return ApiService.get<SystemPrompt>('/ai-configuration/system-prompt');
+  return apiService.get<SystemPrompt>('/ai-configuration/system-prompt');
 };
 
-// Update system prompt
+/**
+ * Update the system prompt
+ * @param content The new content for the system prompt
+ * @returns The updated system prompt configuration
+ */
 export const updateSystemPrompt = async (content: string): Promise<SystemPrompt> => {
-  return ApiService.put<SystemPrompt>('/ai-configuration/system-prompt', { content });
+  return apiService.put<SystemPrompt>('/ai-configuration/system-prompt', { content });
 };

@@ -4,7 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SavedFormatCardProps } from './types';
+import { ResponseFormat } from "@/types/ai-configuration";
+
+export interface SavedFormatCardProps {
+  formats: ResponseFormat[];
+  selectedFormatId: string;
+  onSelectFormat: (format: ResponseFormat) => void;
+  onNewFormat: () => void;
+  isLoading?: boolean;
+}
 
 export function SavedFormatsCard({
   formats,
@@ -47,7 +55,7 @@ export function SavedFormatsCard({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium">{format.name}</h3>
-                    {format.isDefault && <Badge variant="outline">Default</Badge>}
+                    {format.active && <Badge variant="outline">Active</Badge>}
                   </div>
                   {format.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{format.description}</p>
