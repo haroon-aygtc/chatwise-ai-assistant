@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User } from '@/types/user';
 import authService, { tokenService } from '@/services/auth';
@@ -76,8 +77,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         permissions: allPermissions
       }],
       permissions: allPermissions,
-      lastActive: new Date().toISOString(), // Changed from last_active to lastActive
-      createdAt: new Date().toISOString()   // Changed from created_at to createdAt
+      lastActive: new Date().toISOString(), 
+      createdAt: new Date().toISOString()
     };
     
     return user;
@@ -107,11 +108,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // With Sanctum, we don't validate tokens locally but check session status
       console.log('Refreshing authentication state...');
       const userData = await authService.getCurrentUser() as any;
+      
       // Convert the authService User to our domain User
       setUser({
         ...userData,
         id: String(userData.id), // Convert number id to string
+        lastActive: userData.last_active || userData.lastActive, // Handle both naming conventions
       } as User);
+      
       console.log('Authentication refreshed successfully:', userData);
     } catch (error) {
       console.error('Error refreshing auth:', error);
@@ -131,10 +135,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         try {
           const userData = await authService.getCurrentUser() as any;
           console.log('User data fetched successfully:', userData);
+          
           // Convert the authService User to our domain User
           setUser({
             ...userData,
             id: String(userData.id), // Convert number id to string
+            lastActive: userData.last_active || userData.lastActive, // Handle both naming conventions
           } as User);
         } catch (userError) {
           console.error('Failed to fetch user data:', userError);
@@ -193,7 +199,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             name: role.name,
             description: role.description || '',
             permissions: role.permissions || []
-          })) : []
+          })) : [],
+          lastActive: response.user.last_active || response.user.lastActive, // Handle both naming conventions
         } as User);
       }
 
@@ -224,6 +231,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser({
         ...response.user,
         id: String(response.user.id), // Convert number id to string
+        lastActive: response.user.last_active || response.user.lastActive, // Handle both naming conventions
       } as User);
 
       return true;

@@ -1,3 +1,4 @@
+
 /**
  * Auth Service
  * 
@@ -21,7 +22,7 @@ const authService = {
 
     // Login using credentials with Laravel Sanctum
     const response = await axios.post(
-      `/api/login`,
+      `${API_CONFIG.API_URL}/login`,
       credentials,
       {
         headers: {
@@ -50,7 +51,7 @@ const authService = {
 
     // Register using provided data
     const response = await axios.post(
-      `/api/register`,
+      `${API_CONFIG.API_URL}/register`,
       data,
       {
         headers: {
@@ -75,7 +76,7 @@ const authService = {
 
       // Post to logout endpoint
       await axios.post(
-        `/api/logout`,
+        `${API_CONFIG.API_URL}/logout`,
         {},
         {
           headers: {
@@ -118,7 +119,7 @@ const authService = {
     await tokenService.initCsrfToken();
 
     const response = await axios.post(
-      `/api/forgot-password`,
+      `${API_CONFIG.API_URL}/forgot-password`,
       { email },
       {
         headers: {
@@ -141,7 +142,7 @@ const authService = {
     await tokenService.initCsrfToken();
 
     const response = await axios.post(
-      `/api/reset-password`,
+      `${API_CONFIG.API_URL}/reset-password`,
       {
         token,
         password,

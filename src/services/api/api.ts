@@ -21,10 +21,10 @@ api.interceptors.request.use(
     
     // If token exists, add to authorization header
     if (token) {
+      // Initialize headers if not present
       config.headers = config.headers || {};
-      if (config.headers) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-      }
+      // Set Authorization header if token is available
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     // For mutation requests (POST, PUT, PATCH, DELETE)
