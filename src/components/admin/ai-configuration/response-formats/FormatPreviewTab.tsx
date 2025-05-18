@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, FileText } from "lucide-react";
 import { ResponseFormat } from "@/types/ai-configuration";
 
-export interface FormatPreviewTabProps {
+interface FormatPreviewTabProps {
   testPrompt: string;
   testResponse: string;
   formatSettings: Partial<ResponseFormat>;

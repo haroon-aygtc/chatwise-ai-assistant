@@ -24,7 +24,7 @@ export function useUsers() {
   // Function to fetch users from the API
   const fetchUsers = async (params: UpdateQueryParams) => {
     try {
-      return await apiService.get<PaginatedResponse<User>>("/users", params);
+      return await apiService.get<PaginatedResponse<User>>("/users", { params });
     } catch (error) {
       console.error("Error fetching users:", error);
       throw error;

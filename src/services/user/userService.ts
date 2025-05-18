@@ -1,16 +1,17 @@
 
-import apiService, { ApiParams } from "../api/api";
+import apiService from "../api/api";
+import { ApiRequestParams } from "../api/types";
 import { User, EditedUser, NewUser } from "@/types/domain";
-import { ApiRequestParams, PaginatedResponse } from "../api/types";
+import { PaginatedResponse } from "../api/types";
 
 class UserService {
   /**
    * Get a paginated list of users
    */
   static async getUsers(
-    params: ApiParams = {}
+    params: ApiRequestParams = {}
   ): Promise<PaginatedResponse<User>> {
-    return await apiService.get<PaginatedResponse<User>>("/users", params);
+    return await apiService.get<PaginatedResponse<User>>("/users", { params });
   }
 
   /**

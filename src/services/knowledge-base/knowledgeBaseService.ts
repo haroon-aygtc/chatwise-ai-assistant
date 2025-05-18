@@ -1,5 +1,6 @@
 
-import apiService, { ApiParams } from "../api/api";
+import apiService from "../api/api";
+import { ApiRequestParams } from "../api/types";
 import { KnowledgeDocument, DocumentCategory, KnowledgeBaseSettings, CreateDocumentRequest, UpdateDocumentRequest, CreateCategoryRequest, UpdateCategoryRequest, UpdateSettingsRequest } from "@/types/knowledge-base";
 import { PaginatedResponse } from "../api/types";
 
@@ -10,7 +11,7 @@ class KnowledgeBaseService {
   static async getAllDocuments(
     page: number = 1,
     perPage: number = 20,
-    filters: ApiParams = {}
+    filters: ApiRequestParams = {}
   ): Promise<PaginatedResponse<KnowledgeDocument>> {
     const params = {
       page,
@@ -37,7 +38,7 @@ class KnowledgeBaseService {
       // Add document data to form
       Object.keys(data).forEach(key => {
         if (key !== 'file') {
-          const value = data[key];
+          const value = data[key as keyof CreateDocumentRequest];
           if (Array.isArray(value)) {
             formData.append(key, JSON.stringify(value));
           } else if (value !== undefined && value !== null) {

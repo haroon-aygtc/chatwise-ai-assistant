@@ -78,4 +78,4 @@ export const SystemPromptCard: React.FC<SystemPromptCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+}

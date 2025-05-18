@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             ResponseFormatSeeder::class,
             FollowUpSeeder::class,
             ActivityLogSeeder::class,
+            ActivityLogSeeder::class,
+
         ]);
     }
 }
