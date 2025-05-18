@@ -1,83 +1,141 @@
 
-import { jwtDecode } from "jwt-decode";
+import jwtDecode, { JwtPayload } from "jwt-decode";
+import axios from "axios";
+import API_CONFIG from "../api/config";
+
+const TOKEN_KEY = "authToken";
+
+// Custom interface for our JWT payload
+interface CustomJwtPayload extends JwtPayload {
+  permissions?: string[];
+}
+
+// Add a mock token key for handling admin mocks
+const MOCK_TOKEN_KEY = "mockAdminToken";
 
 const tokenService = {
-  getToken: (): string | null => {
-    return localStorage.getItem('auth_token');
-  },
+  /**
+   * Set auth token in localStorage
+   */
+  setToken(token: string) {
+    localStorage.setItem(TOKEN_KEY, token);
 
-  setToken: (token: string): void => {
-    localStorage.setItem('auth_token', token);
-  },
-
-  removeToken: (): void => {
-    localStorage.removeItem('auth_token');
-  },
-
-  // Alias for removeToken for backward compatibility
-  clearToken: (): void => {
-    localStorage.removeItem('auth_token');
-  },
-
-  getCsrfToken: (): string | null => {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || null;
-  },
-
-  // Initialize CSRF token by fetching from the server
-  initCsrfToken: async (): Promise<void> => {
-    try {
-      // This endpoint is typically used in Laravel Sanctum to set the CSRF cookie
-      await fetch('/sanctum/csrf-cookie', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Cache-Control': 'no-cache, no-store'
-        }
-      });
-    } catch (error) {
-      console.error('Failed to fetch CSRF token:', error);
+    // If this is our mock admin token, flag it
+    if (token === 'mock-admin-token') {
+      localStorage.setItem(MOCK_TOKEN_KEY, 'true');
     }
   },
 
-  // Decode JWT token
-  decodeToken: (token: string): any => {
+  /**
+   * Get auth token from localStorage
+   */
+  getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  },
+
+  /**
+   * Remove auth token from localStorage
+   */
+  removeToken() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(MOCK_TOKEN_KEY);
+  },
+
+  /**
+   * Clear token entirely
+   */
+  clearToken() {
+    this.removeToken();
+  },
+
+  /**
+   * Check if token exists
+   */
+  hasToken() {
+    return !!this.getToken();
+  },
+
+  /**
+   * Initialize CSRF token for Laravel APIs
+   */
+  async initCsrfToken() {
     try {
-      return jwtDecode(token);
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/csrf-cookie`, {
+        withCredentials: true
+      });
+      return response;
     } catch (error) {
-      console.error('Failed to decode token:', error);
+      console.error('Failed to initialize CSRF token', error);
       return null;
     }
   },
 
-  // Check if token is valid
-  validateToken: (): boolean => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return false;
-
-    try {
-      const decoded: any = jwtDecode(token);
-      // Check if token is expired
-      if (decoded.exp && decoded.exp < Date.now() / 1000) {
-        return false;
-      }
+  /**
+   * Check if token is valid (not expired)
+   */
+  validateToken() {
+    const token = this.getToken();
+    
+    // If we have a mock admin token, always consider it valid
+    if (token && localStorage.getItem(MOCK_TOKEN_KEY) === 'true') {
       return true;
+    }
+    
+    if (!token) return false;
+    
+    try {
+      const decoded = jwtDecode<CustomJwtPayload>(token);
+      const currentTime = Date.now() / 1000;
+      
+      // Check if token has expiration and is not expired
+      return decoded.exp ? decoded.exp > currentTime : true;
     } catch (error) {
+      console.error('Invalid token', error);
       return false;
     }
   },
 
-  // Check if token is expired
-  isTokenExpired: (): boolean => {
-    const token = localStorage.getItem('auth_token');
+  /**
+   * Check if token is expired
+   */
+  isTokenExpired() {
+    const token = this.getToken();
+    
+    // Mock admin token never expires
+    if (token && localStorage.getItem(MOCK_TOKEN_KEY) === 'true') {
+      return false;
+    }
+    
     if (!token) return true;
-
+    
     try {
-      const decoded: any = jwtDecode(token);
-      return decoded.exp ? decoded.exp < Date.now() / 1000 : true;
+      const decoded = jwtDecode<CustomJwtPayload>(token);
+      const currentTime = Date.now() / 1000;
+      
+      // If token has no expiration, it's not expired
+      if (!decoded.exp) return false;
+      
+      // Check if current time is past expiration
+      return decoded.exp < currentTime;
     } catch (error) {
+      console.error('Error checking token expiration', error);
       return true;
+    }
+  },
+
+  /**
+   * Get permissions from token if available
+   */
+  getPermissionsFromToken() {
+    const token = this.getToken();
+    if (!token) return [];
+    
+    try {
+      const decoded = jwtDecode<CustomJwtPayload>(token);
+      return decoded.permissions || [];
+    } catch (error) {
+      console.error('Error extracting permissions from token', error);
+      return [];
     }
   }
 };

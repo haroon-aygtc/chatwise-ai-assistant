@@ -47,6 +47,36 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+    
+    // Check for admin mock credentials
+    if (values.email === "admin@example.com" && values.password === "password") {
+      // For mock admin login, simulate a successful login
+      try {
+        const success = await login(values.email, values.password, values.remember);
+        
+        if (success) {
+          toast({
+            title: "Admin login successful",
+            description: "You have been successfully logged in as admin",
+          });
+          
+          // Navigate to admin dashboard
+          navigate("/admin/dashboard");
+        }
+      } catch (error) {
+        console.error("Admin login error:", error);
+        toast({
+          title: "Login failed",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+    
+    // Regular login flow for non-admin users
     try {
       // Call login function from auth hook
       const success = await login(values.email, values.password, values.remember);

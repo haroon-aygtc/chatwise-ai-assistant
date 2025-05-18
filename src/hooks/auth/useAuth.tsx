@@ -34,6 +34,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Helper function to create a mock admin user
+  const createMockAdminUser = (): User => {
+    // Get all permissions from our constants
+    const allPermissions = [
+      // User Management permissions
+      'view_users', 'create_users', 'edit_users', 'delete_users', 'assign_roles',
+      // Legacy permissions
+      'view users', 'create users', 'edit users', 'delete users', 'manage users',
+      // Role permissions
+      'view_roles', 'create_roles', 'edit_roles', 'delete_roles',
+      'view roles', 'create roles', 'edit roles', 'delete roles', 'manage roles',
+      // Permission management
+      'view_permissions', 'manage_permissions',
+      'view permissions', 'manage permissions',
+      // Activity log
+      'view_activity_log', 'view activity log',
+      // Settings
+      'view_settings', 'edit_settings',
+      'view settings', 'edit settings',
+      // AI Configuration
+      'manage_models', 'edit_prompts', 'test_ai', 'view_ai_logs',
+      // Widget Builder
+      'create_widgets', 'edit_widgets', 'publish_widgets', 'delete_widgets',
+      // Knowledge Base
+      'create_kb_articles', 'edit_kb_articles', 'delete_kb_articles', 'manage_kb_categories',
+      // System Settings
+      'manage_api_keys', 'billing_subscription', 'system_backup', 'view_audit_logs',
+      // Special admin access
+      'access admin panel'
+    ];
+
+    return {
+      id: 'admin-mock-1',
+      name: 'Admin User',
+      email: 'admin@example.com',
+      status: 'active',
+      roles: [{ id: 'role-1', name: 'admin' }],
+      permissions: allPermissions,
+      last_active: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    } as User;
+  };
+
   // Define logout function with useCallback to avoid dependency issues
   const logout = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -143,6 +186,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Mock admin credentials check
+      if (email === 'admin@example.com' && password === 'password') {
+        console.log('Using mock admin credentials');
+        // Create a mock admin user with all permissions
+        const mockAdminUser = createMockAdminUser();
+        
+        // Set the mock admin user
+        setUser(mockAdminUser);
+        
+        // Set a mock token to simulate login
+        tokenService.setToken('mock-admin-token');
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // Regular login flow for non-admin users
       // Make sure CSRF token is initialized first
       await tokenService.initCsrfToken();
       
