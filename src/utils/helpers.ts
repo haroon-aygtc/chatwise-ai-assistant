@@ -1,5 +1,6 @@
+export const getRoleBadgeVariant = (role?: string | null) => {
+  if (!role) return "secondary"; // Default for undefined or null roles
 
-export const getRoleBadgeVariant = (role: string) => {
   switch (role.toLowerCase()) {
     case "admin":
       return "default";
@@ -29,13 +30,13 @@ export const handlePermissionChange = (
 
 export const handleApiError = (error: unknown): void => {
   console.error("API Error:", error);
-  
+
   let errorMessage = "An unexpected error occurred";
-  
+
   if (error && typeof error === 'object' && 'message' in error) {
     errorMessage = String(error.message);
   }
-  
+
   // Toast notification or other error handling here
   console.error(errorMessage);
 };

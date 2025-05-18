@@ -53,17 +53,22 @@ class User extends Authenticatable
     /**
      * Get all permissions for the user including permissions from roles.
      *
-     * @return array
+     * @return \Illuminate\Support\Collection
      */
     public function getAllPermissions()
     {
-        $permissions = $this->permissions->pluck('name')->toArray();
+        // Start with direct permissions
+        $permissions = $this->permissions ? collect($this->permissions)->pluck('name')->toArray() : [];
 
-        foreach ($this->roles as $role) {
-            $rolePermissions = $role->permissions->pluck('name')->toArray();
-            $permissions = array_merge($permissions, $rolePermissions);
+        // Add permissions from roles
+        if ($this->roles) {
+            foreach ($this->roles as $role) {
+                $rolePermissions = $role->permissions ? $role->permissions->pluck('name')->toArray() : [];
+                $permissions = array_merge($permissions, $rolePermissions);
+            }
         }
 
-        return array_unique($permissions);
+        // Return unique permissions as a collection
+        return collect(array_unique($permissions));
     }
 }

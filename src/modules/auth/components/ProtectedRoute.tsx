@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/auth/useAuth";
@@ -16,13 +15,8 @@ const ProtectedRoute = ({
   requiredPermission,
   redirectTo = "/login",
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, hasRole, hasPermission, refreshAuth } = useAuth();
+  const { isAuthenticated, isLoading, hasRole, hasPermission } = useAuth();
   const location = useLocation();
-
-  // When this component mounts, refresh the auth state to ensure we have the latest data
-  useEffect(() => {
-    refreshAuth();
-  }, [refreshAuth]);
 
   // If still loading auth state, show a loading spinner
   if (isLoading) {

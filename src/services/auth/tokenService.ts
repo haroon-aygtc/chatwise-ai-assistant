@@ -1,32 +1,68 @@
-
-import jwt_decode from "jwt-decode";
+/**
+ * Token Service
+ * 
+ * Handles authentication tokens and CSRF protection for Laravel Sanctum.
+ * This service is optimized for Laravel Sanctum's session-based authentication
+ * for SPAs (Single Page Applications).
+ */
 
 const tokenService = {
+  /**
+   * Get token from localStorage - used for mobile API access only
+   * For SPA authentication, Sanctum uses cookies instead
+   */
   getToken: (): string | null => {
     return localStorage.getItem('auth_token');
   },
 
+  /**
+   * Set token in localStorage - used for mobile API access only
+   * For SPA authentication, Sanctum uses cookies instead
+   */
   setToken: (token: string): void => {
     localStorage.setItem('auth_token', token);
   },
 
+  /**
+   * Remove token from localStorage
+   */
   removeToken: (): void => {
     localStorage.removeItem('auth_token');
   },
 
-  // Alias for removeToken for backward compatibility
+  /**
+   * Alias for removeToken for backward compatibility
+   */
   clearToken: (): void => {
     localStorage.removeItem('auth_token');
   },
 
+  /**
+   * Get CSRF token from meta tag
+   */
   getCsrfToken: (): string | null => {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || null;
   },
 
-  // Initialize CSRF token by fetching from the server
+  /**
+   * Get XSRF token from cookies
+   */
+  getXsrfToken: (): string | null => {
+    const cookies = document.cookie.split(';');
+    const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='));
+    if (!xsrfCookie) return null;
+
+    // URL decode the cookie value as Laravel URL-encodes it
+    return decodeURIComponent(xsrfCookie.split('=')[1]);
+  },
+
+  /**
+   * Initialize CSRF token by fetching from the server
+   * This is required for Laravel Sanctum's SPA authentication
+   */
   initCsrfToken: async (): Promise<void> => {
     try {
-      // This endpoint is typically used in Laravel Sanctum to set the CSRF cookie
+      // This endpoint is used in Laravel Sanctum to set the CSRF cookie
       await fetch('/sanctum/csrf-cookie', {
         method: 'GET',
         credentials: 'include',
@@ -41,43 +77,25 @@ const tokenService = {
     }
   },
 
-  // Decode JWT token
-  decodeToken: (token: string): any => {
+  /**
+   * Check if user is authenticated (has valid session)
+   * For SPA authentication with Sanctum, we make a request to check auth status
+   */
+  isAuthenticated: async (): Promise<boolean> => {
     try {
-      return jwt_decode(token);
-    } catch (error) {
-      console.error('Failed to decode token:', error);
-      return null;
-    }
-  },
+      const response = await fetch('/api/user', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
 
-  // Check if token is valid
-  validateToken: (): boolean => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return false;
-
-    try {
-      const decoded: any = jwt_decode(token);
-      // Check if token is expired
-      if (decoded.exp && decoded.exp < Date.now() / 1000) {
-        return false;
-      }
-      return true;
+      return response.status === 200;
     } catch (error) {
+      console.error('Auth check failed:', error);
       return false;
-    }
-  },
-
-  // Check if token is expired
-  isTokenExpired: (): boolean => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return true;
-
-    try {
-      const decoded: any = jwt_decode(token);
-      return decoded.exp ? decoded.exp < Date.now() / 1000 : true;
-    } catch (error) {
-      return true;
     }
   }
 };

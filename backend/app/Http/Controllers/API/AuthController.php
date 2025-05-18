@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -28,7 +29,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Login a user
+     * Login a user using Laravel Sanctum
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -38,12 +39,16 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'device_name' => ['sometimes', 'string'], // For mobile API access
         ]);
 
-        if (!Auth::attempt($validated, $request->boolean('remember'))) {
-            return response()->json([
-                'message' => 'Invalid login credentials'
-            ], 401);
+        if (!Auth::attempt([
+            'email' => $validated['email'],
+            'password' => $validated['password']
+        ], $request->boolean('remember'))) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
         }
 
         $user = Auth::user();
@@ -52,9 +57,22 @@ class AuthController extends Controller
         // Log user login activity
         ActivityLogService::logLogin($user);
 
+        // Load user permissions and roles
+        $userData = $user->load('roles');
+        $userData->permissions = $user->getAllPermissions();
+
+        // For mobile API access, generate a token if device_name is provided
+        if ($request->has('device_name')) {
+            $token = $user->createToken($request->device_name)->plainTextToken;
+            return response()->json([
+                'user' => $userData,
+                'token' => $token,
+            ]);
+        }
+
+        // For SPA (web interface), use session authentication
         return response()->json([
-            'user' => $user->load('roles', 'permissions'),
-            'token' => $user->createToken('auth_token')->plainTextToken,
+            'user' => $userData,
         ]);
     }
 
@@ -70,6 +88,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'device_name' => ['sometimes', 'string'], // For mobile API access
         ]);
 
         $user = User::create([
@@ -86,12 +105,27 @@ class AuthController extends Controller
         // Log user registration activity
         ActivityLogService::logRegistration($user);
 
+        // Auto login
         Auth::login($user);
 
+        // Load user data
+        $userData = $user->load('roles');
+        $userData->permissions = $user->getAllPermissions();
+
+        // For mobile API access, generate a token if device_name is provided
+        if ($request->has('device_name')) {
+            $token = $user->createToken($request->device_name)->plainTextToken;
+            return response()->json([
+                'message' => 'User registered successfully',
+                'user' => $userData,
+                'token' => $token,
+            ], 201);
+        }
+
+        // For SPA (web interface), use session authentication
         return response()->json([
             'message' => 'User registered successfully',
-            'user' => $user->load('roles', 'permissions'),
-            'token' => $user->createToken('auth_token')->plainTextToken,
+            'user' => $userData,
         ], 201);
     }
 
@@ -108,10 +142,16 @@ class AuthController extends Controller
         // Log user logout activity
         if ($user) {
             ActivityLogService::logLogout($user);
-        }
 
-        if ($user) {
-            $user->tokens()->where('id', $user->currentAccessToken()->id)->delete();
+            // Revoke token if using token authentication
+            if ($request->bearerToken()) {
+                $user->currentAccessToken()->delete();
+            }
+
+            // Logout from session
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
 
         return response()->json([
@@ -133,7 +173,7 @@ class AuthController extends Controller
         // Load roles and permissions
         $user->load('roles');
         $userData = $user->toArray();
-        $userData['permissions'] = $user->getAllPermissions()->pluck('name');
+        $userData['permissions'] = $user->getAllPermissions();
 
         return response()->json($userData);
     }

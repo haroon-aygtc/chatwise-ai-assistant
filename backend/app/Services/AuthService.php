@@ -8,20 +8,25 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
     /**
-     * Authenticate a user and generate token
+     * Authenticate a user
      *
      * @param array $credentials
      * @param bool $remember
+     * @param string|null $deviceName For mobile API access
      * @return array
+     * @throws ValidationException
      */
-    public function login(array $credentials, bool $remember = false): array
+    public function login(array $credentials, bool $remember = false, ?string $deviceName = null): array
     {
         if (!Auth::attempt($credentials, $remember)) {
-            throw new \Exception('The provided credentials are incorrect.');
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
         }
 
         $user = Auth::user();
@@ -31,24 +36,33 @@ class AuthService
         $user->save();
 
         // Get roles and permissions
-        $roles = $user->roles->pluck('name');
-        $permissions = $user->getAllPermissions()->pluck('name');
+        $user->load('roles');
+        $permissions = $user->getAllPermissions();
 
-        // Create token with abilities based on permissions
-        $token = $user->createToken('auth-token', $permissions->toArray())->plainTextToken;
+        // Prepare user data
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'status' => $user->status,
+            'avatar_url' => $user->avatar_url,
+            'last_active' => $user->last_active,
+            'roles' => $user->roles->pluck('name'),
+            'permissions' => $permissions,
+        ];
 
+        // If device name is provided (mobile API access), return token
+        if ($deviceName) {
+            $token = $user->createToken($deviceName, $permissions->toArray())->plainTextToken;
+            return [
+                'user' => $userData,
+                'token' => $token,
+            ];
+        }
+
+        // For SPA, no token needed (using session)
         return [
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'status' => $user->status,
-                'avatar_url' => $user->avatar_url,
-                'last_active' => $user->last_active,
-                'roles' => $roles,
-                'permissions' => $permissions,
-            ],
-            'token' => $token,
+            'user' => $userData,
         ];
     }
 
@@ -56,9 +70,10 @@ class AuthService
      * Register a new user
      *
      * @param array $userData
+     * @param string|null $deviceName For mobile API access
      * @return array
      */
-    public function register(array $userData): array
+    public function register(array $userData, ?string $deviceName = null): array
     {
         // Create user
         $user = User::create([
@@ -72,19 +87,33 @@ class AuthService
         // Assign default role
         $user->assignRole('user');
 
-        // Create token
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Auto login user for session
+        Auth::login($user);
 
-        return [
+        // Load roles and permissions
+        $user->load('roles');
+        $permissions = $user->getAllPermissions();
+
+        // Prepare user data
+        $responseData = [
             'message' => 'User registered successfully',
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'status' => $user->status,
+                'avatar_url' => $user->avatar_url,
+                'roles' => $user->roles->pluck('name'),
+                'permissions' => $permissions,
             ],
-            'token' => $token,
         ];
+
+        // If device name is provided (mobile API access), include token
+        if ($deviceName) {
+            $responseData['token'] = $user->createToken($deviceName)->plainTextToken;
+        }
+
+        return $responseData;
     }
 
     /**
@@ -99,17 +128,18 @@ class AuthService
         $user->last_active = now();
         $user->save();
 
+        // Load roles and permissions
+        $user->load('roles');
+
         return [
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'status' => $user->status,
-                'avatar_url' => $user->avatar_url,
-                'last_active' => $user->last_active,
-                'roles' => $user->roles->pluck('name'),
-                'permissions' => $user->getAllPermissions()->pluck('name'),
-            ],
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'status' => $user->status,
+            'avatar_url' => $user->avatar_url,
+            'last_active' => $user->last_active,
+            'roles' => $user->roles->pluck('name'),
+            'permissions' => $user->getAllPermissions(),
         ];
     }
 
@@ -159,13 +189,19 @@ class AuthService
     }
 
     /**
-     * Logout by removing the current token
+     * Logout user
      *
      * @param User $user
+     * @param bool $isTokenBased
      * @return void
      */
-    public function logout(User $user): void
+    public function logout(User $user, bool $isTokenBased = false): void
     {
-        $user->currentAccessToken()->delete();
+        // For token-based authentication (mobile)
+        if ($isTokenBased && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+        }
+
+        // For session-based authentication (SPA), the controller handles session invalidation
     }
 }

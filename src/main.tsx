@@ -5,22 +5,36 @@ import './index.css'
 // Import the intl-tel-input CSS
 import 'intl-tel-input/build/css/intlTelInput.css'
 import { BrowserRouter } from 'react-router-dom'
-
+import { tokenService } from './services/auth'
 
 const basename = import.meta.env.BASE_URL;
 
+// Initialize CSRF token before rendering
+tokenService.initCsrfToken()
+  .then(() => {
+    ReactDOM.createRoot(document.getElementById("root")!).render(
+      <React.StrictMode>
+        <BrowserRouter basename={basename}>
+          <App />
+        </BrowserRouter>
+      </React.StrictMode>,
+    );
+  })
+  .catch(error => {
+    console.error('Failed to initialize CSRF token:', error);
+    // Still render the app even if CSRF fails - it will retry on API calls
+    ReactDOM.createRoot(document.getElementById("root")!).render(
+      <React.StrictMode>
+        <BrowserRouter basename={basename}>
+          <App />
+        </BrowserRouter>
+      </React.StrictMode>,
+    );
+  });
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-    <React.StrictMode>
-      <BrowserRouter basename={basename}>
-        <App />
-      </BrowserRouter>
-    </React.StrictMode>,
-  );
 
 
-
-  // Ensure CSRF token is fetched before rendering
+// Ensure CSRF token is fetched before rendering
 // getCsrfToken()
 //   .then(() => {
 //     createRoot(document.getElementById("root")!).render(<App />);
