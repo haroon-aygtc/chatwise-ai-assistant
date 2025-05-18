@@ -1,3 +1,4 @@
+
 import apiService from "../api/api";
 import { ApiRequestParams } from "../api/types";
 
@@ -31,7 +32,7 @@ class ActivityLogService {
   static async getActivityLogs(
     params: ApiRequestParams = {}
   ): Promise<ActivityLogResponse> {
-    return await apiService.get<ActivityLogResponse>("/activity-logs", params);
+    return await apiService.get<ActivityLogResponse>("/activity-logs", { params });
   }
 
   /**
@@ -47,7 +48,7 @@ class ActivityLogService {
   static async exportActivityLogs(
     params: ApiRequestParams = {}
   ): Promise<Blob> {
-    const response = await apiService.getAxiosInstance().get(
+    const response = await apiService.instance.get(
       "/activity-logs/export",
       {
         params,

@@ -1,6 +1,7 @@
 
-import axios, { AxiosResponse, AxiosRequestConfig, AxiosHeaders } from 'axios';
+import axios, { AxiosResponse, AxiosRequestConfig, AxiosInstance } from 'axios';
 import { tokenService } from '@/services/auth';
+import { ApiRequestParams } from './types';
 
 // Create a base API instance
 const api = axios.create({
@@ -21,7 +22,9 @@ api.interceptors.request.use(
     // If token exists, add to authorization header
     if (token) {
       config.headers = config.headers || {};
-      config.headers['Authorization'] = `Bearer ${token}`;
+      if (config.headers) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     // For mutation requests (POST, PUT, PATCH, DELETE)
@@ -87,7 +90,7 @@ const getCsrf = async (): Promise<void> => {
 };
 
 // Generic request methods
-const get = <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+const get = <T>(url: string, config?: AxiosRequestConfig | { params?: ApiRequestParams }): Promise<T> => {
   return api.get(url, config).then((response: AxiosResponse) => response.data);
 };
 
@@ -107,13 +110,25 @@ const del = <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
   return api.delete(url, config).then((response: AxiosResponse) => response.data);
 };
 
+// Upload file utility
+const uploadFile = <T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> => {
+  const uploadConfig = {
+    ...config,
+    headers: {
+      ...(config?.headers || {}),
+      'Content-Type': 'multipart/form-data'
+    }
+  };
+  return api.post(url, formData, uploadConfig).then((response: AxiosResponse) => response.data);
+};
+
 // Create auth headers utility
-const createAuthHeaders = (): AxiosHeaders => {
+const createAuthHeaders = () => {
   const token = tokenService.getToken();
-  const headers = new AxiosHeaders();
+  const headers: Record<string, string> = {};
   
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers['Authorization'] = `Bearer ${token}`;
   }
   
   return headers;
@@ -125,7 +140,14 @@ export default {
   put,
   patch,
   delete: del,
+  uploadFile,
   getCsrf,
   createAuthHeaders,
   instance: api,
 };
+
+// Export API instance directly for advanced usage
+export { api };
+
+// Export type alias for backward compatibility
+export type ApiParams = ApiRequestParams;

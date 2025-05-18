@@ -78,8 +78,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         permissions: allPermissions
       }],
       permissions: allPermissions,
-      last_active: new Date().toISOString(),
-      created_at: new Date().toISOString()
+      lastActive: new Date().toISOString(), // Changed from last_active to lastActive
+      createdAt: new Date().toISOString()   // Changed from created_at to createdAt
     };
     
     return user;
