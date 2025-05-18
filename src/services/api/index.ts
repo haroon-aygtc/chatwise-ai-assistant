@@ -1,6 +1,6 @@
 
-import ApiService from './api';
+import apiService from './api';
 export * from './config';
 export * from './types';
-export { ApiService as default, api } from './api';
-export type { ApiParams } from './api';
+export { apiService as default, apiService as api };
+export type { ApiRequestParams } from './types';

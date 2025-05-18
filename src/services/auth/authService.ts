@@ -1,179 +1,123 @@
 
-/**
- * Auth Service
- * 
- * Handles authentication for Laravel Sanctum's SPA authentication
- * using session cookies and CSRF protection.
- */
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { api } from '../api';
+import { API_CONFIG } from '../api/config';
+import { User, LoginFormValues, RegisterFormValues } from '@/types/auth';
 
-import axios from "axios";
-import { LoginCredentials, RegisterData } from "@/types/domain";
-import API_CONFIG from "../api/config";
-import tokenService from "./tokenService";
-import apiService from "../api/api";
-
-const authService = {
+class AuthService {
   /**
-   * Login a user with Laravel Sanctum
+   * Get CSRF cookie
    */
-  async login(credentials: LoginCredentials) {
-    // Initialize CSRF protection first
-    await tokenService.initCsrfToken();
-
-    // Login using credentials with Laravel Sanctum
-    const response = await axios.post(
-      `${API_CONFIG.API_URL}/login`,
-      credentials,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        withCredentials: true, // Important for cookies to be sent/received
-      }
-    );
-
-    // For mobile clients, store token if provided
-    if (response.data.token) {
-      tokenService.setToken(response.data.token);
-    }
-
-    return response.data;
-  },
-
-  /**
-   * Register a new user with Laravel Sanctum
-   */
-  async register(data: RegisterData) {
-    // Initialize CSRF protection first
-    await tokenService.initCsrfToken();
-
-    // Register using provided data
-    const response = await axios.post(
-      `${API_CONFIG.API_URL}/register`,
-      data,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        withCredentials: true,
-      }
-    );
-
-    return response.data;
-  },
-
-  /**
-   * Logout the current user from Laravel Sanctum
-   */
-  async logout() {
+  static async getCsrfCookie(): Promise<void> {
     try {
-      // Initialize CSRF protection first
-      await tokenService.initCsrfToken();
-
-      // Post to logout endpoint
-      await axios.post(
-        `${API_CONFIG.API_URL}/logout`,
-        {},
-        {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          withCredentials: true,
-        }
-      );
-
-      // For mobile clients, clear token if any
-      tokenService.removeToken();
-
-      return { success: true };
+      // Laravel requires a CSRF token for all non-GET requests
+      await axios.get(`${API_CONFIG.BASE_URL}/sanctum/csrf-cookie`, { withCredentials: true });
     } catch (error) {
-      console.error("Logout error:", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get current user profile
-   */
-  async getProfile() {
-    try {
-      const response = await apiService.get<{ user: any }>('/user/profile');
-      return response.user;
-    } catch (error) {
-      console.error("Profile fetch error:", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Request password reset
-   */
-  async requestPasswordReset(email: string) {
-    // Initialize CSRF protection first
-    await tokenService.initCsrfToken();
-
-    const response = await axios.post(
-      `${API_CONFIG.API_URL}/forgot-password`,
-      { email },
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        withCredentials: true,
-      }
-    );
-
-    return response.data;
-  },
-
-  /**
-   * Reset password with token
-   */
-  async resetPassword(token: string, password: string, password_confirmation: string) {
-    // Initialize CSRF protection first
-    await tokenService.initCsrfToken();
-
-    const response = await axios.post(
-      `${API_CONFIG.API_URL}/reset-password`,
-      {
-        token,
-        password,
-        password_confirmation
-      },
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        withCredentials: true,
-      }
-    );
-
-    return response.data;
-  },
-
-  /**
-   * Get current user
-   */
-  async getCurrentUser() {
-    try {
-      // For SPA authentication in Sanctum, use the /api/user endpoint
-      const response = await apiService.get<any>('/user');
-      return response;
-    } catch (error) {
-      console.error("User fetch error:", error);
+      console.error("Failed to get CSRF cookie:", error);
       throw error;
     }
   }
-};
 
-export default authService;
+  /**
+   * Login user
+   * @param credentials User credentials
+   */
+  static async login(credentials: LoginFormValues): Promise<User> {
+    try {
+      await this.getCsrfCookie();
+      const response = await api.post<User>('/login', credentials);
+      return response;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register a new user
+   * @param userData User registration data
+   */
+  static async register(userData: RegisterFormValues): Promise<User> {
+    try {
+      await this.getCsrfCookie();
+      const response = await api.post<User>('/register', userData);
+      return response;
+    } catch (error) {
+      console.error('Register error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get authenticated user
+   */
+  static async getUser(): Promise<User> {
+    try {
+      const response = await api.get<User>('/user');
+      return response;
+    } catch (error) {
+      console.error('Get user error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify authentication
+   */
+  static async verifyAuth(): Promise<boolean> {
+    try {
+      await this.getUser();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Logout user
+   */
+  static async logout(): Promise<void> {
+    try {
+      await this.getCsrfCookie();
+      await api.post('/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Request password reset
+   * @param email User email
+   */
+  static async forgotPassword(email: string): Promise<void> {
+    try {
+      await this.getCsrfCookie();
+      await api.post('/forgot-password', { email });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset password
+   * @param data Password reset data
+   */
+  static async resetPassword(data: { 
+    email: string; 
+    password: string; 
+    password_confirmation: string; 
+    token: string;
+  }): Promise<void> {
+    try {
+      await this.getCsrfCookie();
+      await api.post('/reset-password', data);
+    } catch (error) {
+      console.error('Reset password error:', error);
+      throw error;
+    }
+  }
+}
+
+export default AuthService;
