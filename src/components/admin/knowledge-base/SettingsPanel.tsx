@@ -1,178 +1,173 @@
 
-import { useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import KnowledgeBaseService from "@/services/knowledge-base/knowledgeBaseService";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-interface KnowledgeBaseSettings {
-  maxTokensPerChunk: number;
-  chunkOverlap: number;
-  similarityThreshold: number;
-  maxResults: number;
-  includeMetadata: boolean;
-  enableFuzzySearch: boolean;
-  [key: string]: any; // Add index signature to allow string keys
-}
-
-interface UpdateSettingsRequest {
-  [key: string]: any;
-}
-
-export function SettingsPanel() {
-  const [settings, setSettings] = useState<KnowledgeBaseSettings>({
-    maxTokensPerChunk: 512,
-    chunkOverlap: 50,
-    similarityThreshold: 0.75,
-    maxResults: 5,
-    includeMetadata: true,
-    enableFuzzySearch: false,
+export const SettingsPanel: React.FC = () => {
+  const queryClient = useQueryClient();
+  
+  // Fetch settings
+  const { 
+    data: settings, 
+    isLoading,
+    isError,
+    error
+  } = useQuery({
+    queryKey: ['knowledgeBase', 'settings'],
+    queryFn: KnowledgeBaseService.getSettings
   });
-  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      toast.success("Settings saved successfully");
-    } catch (error) {
-      toast.error("Failed to save settings");
-    } finally {
-      setIsSaving(false);
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: KnowledgeBaseService.updateSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledgeBase', 'settings'] });
+      toast.success("Settings updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to update settings: ${error.message || "Unknown error"}`);
     }
+  });
+
+  const handleToggleIntegration = () => {
+    if (!settings) return;
+    
+    updateSettingsMutation.mutate({
+      isEnabled: !settings.isEnabled
+    });
   };
 
+  const handleChangePriority = (value: 'low' | 'medium' | 'high' | 'exclusive') => {
+    if (!settings) return;
+    
+    updateSettingsMutation.mutate({
+      priority: value
+    });
+  };
+
+  const handleToggleCitations = () => {
+    if (!settings) return;
+    
+    updateSettingsMutation.mutate({
+      includeCitations: !settings.includeCitations
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6 flex items-center justify-center min-h-[300px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError || !settings) {
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center min-h-[300px] flex flex-col items-center justify-center">
+          <p className="text-destructive mb-2">Failed to load settings</p>
+          <p className="text-muted-foreground mb-4">
+            {error instanceof Error ? error.message : "Unknown error occurred"}
+          </p>
+          <Button 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['knowledgeBase', 'settings'] })}
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
         <CardTitle>Knowledge Base Settings</CardTitle>
         <CardDescription>
-          Configure how your documents are processed and searched
+          Configure how your knowledge base integrates with AI responses
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label htmlFor="maxTokensPerChunk">
-              Max Tokens Per Chunk
-            </Label>
-            <span className="text-sm text-muted-foreground">
-              {settings.maxTokensPerChunk}
-            </span>
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="kb-integration">Knowledge Base Integration</Label>
+            <p className="text-sm text-muted-foreground">
+              Enable AI to use your knowledge base for responses
+            </p>
           </div>
-          <Slider
-            id="maxTokensPerChunk"
-            min={128}
-            max={2048}
-            step={128}
-            value={[settings.maxTokensPerChunk]}
-            onValueChange={(value) =>
-              setSettings({ ...settings, maxTokensPerChunk: value[0] })
-            }
+          <Switch 
+            id="kb-integration" 
+            checked={settings.isEnabled}
+            onCheckedChange={handleToggleIntegration}
+            disabled={updateSettingsMutation.isPending}
           />
-          <p className="text-xs text-muted-foreground mt-1">
-            Controls the size of document chunks for processing
-          </p>
         </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label htmlFor="chunkOverlap">Chunk Overlap (%)</Label>
-            <span className="text-sm text-muted-foreground">
-              {settings.chunkOverlap}%
-            </span>
+        
+        <Separator />
+        
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="kb-priority">Knowledge Priority</Label>
+            <p className="text-sm text-muted-foreground">
+              How strongly should AI prefer knowledge base over general knowledge
+            </p>
           </div>
-          <Slider
-            id="chunkOverlap"
-            min={0}
-            max={100}
-            step={5}
-            value={[settings.chunkOverlap]}
-            onValueChange={(value) =>
-              setSettings({ ...settings, chunkOverlap: value[0] })
-            }
-          />
+          <Select 
+            value={settings.priority} 
+            onValueChange={(value: any) => handleChangePriority(value)}
+            disabled={updateSettingsMutation.isPending || !settings.isEnabled}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="exclusive">Exclusive</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label htmlFor="similarityThreshold">
-              Similarity Threshold
-            </Label>
-            <span className="text-sm text-muted-foreground">
-              {settings.similarityThreshold}
-            </span>
+        
+        <Separator />
+        
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="kb-citation">Include Citations</Label>
+            <p className="text-sm text-muted-foreground">
+              Add source references to AI responses
+            </p>
           </div>
-          <Slider
-            id="similarityThreshold"
-            min={0.1}
-            max={1}
-            step={0.05}
-            value={[settings.similarityThreshold]}
-            onValueChange={(value) =>
-              setSettings({ ...settings, similarityThreshold: value[0] })
-            }
+          <Switch 
+            id="kb-citation" 
+            checked={settings.includeCitations}
+            onCheckedChange={handleToggleCitations}
+            disabled={updateSettingsMutation.isPending || !settings.isEnabled}
           />
-          <p className="text-xs text-muted-foreground mt-1">
-            Higher values require a closer match between query and content
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="maxResults">Max Search Results</Label>
-          <Input
-            id="maxResults"
-            type="number"
-            min={1}
-            max={20}
-            value={settings.maxResults}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                maxResults: parseInt(e.target.value) || 1,
-              })
-            }
-          />
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="includeMetadata"
-            checked={settings.includeMetadata}
-            onCheckedChange={(checked) =>
-              setSettings({ ...settings, includeMetadata: checked })
-            }
-          />
-          <Label htmlFor="includeMetadata">Include Metadata</Label>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="enableFuzzySearch"
-            checked={settings.enableFuzzySearch}
-            onCheckedChange={(checked) =>
-              setSettings({ ...settings, enableFuzzySearch: checked })
-            }
-          />
-          <Label htmlFor="enableFuzzySearch">Enable Fuzzy Search</Label>
         </div>
       </CardContent>
-      <CardFooter>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save Settings"}
+      <CardFooter className="flex justify-end">
+        <Button 
+          disabled={updateSettingsMutation.isPending}
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['knowledgeBase', 'settings'] })}
+        >
+          {updateSettingsMutation.isPending ? 
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : 
+            null
+          }
+          {updateSettingsMutation.isPending ? "Saving..." : "Refresh Settings"}
         </Button>
       </CardFooter>
     </Card>
   );
-}
+};

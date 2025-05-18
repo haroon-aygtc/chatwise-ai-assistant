@@ -1,117 +1,101 @@
 
-import { useState, ChangeEvent } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { FileUp, X } from "lucide-react";
-import { DocumentCategory as KnowledgeBaseDocumentCategory, CreateDocumentRequest } from "@/types/knowledge-base";
+import { DocumentCategory, CreateDocumentRequest } from "@/types/knowledge-base";
+import { FileUp, X, Upload, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface UploadDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpload: (data: CreateDocumentRequest) => void;
-  categories: KnowledgeBaseDocumentCategory[];
+  onUpload: (document: CreateDocumentRequest) => void;
+  categories: DocumentCategory[];
   isUploading: boolean;
 }
 
-export const UploadDocumentDialog = ({
+export const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({
   open,
   onOpenChange,
   onUpload,
   categories,
   isUploading
-}: UploadDocumentDialogProps) => {
+}) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [content, setContent] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [fileContent, setFileContent] = useState("");
-  const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Reset form when dialog opens/closes
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      // Reset form if closing
-      resetForm();
-    }
-    onOpenChange(open);
-  };
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setCategoryId("");
-    setTags("");
-    setFile(null);
-    setFileContent("");
-    setUploadProgress(0);
-  };
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-    
-    setFile(selectedFile);
-    
-    // If it's a text file, try to read its contents
-    if (selectedFile.type === 'text/plain' || selectedFile.name.endsWith('.txt')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setFileContent(event.target.result as string);
-        }
-      };
-      reader.readAsText(selectedFile);
-    } else {
-      setFileContent("");
+  const handleAddTag = () => {
+    const trimmedTag = tagInput.trim();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      setTags([...tags, trimmedTag]);
+      setTagInput("");
     }
   };
 
-  const handleUpload = () => {
-    // Split comma-separated tags into an array
-    const tagsArray = tags
-      ? tags.split(',').map((tag) => tag.trim()).filter(Boolean)
-      : [];
+  const handleRemoveTag = (tag: string) => {
+    setTags(tags.filter(t => t !== tag));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+
+    if (!categoryId) {
+      toast.error("Category is required");
+      return;
+    }
 
     const documentData: CreateDocumentRequest = {
-      title,
-      description,
-      content: fileContent,
-      categoryId: categoryId || undefined,
-      tags: tagsArray,
-      file
+      title: title.trim(),
+      description: description.trim(),
+      content: content.trim(),
+      categoryId,
+      tags,
+      ...(file && { file })
     };
 
-    // Simulate upload progress
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setUploadProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        // Call the actual upload function
-        onUpload(documentData);
-      }
-    }, 100);
+    onUpload(documentData);
   };
 
-  const isFormValid = title.trim() !== "" && (file !== null || fileContent.trim() !== "");
+  const handleReset = () => {
+    setTitle("");
+    setDescription("");
+    setContent("");
+    setCategoryId("");
+    setTags([]);
+    setTagInput("");
+    setFile(null);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) handleReset();
+      onOpenChange(isOpen);
+    }}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>
           <DialogDescription>
-            Add a new document to your knowledge base
+            Add a new document to your knowledge base.
           </DialogDescription>
         </DialogHeader>
-
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="title">Title *</Label>
@@ -120,28 +104,26 @@ export const UploadDocumentDialog = ({
               placeholder="Document title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              disabled={isUploading}
             />
           </div>
-
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea
+            <Input
               id="description"
-              placeholder="Brief description of the document"
-              rows={2}
+              placeholder="Brief description of this document"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              disabled={isUploading}
             />
           </div>
-
           <div className="grid gap-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
+            <Label htmlFor="category">Category *</Label>
+            <Select value={categoryId} onValueChange={setCategoryId} disabled={isUploading}>
+              <SelectTrigger id="category">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -150,36 +132,68 @@ export const UploadDocumentDialog = ({
               </SelectContent>
             </Select>
           </div>
-
           <div className="grid gap-2">
             <Label htmlFor="tags">Tags</Label>
-            <Input
-              id="tags"
-              placeholder="Enter tags separated by commas"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Example: product, documentation, guide
-            </p>
+            <div className="flex gap-2">
+              <Input
+                id="tags"
+                placeholder="Add tags (press Enter)"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                disabled={isUploading}
+              />
+              <Button 
+                type="button" 
+                onClick={handleAddTag}
+                variant="secondary"
+                disabled={!tagInput.trim() || isUploading}
+              >
+                Add
+              </Button>
+            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {tags.map((tag, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-sm"
+                  >
+                    <span>{tag}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveTag(tag)}
+                      className="text-muted-foreground hover:text-destructive"
+                      disabled={isUploading}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-
           <div className="grid gap-2">
-            <Label htmlFor="file">Upload File</Label>
+            <Label htmlFor="file">File (Optional)</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="file"
                 type="file"
                 onChange={handleFileChange}
+                disabled={isUploading}
                 className="flex-1"
-                accept=".txt,.md,.pdf,.docx,.doc"
               />
               {file && (
-                <Button
-                  variant="outline"
-                  size="icon"
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => setFile(null)}
-                  type="button"
+                  disabled={isUploading}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -187,51 +201,41 @@ export const UploadDocumentDialog = ({
             </div>
             {file && (
               <p className="text-xs text-muted-foreground">
-                {file.name} ({Math.round(file.size / 1024)} KB)
+                {file.name} ({(file.size / 1024).toFixed(1)} KB)
               </p>
             )}
           </div>
-
-          {fileContent && (
-            <div className="grid gap-2">
-              <Label htmlFor="content">Content Preview</Label>
-              <Textarea
-                id="content"
-                value={fileContent}
-                onChange={(e) => setFileContent(e.target.value)}
-                rows={5}
-                className="font-mono text-xs"
-              />
-            </div>
-          )}
-
-          {isUploading && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Uploading...</span>
-                <span className="text-sm text-muted-foreground">
-                  {uploadProgress}%
-                </span>
-              </div>
-              <Progress value={uploadProgress} className="h-2" />
-            </div>
-          )}
+          <div className="grid gap-2">
+            <Label htmlFor="content">Content</Label>
+            <Textarea
+              id="content"
+              placeholder="Document content (can be left blank if uploading a file)"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={5}
+              disabled={isUploading}
+            />
+            <p className="text-xs text-muted-foreground">
+              If you upload a file, this content will be used alongside extracted file content.
+            </p>
+          </div>
         </div>
-
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={isUploading}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
             Cancel
           </Button>
-          <Button
-            onClick={handleUpload}
-            disabled={!isFormValid || isUploading}
-          >
-            <FileUp className="h-4 w-4 mr-2" />
-            Upload
+          <Button onClick={handleSubmit} disabled={!title || !categoryId || isUploading}>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload Document
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
