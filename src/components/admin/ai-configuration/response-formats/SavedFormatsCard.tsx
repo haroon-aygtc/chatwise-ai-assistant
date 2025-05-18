@@ -1,94 +1,64 @@
 
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponseFormat } from "@/types/ai-configuration";
-import { Check, Loader2 } from "lucide-react";
-
-export interface SavedFormatsCardProps {
-  formats: ResponseFormat[];
-  onSelectFormat: (format: ResponseFormat) => void;
-  onSetDefault: (id: string) => Promise<void>;
-  isSettingDefault: boolean;
-  isLoading?: boolean;
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Check, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { SavedFormatCardProps } from './types';
 
 export function SavedFormatsCard({
   formats,
+  selectedFormatId,
   onSelectFormat,
-  onSetDefault,
-  isSettingDefault,
+  onNewFormat,
   isLoading = false
-}: SavedFormatsCardProps) {
+}: SavedFormatCardProps) {
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-lg">Saved Formats</CardTitle>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Saved Formats</CardTitle>
+        <Button size="sm" onClick={onNewFormat} disabled={isLoading}>
+          <Plus className="h-4 w-4 mr-1" /> New Format
+        </Button>
       </CardHeader>
-      <CardContent className="p-0">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <CardContent>
+        {isLoading && formats.length === 0 ? (
+          <div className="flex items-center justify-center h-[200px]">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : formats.length === 0 ? (
-          <div className="p-6 text-center">
-            <p className="text-sm text-muted-foreground">No formats created yet</p>
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No formats available</p>
+            <p className="text-sm mt-2">Create your first format to get started</p>
           </div>
         ) : (
-          <ScrollArea className="h-[500px]">
-            <div className="p-2">
-              {formats.map((format) => (
-                <div
-                  key={format.id}
-                  className="p-3 border rounded-md mb-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
-                  onClick={() => onSelectFormat(format)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium">{format.name}</span>
-                        {format.isDefault && (
-                          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs">
-                            Default
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format.description || "No description"}
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
-                          {format.format}
-                        </span>
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
-                          {format.length}
-                        </span>
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
-                          {format.tone}
-                        </span>
-                      </div>
-                    </div>
-                    {!format.isDefault && (
-                      <button
-                        className="text-xs text-muted-foreground hover:text-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSetDefault(format.id);
-                        }}
-                        disabled={isSettingDefault}
-                      >
-                        {isSettingDefault ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          "Set Default"
-                        )}
-                      </button>
-                    )}
+          <div className="space-y-2">
+            {formats.map((format) => (
+              <div
+                key={format.id}
+                className={cn(
+                  "p-3 rounded-md cursor-pointer flex items-center justify-between",
+                  selectedFormatId === format.id
+                    ? "bg-primary/10 border border-primary/20"
+                    : "hover:bg-muted"
+                )}
+                onClick={() => onSelectFormat(format)}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium">{format.name}</h3>
+                    {format.isDefault && <Badge variant="outline">Default</Badge>}
                   </div>
+                  {format.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{format.description}</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+                {selectedFormatId === format.id && (
+                  <Check className="h-4 w-4 text-primary" />
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>

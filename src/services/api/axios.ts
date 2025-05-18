@@ -7,8 +7,9 @@ const axiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
-  withCredentials: true,
+  withCredentials: true, // Essential for cross-domain cookie handling
 });
 
 // Add a request interceptor
@@ -27,7 +28,7 @@ axiosInstance.interceptors.request.use(
 // Add a response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // Handle response errors
     if (error.response) {
       // The request was made and the server responded with a status code
@@ -37,6 +38,17 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem("token");
         if (window.location.pathname !== "/login") {
           window.location.href = "/login?session=expired";
+        }
+      } else if (error.response.status === 419) {
+        // CSRF token mismatch - try refreshing the token
+        try {
+          await axios.get(`${API_BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
+            withCredentials: true
+          });
+          // Retry the original request
+          return axiosInstance(error.config);
+        } catch (refreshError) {
+          console.error("Failed to refresh CSRF token", refreshError);
         }
       }
     }

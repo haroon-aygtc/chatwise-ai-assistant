@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -84,7 +83,7 @@ class FollowUpService
             $tempOrder = $suggestion->order;
             $suggestion->order = $previousSuggestion->order;
             $previousSuggestion->order = $tempOrder;
-            
+
             $suggestion->save();
             $previousSuggestion->save();
         }
@@ -106,7 +105,7 @@ class FollowUpService
             $tempOrder = $suggestion->order;
             $suggestion->order = $nextSuggestion->order;
             $nextSuggestion->order = $tempOrder;
-            
+
             $suggestion->save();
             $nextSuggestion->save();
         }
@@ -142,7 +141,7 @@ class FollowUpService
     {
         $settings = $this->getSettings();
         $suggestionCount = min($settings->max_suggestions, 5);
-        
+
         if (!$settings->enabled) {
             return [
                 'response' => $this->getDefaultResponse(),

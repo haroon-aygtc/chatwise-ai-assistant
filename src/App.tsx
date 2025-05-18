@@ -9,12 +9,12 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/modules/auth";
+import { AuthProvider } from "@/hooks/auth/useAuth";
 import SessionExpirationModal from "@/components/auth/SessionExpirationModal";
 
 // Layout components
 import ProtectedRoute from "@/modules/auth/components/ProtectedRoute";
-import AuthLayout from "@/components/auth/AuthLayout";
+import AuthLayout from "@/modules/auth/components/AuthLayout";
 import AdminLayout from "@/components/admin/AdminLayout";
 
 // Auth pages

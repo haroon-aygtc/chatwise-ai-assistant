@@ -9,13 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { DocumentCategory, CreateCategoryRequest } from "@/types/knowledge-base";
+import { DocumentCategory as KnowledgeBaseDocumentCategory, CreateCategoryRequest } from "@/types/knowledge-base";
 import { FolderOpen, Plus, Trash2, Tag, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import KnowledgeBaseService from "@/services/knowledge-base/knowledgeBaseService";
 
 interface CategoryListProps {
-  categories: DocumentCategory[];
+  categories: KnowledgeBaseDocumentCategory[];
   isLoading: boolean;
 }
 

@@ -1,14 +1,13 @@
 
-import * as aiModelService from './aiModelService';
-import followUpService from './followUpService';
-import * as dataSourceService from './dataSourceService';
-import * as promptTemplateService from '../prompt-template/promptTemplateService';
-import * as responseFormatService from './responseFormatService';
+export * from './aiModelService';
+export * from './dataSourceService';
+export * from './followUpService';
+export * from './promptTemplateService';
+export * from './responseFormatService';
 
-export { 
-  aiModelService, 
-  followUpService, 
-  dataSourceService, 
-  promptTemplateService,
-  responseFormatService 
-};
+// Export services as named objects for easier imports
+import * as promptTemplateServiceObj from './promptTemplateService';
+export const promptTemplateService = promptTemplateServiceObj;
+
+import * as responseFormatServiceObj from './responseFormatService';
+export const responseFormatService = responseFormatServiceObj;

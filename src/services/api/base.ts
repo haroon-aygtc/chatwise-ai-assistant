@@ -1,29 +1,42 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { tokenService as TokenService } from '@/modules/auth';
 
-// Create a custom Axios instance
-const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import { ApiRequestParams } from "./types";
+import { API_BASE_URL, getGlobalHeaders } from "./config";
+
+// Define the base API response type
+export interface ApiResponse<T = any> {
+  data: T;
+  message?: string;
+  token?: string;
+  user?: any;
+}
+
+// Create an axios instance with default configs
+const apiClient = axios.create({
+  baseURL: API_BASE_URL, // Use the configured base URL from environment
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
-  withCredentials: true,
+  withCredentials: true, // Essential for cross-domain cookie handling
 });
 
-// Add a request interceptor
-api.interceptors.request.use(
+// Add request interceptor to handle auth tokens
+apiClient.interceptors.request.use(
   (config) => {
-    // Add token to request headers if it exists
-    const token = TokenService.getToken();
+    // Get token from local storage
+    const token = localStorage.getItem("auth_token");
+    
+    // If token exists, add it to the Authorization header
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Add CSRF token for non-GET requests if using Laravel
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (csrfToken && config.method !== 'get') {
-      config.headers['X-CSRF-TOKEN'] = csrfToken;
+    // Add any global headers
+    const globalHeaders = getGlobalHeaders();
+    for (const [key, value] of Object.entries(globalHeaders)) {
+      config.headers[key] = value;
     }
     
     return config;
@@ -33,109 +46,95 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+// Add response interceptor to handle common errors
+apiClient.interceptors.response.use(
+  (response) => response,
   async (error) => {
-    // Handle 401 Unauthorized errors
-    if (error.response && error.response.status === 401) {
-      // Clear token and redirect to login
-      TokenService.clearToken();
-      window.location.href = '/login';
+    if (error.response) {
+      // Handle 401 Unauthorized errors
+      if (error.response.status === 401) {
+        localStorage.removeItem("auth_token");
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login?session=expired";
+        }
+      }
+      
+      // Handle CSRF token mismatches (419 errors)
+      else if (error.response.status === 419) {
+        try {
+          await axios.get(`${API_BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
+            withCredentials: true
+          });
+          // Retry the original request
+          return apiClient(error.config);
+        } catch (refreshError) {
+          console.error("Failed to refresh CSRF token", refreshError);
+        }
+      }
     }
-    
-    // Handle 419 CSRF token mismatch (Laravel)
-    if (error.response && error.response.status === 419) {
-      // Refresh the page to get a new CSRF token
-      window.location.reload();
-    }
-    
     return Promise.reject(error);
   }
 );
 
-// Helper to convert parameters to axios config
-const paramsToConfig = (params: any): AxiosRequestConfig => {
-  if (!params) return {};
-  
-  // If params already has an AxiosRequestConfig shape, return it
-  if (params.headers || params.params || params.data) {
-    return params;
+// Helper method to extract just data from response
+const extractData = <T>(response: AxiosResponse<ApiResponse<T> | T>): T => {
+  // Check if response has data.data structure (ApiResponse format)
+  if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+    return (response.data as ApiResponse<T>).data;
   }
   
-  // Otherwise, convert to params config
-  return { params };
+  // Otherwise return data directly
+  return response.data as T;
 };
 
-// Generic API service functions
+// Define the base API service
 const ApiService = {
-  /**
-   * Make a GET request
-   */
-  get: async <T>(url: string, params?: any): Promise<T> => {
-    try {
-      const config = paramsToConfig(params);
-      const response: AxiosResponse = await api.get(url, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+  // Expose axios instance for special cases
+  getAxiosInstance: () => apiClient,
+
+  // GET request
+  async get<T>(url: string, params?: ApiRequestParams | AxiosRequestConfig): Promise<T> {
+    // Handle both ApiRequestParams and AxiosRequestConfig
+    const config: AxiosRequestConfig = !params ? {} : 
+      (params && 'headers' in params) ? params as AxiosRequestConfig : { params };
+    
+    const response = await apiClient.get<ApiResponse<T> | T>(url, config);
+    return extractData(response);
   },
 
-  /**
-   * Make a POST request
-   */
-  post: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-    try {
-      const response: AxiosResponse = await api.post(url, data, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+  // POST request
+  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await apiClient.post<ApiResponse<T> | T>(url, data, config);
+    return extractData(response);
   },
 
-  /**
-   * Make a PUT request
-   */
-  put: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-    try {
-      const response: AxiosResponse = await api.put(url, data, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+  // PUT request
+  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await apiClient.put<ApiResponse<T> | T>(url, data, config);
+    return extractData(response);
   },
 
-  /**
-   * Make a DELETE request
-   */
-  delete: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-    try {
-      const response: AxiosResponse = await api.delete(url, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+  // DELETE request
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await apiClient.delete<ApiResponse<T> | T>(url, config);
+    return extractData(response);
   },
 
-  /**
-   * Make a PATCH request
-   */
-  patch: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-    try {
-      const response: AxiosResponse = await api.patch(url, data, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+  // Form data POST request (for file uploads)
+  async uploadFile<T>(
+    url: string,
+    formData: FormData,
+    config?: AxiosRequestConfig
+  ): Promise<T> {
+    const response = await apiClient.post<ApiResponse<T> | T>(url, formData, {
+      ...config,
+      headers: {
+        ...config?.headers,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return extractData(response);
   },
-
-  /**
-   * Get the underlying Axios instance
-   */
-  getAxiosInstance: () => api,
 };
 
 export default ApiService;

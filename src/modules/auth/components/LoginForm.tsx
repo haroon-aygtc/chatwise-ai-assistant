@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -34,7 +33,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, updateUser } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,6 +72,56 @@ export function LoginForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  // Updated mock login function to properly set authentication state
+  const handleMockLogin = () => {
+    setIsLoading(true);
+    
+    // Mock user data that would normally come from the backend
+    // Make sure the Role type is properly satisfied with all required fields
+    const mockUser = {
+      id: "mock-user-1",
+      name: "Mock User",
+      email: "user@example.com",
+      status: "active" as "active" | "inactive" | "pending", // Explicitly type as one of the allowed values
+      avatar_url: null,
+      last_active: new Date().toISOString(),
+      roles: [{ 
+        id: "1",
+        name: "user", 
+        description: "Regular user role",
+        permissions: ["access dashboard", "view profile"]
+      }],
+      permissions: ["access dashboard", "view profile"]
+    };
+    
+    // Mock token for storage
+    const mockToken = "mock-jwt-token-" + Date.now();
+    
+    // Store the mock token in localStorage (similar to what tokenService does)
+    localStorage.setItem("token", mockToken);
+    
+    setTimeout(() => {
+      // Update the user state in the auth context
+      updateUser(mockUser);
+      
+      toast({
+        title: "Mock Login Successful!",
+        description: "Bypassing API for development purposes.",
+      });
+      
+      // Check for redirect URL same as real login
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectUrl) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectUrl);
+      } else {
+        navigate('/dashboard');
+      }
+      
+      setIsLoading(false);
+    }, 1000);
   }
 
   return (
@@ -153,13 +202,25 @@ export function LoginForm() {
             )}
           />
           
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Signing in..." : "Sign in"}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full"
+              onClick={handleMockLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? "Please wait..." : "Mock Login (Development Only)"}
+            </Button>
+          </div>
         </form>
       </Form>
       

@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -21,7 +20,7 @@ class BaseApiController extends Controller
     {
         return ResponseService::success($data, $message, $statusCode);
     }
-    
+
     /**
      * Return error response
      *

@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -12,6 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip this migration as the table was already created in 2024_05_06_000005_create_prompt_templates_table.php
+        if (Schema::hasTable('prompt_templates')) {
+            // The table already exists, no need to create it again
+            return;
+        }
+
+        // This code should never run since the table should already exist,
+        // but we'll keep it as a fallback
         Schema::create('prompt_templates', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -31,6 +38,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('prompt_templates');
+        // Do nothing as we didn't create the table in this migration
     }
 };

@@ -1,22 +1,21 @@
-
 <?php
 
 namespace App\Services;
 
 use App\Models\ResponseFormat;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ResponseFormatService
 {
     /**
      * Get all response formats
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param int $perPage
+     * @return LengthAwarePaginator
      */
-    public function getAllFormats()
+    public function getAllFormats(int $perPage = 15): LengthAwarePaginator
     {
-        return ResponseFormat::orderBy('name')->get();
+        return ResponseFormat::orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     /**
@@ -25,9 +24,9 @@ class ResponseFormatService
      * @param int $id
      * @return ResponseFormat|null
      */
-    public function getFormatById($id)
+    public function getFormatById(int $id): ?ResponseFormat
     {
-        return ResponseFormat::findOrFail($id);
+        return ResponseFormat::find($id);
     }
 
     /**
@@ -35,7 +34,7 @@ class ResponseFormatService
      *
      * @return ResponseFormat|null
      */
-    public function getDefaultFormat()
+    public function getDefaultFormat(): ?ResponseFormat
     {
         return ResponseFormat::where('is_default', true)->first();
     }
@@ -46,55 +45,72 @@ class ResponseFormatService
      * @param array $data
      * @return ResponseFormat
      */
-    public function createFormat(array $data)
+    public function createFormat(array $data): ResponseFormat
     {
-        try {
-            DB::beginTransaction();
-            
-            // If this format is set as default, unset any existing defaults
-            if (isset($data['is_default']) && $data['is_default']) {
-                $this->unsetDefaultFormats();
-            }
-            
-            $format = ResponseFormat::create($data);
-            
-            DB::commit();
-            return $format;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to create response format: ' . $e->getMessage());
-            throw $e;
+        // If this format is set as default, update others to non-default
+        if (isset($data['is_default']) && $data['is_default']) {
+            $this->resetDefaultFormats();
         }
+
+        $format = new ResponseFormat();
+        $format->name = $data['name'];
+        $format->description = $data['description'] ?? null;
+        $format->content = $data['content'];
+        $format->system_instructions = $data['system_instructions'] ?? null;
+        $format->parameters = $data['parameters'] ?? null;
+        $format->is_default = $data['is_default'] ?? false;
+        $format->save();
+
+        return $format;
     }
 
     /**
-     * Update an existing response format
+     * Update a response format
      *
      * @param int $id
      * @param array $data
-     * @return ResponseFormat
+     * @return ResponseFormat|null
      */
-    public function updateFormat(int $id, array $data)
+    public function updateFormat(int $id, array $data): ?ResponseFormat
     {
-        try {
-            DB::beginTransaction();
-            
-            $format = ResponseFormat::findOrFail($id);
-            
-            // If this format is set as default, unset any existing defaults
-            if (isset($data['is_default']) && $data['is_default']) {
-                $this->unsetDefaultFormats();
-            }
-            
-            $format->update($data);
-            
-            DB::commit();
-            return $format;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to update response format: ' . $e->getMessage());
-            throw $e;
+        $format = ResponseFormat::find($id);
+
+        if (!$format) {
+            return null;
         }
+
+        // If this format is set as default, update others to non-default
+        if (isset($data['is_default']) && $data['is_default']) {
+            $this->resetDefaultFormats();
+        }
+
+        if (isset($data['name'])) {
+            $format->name = $data['name'];
+        }
+        
+        if (isset($data['description'])) {
+            $format->description = $data['description'];
+        }
+        
+        if (isset($data['content'])) {
+            $format->content = $data['content'];
+        }
+        
+        if (isset($data['system_instructions'])) {
+            $format->system_instructions = $data['system_instructions'];
+        }
+        
+        if (isset($data['parameters'])) {
+            $format->parameters = $data['parameters'];
+        }
+        
+        if (isset($data['is_default'])) {
+            $format->is_default = $data['is_default'];
+        }
+        
+        $format->save();
+
+        return $format;
     }
 
     /**
@@ -103,55 +119,81 @@ class ResponseFormatService
      * @param int $id
      * @return bool
      */
-    public function deleteFormat(int $id)
+    public function deleteFormat(int $id): bool
     {
-        try {
-            $format = ResponseFormat::findOrFail($id);
-            
-            // Check if this is the default format
-            if ($format->is_default) {
-                throw new \Exception('Cannot delete the default response format');
-            }
-            
-            return $format->delete();
-        } catch (\Exception $e) {
-            Log::error('Failed to delete response format: ' . $e->getMessage());
-            throw $e;
+        $format = ResponseFormat::find($id);
+
+        if (!$format) {
+            return false;
         }
+
+        // Don't allow deletion of default format
+        if ($format->is_default) {
+            return false;
+        }
+
+        return $format->delete();
     }
 
     /**
-     * Set a format as the default
+     * Set a response format as default
      *
      * @param int $id
-     * @return ResponseFormat
+     * @return ResponseFormat|null
      */
-    public function setDefaultFormat(int $id)
+    public function setDefaultFormat(int $id): ?ResponseFormat
     {
-        try {
-            DB::beginTransaction();
-            
-            $this->unsetDefaultFormats();
-            
-            $format = ResponseFormat::findOrFail($id);
-            $format->is_default = true;
-            $format->save();
-            
-            DB::commit();
-            return $format;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to set default format: ' . $e->getMessage());
-            throw $e;
+        $format = ResponseFormat::find($id);
+
+        if (!$format) {
+            return null;
         }
+
+        // Reset all formats to non-default
+        $this->resetDefaultFormats();
+
+        // Set this format as default
+        $format->is_default = true;
+        $format->save();
+
+        return $format;
     }
 
     /**
-     * Unset any existing default formats
+     * Test a response format with a prompt
+     *
+     * @param int $id
+     * @param string $prompt
+     * @return array|null
+     */
+    public function testFormat(int $id, string $prompt): ?array
+    {
+        $format = ResponseFormat::find($id);
+
+        if (!$format) {
+            return null;
+        }
+
+        // This is a simplified example. In a real implementation,
+        // this would connect to an AI service to format the response
+        $formatted = 'This is a test formatted response for: ' . $prompt;
+        
+        // Apply some basic formatting based on the format content
+        if (strpos($format->content, '{{bullet_points}}') !== false) {
+            $formatted = "• Point 1 about $prompt\n• Point 2 about $prompt\n• Point 3 about $prompt";
+        } elseif (strpos($format->content, '{{steps}}') !== false) {
+            $formatted = "Step 1: Introduction to $prompt\nStep 2: Details about $prompt\nStep 3: Conclusion about $prompt";
+        }
+
+        return ['formatted' => $formatted];
+    }
+
+    /**
+     * Reset all formats to non-default
      *
      * @return void
      */
-    private function unsetDefaultFormats()
+    private function resetDefaultFormats(): void
     {
         ResponseFormat::where('is_default', true)
             ->update(['is_default' => false]);

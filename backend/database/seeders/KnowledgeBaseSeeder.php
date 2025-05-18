@@ -1,4 +1,3 @@
-
 <?php
 
 namespace Database\Seeders;
@@ -48,7 +47,7 @@ class KnowledgeBaseSeeder extends Seeder
             'file_type' => 'md',
             'file_size' => 1520,
             'tags' => ['getting-started', 'tutorial', 'beginners'],
-            'status' => 'indexed',
+            'status' => 'active',
             'last_indexed_at' => now(),
         ]);
 
@@ -60,7 +59,7 @@ class KnowledgeBaseSeeder extends Seeder
             'file_type' => 'md',
             'file_size' => 2340,
             'tags' => ['api', 'reference', 'developer'],
-            'status' => 'indexed',
+            'status' => 'active',
             'last_indexed_at' => now(),
         ]);
 
@@ -72,7 +71,7 @@ class KnowledgeBaseSeeder extends Seeder
             'file_type' => 'md',
             'file_size' => 1840,
             'tags' => ['troubleshooting', 'help', 'issues'],
-            'status' => 'indexed',
+            'status' => 'active',
             'last_indexed_at' => now(),
         ]);
     }

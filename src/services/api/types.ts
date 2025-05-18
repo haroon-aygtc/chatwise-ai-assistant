@@ -1,33 +1,38 @@
 
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  status: number;
-  success: boolean;
-}
+import { AxiosRequestConfig } from "axios";
 
 export interface PaginatedResponse<T> {
   data: T[];
-  current_page: number;
-  from: number;
-  last_page: number;
-  per_page: number;
-  to: number;
   total: number;
-  links?: {
-    url: string | null;
-    label: string;
-    active: boolean;
-  }[];
+  current_page: number;
+  last_page: number;
+  per_page?: number;
+  meta?: any;
 }
 
-export interface ApiError {
+// API request parameters that get converted to URL query parameters
+export interface ApiRequestParams {
+  page?: number;
+  per_page?: number;
+  role?: string;
+  status?: string;
+  search?: string;
+  action_type?: string;
+  from_date?: string;
+  to_date?: string;
+  user_id?: string;
+  // Add any other common query parameters here
+  [key: string]: any; // Allow for additional parameters
+}
+
+// Define the interface for single item responses
+export interface SingleResponse<T> {
+  data: T;
+  message?: string;
+}
+
+// Define the interface for action responses (e.g. create, update, delete)
+export interface ActionResponse<T> {
+  data?: T;
   message: string;
-  errors?: Record<string, string[]>;
-  status: number;
-}
-
-export interface ApiRequestOptions {
-  withAuth?: boolean;
-  params?: Record<string, any>;
 }

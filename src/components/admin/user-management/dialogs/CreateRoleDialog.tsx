@@ -37,8 +37,9 @@ const formSchema = z.object({
 interface CreateRoleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateRole: (name: string, description: string, permissions: string[]) => Promise<void>;
+  onCreateRole: (name: string, description: string, permissions: string[]) => Promise<boolean>;
   permissionCategories: PermissionCategory[];
+  isSubmitting?: boolean;
   children?: React.ReactNode;
 }
 
@@ -47,11 +48,15 @@ export function CreateRoleDialog({
   onOpenChange,
   onCreateRole,
   permissionCategories,
+  isSubmitting = false,
   children,
 }: CreateRoleDialogProps) {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
+  
+  // Use external isSubmitting state if provided
+  const isCreating = isSubmitting || submitting;
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,18 +78,17 @@ export function CreateRoleDialog({
   }, [open, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
-      await onCreateRole(
+      const success = await onCreateRole(
         values.name,
         values.description || "",
         selectedPermissions
       );
-      toast({
-        title: "Role created",
-        description: `Role "${values.name}" has been created successfully.`,
-      });
-      onOpenChange(false);
+      
+      if (success) {
+        onOpenChange(false);
+      }
     } catch (error) {
       console.error("Failed to create role:", error);
       toast({
@@ -93,7 +97,7 @@ export function CreateRoleDialog({
         description: "Failed to create role. Please try again.",
       });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -144,8 +148,9 @@ export function CreateRoleDialog({
               <FormLabel className="block mb-2">Permissions</FormLabel>
               <PermissionManagement
                 permissionCategories={permissionCategories}
+                searchQuery=""
                 selectedPermissions={selectedPermissions}
-                onChange={setSelectedPermissions}
+                onPermissionChange={setSelectedPermissions}
               />
             </div>
 
@@ -154,12 +159,12 @@ export function CreateRoleDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
+                disabled={isCreating}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button type="submit" disabled={isCreating}>
+                {isCreating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
                   </>

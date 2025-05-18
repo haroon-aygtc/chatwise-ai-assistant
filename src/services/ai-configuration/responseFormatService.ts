@@ -1,68 +1,43 @@
 
-import ApiService from "../api/base";
-import { ResponseFormat } from "@/types/ai-configuration";
+import ApiService from '../api/base';
+import { ResponseFormat } from '@/types/ai-configuration';
 
-/**
- * Get all response formats
- */
-export const getAllResponseFormats = async (): Promise<ResponseFormat[]> => {
-  try {
-    const response = await ApiService.get<{ data: ResponseFormat[] }>('/response-formats');
-    return response.data || [];
-  } catch (error) {
-    console.error('Error fetching response formats:', error);
-    return [];
-  }
+// Get all response formats
+export const getAllFormats = async (): Promise<ResponseFormat[]> => {
+  return ApiService.get<ResponseFormat[]>('/response-formats');
 };
 
-/**
- * Create a new response format
- */
-export const createResponseFormat = async (format: Omit<ResponseFormat, 'id'>): Promise<ResponseFormat> => {
-  const response = await ApiService.post<ResponseFormat>('/response-formats', format);
-  return response;
+// Get default response format
+export const getDefaultFormat = async (): Promise<ResponseFormat> => {
+  return ApiService.get<ResponseFormat>('/response-formats/default');
 };
 
-/**
- * Update an existing response format
- */
-export const updateResponseFormat = async (id: string, format: Partial<ResponseFormat>): Promise<ResponseFormat> => {
-  const response = await ApiService.put<ResponseFormat>(`/response-formats/${id}`, format);
-  return response;
+// Get format by ID
+export const getFormatById = async (id: string): Promise<ResponseFormat> => {
+  return ApiService.get<ResponseFormat>(`/response-formats/${id}`);
 };
 
-/**
- * Delete a response format
- */
-export const deleteResponseFormat = async (id: string): Promise<void> => {
-  await ApiService.delete(`/response-formats/${id}`);
+// Create new response format
+export const createFormat = async (data: Omit<ResponseFormat, 'id'>): Promise<ResponseFormat> => {
+  return ApiService.post<ResponseFormat>('/response-formats', data);
 };
 
-/**
- * Set a response format as default
- */
-export const setDefaultResponseFormat = async (id: string): Promise<void> => {
-  await ApiService.post(`/response-formats/${id}/set-default`, {});
+// Update response format
+export const updateFormat = async (id: string, data: Partial<ResponseFormat>): Promise<ResponseFormat> => {
+  return ApiService.put<ResponseFormat>(`/response-formats/${id}`, data);
 };
 
-/**
- * Test a response format with sample content
- */
-export const testResponseFormat = async (
-  formatId: string,
-  content: string
-): Promise<{ formatted: string }> => {
-  const response = await ApiService.post<{ formatted: string }>(`/response-formats/${formatId}/test`, { content });
-  return response;
+// Delete response format
+export const deleteFormat = async (id: string): Promise<void> => {
+  return ApiService.delete(`/response-formats/${id}`);
 };
 
-export const responseFormatService = {
-  getAllResponseFormats,
-  createResponseFormat,
-  updateResponseFormat,
-  deleteResponseFormat,
-  setDefaultResponseFormat,
-  testResponseFormat,
+// Set format as default
+export const setDefaultFormat = async (id: string): Promise<ResponseFormat> => {
+  return ApiService.post<ResponseFormat>(`/response-formats/${id}/set-default`);
 };
 
-export default responseFormatService;
+// Test format with a prompt
+export const testFormat = async (formatId: string, prompt: string): Promise<{ formatted: string }> => {
+  return ApiService.post<{ formatted: string }>(`/response-formats/${formatId}/test`, { prompt });
+};

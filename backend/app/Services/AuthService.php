@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -26,11 +25,11 @@ class AuthService
         }
 
         $user = Auth::user();
-        
+
         // Update last active timestamp
         $user->last_active = now();
         $user->save();
-        
+
         // Get roles and permissions
         $roles = $user->roles->pluck('name');
         $permissions = $user->getAllPermissions()->pluck('name');
@@ -123,11 +122,11 @@ class AuthService
     public function sendPasswordResetLink(string $email): string
     {
         $status = Password::sendResetLink(['email' => $email]);
-        
+
         if ($status !== Password::RESET_LINK_SENT) {
             throw new \Exception(__($status));
         }
-        
+
         return __($status);
     }
 
@@ -151,11 +150,11 @@ class AuthService
                 event(new PasswordReset($user));
             }
         );
-        
+
         if ($status !== Password::PASSWORD_RESET) {
             throw new \Exception(__($status));
         }
-        
+
         return __($status);
     }
 

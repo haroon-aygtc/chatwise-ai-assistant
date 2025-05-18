@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAuth, tokenService } from '@/modules/auth';
+import { useAuth } from "@/hooks/auth/useAuth";
+import { tokenService } from "@/services/auth";
 
 // How many seconds before expiration to show the warning
 const WARNING_THRESHOLD = 5 * 60; // 5 minutes

@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -13,9 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('status')->default('active')->after('password');
-            $table->string('avatar_url')->nullable()->after('status');
-            $table->timestamp('last_active')->nullable()->after('avatar_url');
+            // Check if columns exist before adding them
+            if (!Schema::hasColumn('users', 'status')) {
+                $table->string('status')->default('active')->after('password');
+            }
+
+            if (!Schema::hasColumn('users', 'avatar_url')) {
+                $table->string('avatar_url')->nullable()->after('status');
+            }
+
+            if (!Schema::hasColumn('users', 'last_active')) {
+                $table->timestamp('last_active')->nullable()->after('avatar_url');
+            }
         });
     }
 
@@ -24,8 +32,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['status', 'avatar_url', 'last_active']);
-        });
+        // Don't drop columns that were added by another migration
+        // This prevents errors if this migration is rolled back
     }
 };

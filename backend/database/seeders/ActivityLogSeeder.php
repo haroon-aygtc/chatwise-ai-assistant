@@ -1,4 +1,3 @@
-
 <?php
 
 namespace Database\Seeders;
@@ -16,17 +15,16 @@ class ActivityLogSeeder extends Seeder
     {
         $admin = User::where('email', 'admin@example.com')->first();
         $manager = User::where('email', 'manager@example.com')->first();
-        $editor = User::where('email', 'editor@example.com')->first();
         $user = User::where('email', 'user@example.com')->first();
-        
+
         // Sample activity logs for demonstration
-        $this->createSampleLogs($admin, $manager, $editor, $user);
+        $this->createSampleLogs($admin, $manager, $user);
     }
-    
+
     /**
      * Create sample activity logs for demonstration
      */
-    private function createSampleLogs($admin, $manager, $editor, $user): void
+    private function createSampleLogs($admin, $manager, $user): void
     {
         // Admin activities
         ActivityLog::create([
@@ -37,7 +35,7 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             'created_at' => now()->subDays(5),
         ]);
-        
+
         ActivityLog::create([
             'user_id' => $admin->id,
             'action' => 'Role Created',
@@ -46,16 +44,8 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             'created_at' => now()->subDays(5)->addHours(1),
         ]);
-        
-        ActivityLog::create([
-            'user_id' => $admin->id,
-            'action' => 'User Created',
-            'description' => "Created new user: {$editor->email} with role Editor",
-            'ip_address' => '192.168.1.1',
-            'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'created_at' => now()->subDays(5)->addHours(2),
-        ]);
-        
+
+
         // Manager activities
         ActivityLog::create([
             'user_id' => $manager->id,
@@ -65,7 +55,7 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
             'created_at' => now()->subDays(4),
         ]);
-        
+
         ActivityLog::create([
             'user_id' => $manager->id,
             'action' => 'User Status Changed',
@@ -74,17 +64,8 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
             'created_at' => now()->subDays(4)->addHours(1),
         ]);
-        
-        // Editor activities
-        ActivityLog::create([
-            'user_id' => $editor->id,
-            'action' => 'User Login',
-            'description' => 'Editor logged in successfully',
-            'ip_address' => '192.168.1.3',
-            'user_agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0)',
-            'created_at' => now()->subDays(3),
-        ]);
-        
+
+
         // User activities
         ActivityLog::create([
             'user_id' => $user->id,
@@ -94,7 +75,7 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Linux; Android 11)',
             'created_at' => now()->subDays(2),
         ]);
-        
+
         ActivityLog::create([
             'user_id' => $user->id,
             'action' => 'User Update',
@@ -103,7 +84,7 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Linux; Android 11)',
             'created_at' => now()->subDays(2)->addHours(1),
         ]);
-        
+
         // More recent activities
         ActivityLog::create([
             'user_id' => $admin->id,
@@ -113,7 +94,7 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             'created_at' => now()->subDay(),
         ]);
-        
+
         ActivityLog::create([
             'user_id' => $admin->id,
             'action' => 'Role Assignment',
@@ -122,7 +103,7 @@ class ActivityLogSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             'created_at' => now()->subHours(12),
         ]);
-        
+
         // System activities
         ActivityLog::create([
             'user_id' => null,

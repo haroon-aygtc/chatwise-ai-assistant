@@ -31,9 +31,9 @@ import {
 } from "@/components/ui/accordion";
 import { JsonViewer } from "@/components/ui/json-viewer";
 import { getAllEndpoints } from "@/services/api-tester/registry";
-import { apiService } from "@/services/api-tester/base";
+import apiTester from "@/services/api-tester/base";
 import { API_BASE_URL } from "@/services/api-tester/config";
-import { tokenService } from "@/services/auth/tokenService";
+import tokenService from "@/services/auth/tokenService";
 import {
   Check,
   Copy,

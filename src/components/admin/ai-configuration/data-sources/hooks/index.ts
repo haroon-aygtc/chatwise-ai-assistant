@@ -1,3 +1,3 @@
 
-export * from './useDataSources';
-export * from './useDataSourceSettings';
+export { useDataSources } from '@/hooks/ai-configuration/useDataSources';
+export { useDataSourceSettings } from '@/hooks/ai-configuration/useDataSourceSettings';

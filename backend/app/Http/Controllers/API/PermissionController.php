@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\API;
@@ -29,7 +28,7 @@ class PermissionController extends Controller
     public function index()
     {
         $permissions = $this->permissionService->getAllPermissions();
-        
+
         return response()->json($permissions);
     }
 
@@ -41,7 +40,7 @@ class PermissionController extends Controller
     public function getByCategory()
     {
         $permissionsByCategory = $this->permissionService->getPermissionsByCategory();
-        
+
         return response()->json($permissionsByCategory);
     }
 }

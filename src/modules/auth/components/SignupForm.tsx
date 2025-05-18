@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useSignupValidation } from "../hooks/useSignupValidation";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -62,12 +61,12 @@ export function SignupForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signup(
-        values.name,
-        values.email,
-        values.password,
-        values.confirmPassword
-      );
+      await signup({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        password_confirmation: values.confirmPassword,
+      });
       
       toast({
         title: "Account created successfully!",

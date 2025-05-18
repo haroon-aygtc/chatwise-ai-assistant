@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Models;
@@ -21,8 +20,12 @@ class ResponseFormat extends Model
         'format',
         'length',
         'tone',
-        'is_default',
         'options',
+        'is_default',
+        // Keep the old fields for backward compatibility
+        'content',
+        'system_instructions',
+        'parameters',
     ];
 
     /**
@@ -31,7 +34,8 @@ class ResponseFormat extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_default' => 'boolean',
         'options' => 'array',
+        'parameters' => 'array',
+        'is_default' => 'boolean',
     ];
 }

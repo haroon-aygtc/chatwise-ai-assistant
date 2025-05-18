@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -25,7 +24,7 @@ class PermissionService
     public function getPermissionsByCategory()
     {
         $permissions = Permission::all();
-        
+
         // Group permissions by category
         return $permissions->groupBy(function ($permission) {
             // Extract category from permission name

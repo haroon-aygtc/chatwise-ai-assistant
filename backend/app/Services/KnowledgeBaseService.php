@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -6,120 +5,214 @@ namespace App\Services;
 use App\Models\DocumentCategory;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeBaseSetting;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class KnowledgeBaseService
 {
     /**
-     * Get all documents
+     * Get all documents with pagination
+     *
+     * @param int $perPage
+     * @param array $filters
+     * @return LengthAwarePaginator
      */
-    public function getAllDocuments(): Collection
+    public function getAllDocuments(int $perPage = 20, array $filters = []): LengthAwarePaginator
     {
-        return KnowledgeDocument::with('category')->get();
+        $query = KnowledgeDocument::query();
+
+        // Apply filters
+        if (isset($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if (isset($filters['category_id'])) {
+            $query->where('category_id', $filters['category_id']);
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->with('category')
+                    ->orderBy('created_at', 'desc')
+                    ->paginate($perPage);
     }
 
     /**
-     * Get document by ID
+     * Get a document by ID
+     *
+     * @param string $id
+     * @return KnowledgeDocument|null
      */
-    public function getDocumentById(string $id): KnowledgeDocument
+    public function getDocumentById(string $id): ?KnowledgeDocument
     {
-        return KnowledgeDocument::with('category')->findOrFail($id);
+        return KnowledgeDocument::with('category')->find($id);
     }
 
     /**
      * Create a new document
+     *
+     * @param array $data
+     * @param UploadedFile|null $file
+     * @return KnowledgeDocument
      */
     public function createDocument(array $data, ?UploadedFile $file = null): KnowledgeDocument
     {
-        $document = new KnowledgeDocument();
-        $document->title = $data['title'];
-        $document->description = $data['description'] ?? null;
-        $document->content = $data['content'] ?? '';
-        $document->category_id = $data['category_id'] ?? null;
-        $document->tags = $data['tags'] ?? [];
-        $document->status = 'processing';
+        $documentData = [
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'content' => $data['content'] ?? '',
+            'category_id' => $data['category_id'],
+            'tags' => json_decode($data['tags'] ?? '[]'),
+            'status' => $data['status'] ?? 'active',
+        ];
 
+        // Handle file upload
         if ($file) {
-            $filePath = $file->store('knowledge-base', 'public');
-            $document->file_path = $filePath;
-            $document->file_type = $file->getClientOriginalExtension();
-            $document->file_size = $file->getSize();
-            
-            // Extract content based on file type if no content provided
-            if (empty($data['content'])) {
-                $document->content = $this->extractContentFromFile($file);
+            $path = $file->store('knowledge-documents', 'public');
+            $documentData['file_path'] = $path;
+            $documentData['file_type'] = $file->getClientMimeType();
+            $documentData['file_size'] = $file->getSize();
+
+            // Extract content from file if not provided
+            if (empty($documentData['content'])) {
+                $documentData['content'] = $this->extractContentFromFile($file);
             }
         }
 
-        $document->save();
+        return KnowledgeDocument::create($documentData);
+    }
 
-        // Schedule a job to process the document for indexing
-        // This would be implemented in a real application
-        // dispatch(new ProcessKnowledgeDocument($document));
-
-        return $document;
+    /**
+     * Extract content from uploaded file
+     *
+     * @param UploadedFile $file
+     * @return string
+     */
+    protected function extractContentFromFile(UploadedFile $file): string
+    {
+        $content = '';
+        
+        // Simple extraction based on file type
+        switch ($file->getClientMimeType()) {
+            case 'text/plain':
+                $content = file_get_contents($file->getRealPath());
+                break;
+            
+            case 'application/pdf':
+                // Simplified - would need a proper PDF parser in production
+                $content = 'PDF content would be extracted here';
+                break;
+                
+            case 'application/msword':
+            case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                $content = 'Word document content would be extracted here';
+                break;
+                
+            default:
+                $content = 'Content extraction not supported for this file type';
+        }
+        
+        return $content;
     }
 
     /**
      * Update an existing document
+     *
+     * @param string $id
+     * @param array $data
+     * @return KnowledgeDocument|null
      */
-    public function updateDocument(string $id, array $data): KnowledgeDocument
+    public function updateDocument(string $id, array $data): ?KnowledgeDocument
     {
-        $document = KnowledgeDocument::findOrFail($id);
+        $document = KnowledgeDocument::find($id);
         
-        if (isset($data['title'])) {
-            $document->title = $data['title'];
+        if (!$document) {
+            return null;
         }
         
-        if (array_key_exists('description', $data)) {
-            $document->description = $data['description'];
+        $updateData = [];
+        
+        if (isset($data['title'])) {
+            $updateData['title'] = $data['title'];
+        }
+        
+        if (isset($data['description'])) {
+            $updateData['description'] = $data['description'];
         }
         
         if (isset($data['content'])) {
-            $document->content = $data['content'];
+            $updateData['content'] = $data['content'];
         }
         
-        if (array_key_exists('category_id', $data)) {
-            $document->category_id = $data['category_id'];
+        if (isset($data['category_id'])) {
+            $updateData['category_id'] = $data['category_id'];
         }
         
         if (isset($data['tags'])) {
-            $document->tags = $data['tags'];
+            $updateData['tags'] = is_array($data['tags']) ? $data['tags'] : json_decode($data['tags']);
         }
         
         if (isset($data['status'])) {
-            $document->status = $data['status'];
-            
-            if ($data['status'] === 'indexed') {
-                $document->last_indexed_at = now();
-            }
+            $updateData['status'] = $data['status'];
         }
         
-        $document->save();
-        
-        return $document;
+        $document->update($updateData);
+        return $document->fresh();
     }
 
     /**
      * Delete a document
+     *
+     * @param string $id
+     * @return bool
      */
     public function deleteDocument(string $id): bool
     {
-        $document = KnowledgeDocument::findOrFail($id);
+        $document = KnowledgeDocument::find($id);
         
-        // Remove the file if it exists
+        if (!$document) {
+            return false;
+        }
+        
+        // Delete the associated file if exists
         if ($document->file_path) {
             Storage::disk('public')->delete($document->file_path);
         }
         
-        return $document->delete();
+        return (bool) $document->delete();
+    }
+
+    /**
+     * Search documents
+     *
+     * @param string $query
+     * @param int $perPage
+     * @return LengthAwarePaginator
+     */
+    public function searchDocuments(string $query, int $perPage = 20): LengthAwarePaginator
+    {
+        return KnowledgeDocument::where('title', 'like', "%{$query}%")
+            ->orWhere('description', 'like', "%{$query}%")
+            ->orWhere('content', 'like', "%{$query}%")
+            ->orWhereJsonContains('tags', $query)
+            ->with('category')
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
     }
 
     /**
      * Get all categories
+     *
+     * @return Collection
      */
     public function getAllCategories(): Collection
     {
@@ -127,15 +220,21 @@ class KnowledgeBaseService
     }
 
     /**
-     * Get category by ID
+     * Get a category by ID
+     *
+     * @param string $id
+     * @return DocumentCategory|null
      */
-    public function getCategoryById(string $id): DocumentCategory
+    public function getCategoryById(string $id): ?DocumentCategory
     {
-        return DocumentCategory::withCount('documents')->findOrFail($id);
+        return DocumentCategory::withCount('documents')->find($id);
     }
 
     /**
      * Create a new category
+     *
+     * @param array $data
+     * @return DocumentCategory
      */
     public function createCategory(array $data): DocumentCategory
     {
@@ -147,106 +246,95 @@ class KnowledgeBaseService
 
     /**
      * Update an existing category
+     *
+     * @param string $id
+     * @param array $data
+     * @return DocumentCategory|null
      */
-    public function updateCategory(string $id, array $data): DocumentCategory
+    public function updateCategory(string $id, array $data): ?DocumentCategory
     {
-        $category = DocumentCategory::findOrFail($id);
+        $category = DocumentCategory::find($id);
+        
+        if (!$category) {
+            return null;
+        }
+        
+        $updateData = [];
         
         if (isset($data['name'])) {
-            $category->name = $data['name'];
+            $updateData['name'] = $data['name'];
         }
         
-        if (array_key_exists('description', $data)) {
-            $category->description = $data['description'];
+        if (isset($data['description'])) {
+            $updateData['description'] = $data['description'];
         }
         
-        $category->save();
-        
-        return $category;
+        $category->update($updateData);
+        return $category->fresh();
     }
 
     /**
      * Delete a category
+     *
+     * @param string $id
+     * @return bool
      */
     public function deleteCategory(string $id): bool
     {
-        return DocumentCategory::findOrFail($id)->delete();
+        $category = DocumentCategory::find($id);
+        
+        if (!$category) {
+            return false;
+        }
+        
+        // Delete associated documents
+        $documents = KnowledgeDocument::where('category_id', $id)->get();
+        
+        foreach ($documents as $document) {
+            if ($document->file_path) {
+                Storage::disk('public')->delete($document->file_path);
+            }
+            $document->delete();
+        }
+        
+        return (bool) $category->delete();
     }
 
     /**
      * Get knowledge base settings
+     *
+     * @return KnowledgeBaseSetting
      */
     public function getSettings(): KnowledgeBaseSetting
     {
-        $settings = KnowledgeBaseSetting::first();
-        
-        if (!$settings) {
-            $settings = KnowledgeBaseSetting::create([
-                'is_enabled' => true,
-                'priority' => 'medium',
-                'include_citations' => true,
-            ]);
-        }
-        
-        return $settings;
+        return KnowledgeBaseSetting::getCurrentSettings();
     }
 
     /**
      * Update knowledge base settings
+     *
+     * @param array $data
+     * @return KnowledgeBaseSetting
      */
     public function updateSettings(array $data): KnowledgeBaseSetting
     {
-        $settings = $this->getSettings();
+        $settings = KnowledgeBaseSetting::getCurrentSettings();
+        
+        $updateData = [];
         
         if (isset($data['is_enabled'])) {
-            $settings->is_enabled = $data['is_enabled'];
+            $updateData['is_enabled'] = (bool) $data['is_enabled'];
         }
         
         if (isset($data['priority'])) {
-            $settings->priority = $data['priority'];
+            $updateData['priority'] = $data['priority'];
         }
         
         if (isset($data['include_citations'])) {
-            $settings->include_citations = $data['include_citations'];
+            $updateData['include_citations'] = (bool) $data['include_citations'];
         }
         
-        $settings->save();
-        
-        return $settings;
-    }
-
-    /**
-     * Search documents
-     */
-    public function searchDocuments(string $query): Collection
-    {
-        return KnowledgeDocument::where('title', 'like', "%{$query}%")
-            ->orWhere('description', 'like', "%{$query}%")
-            ->orWhere('content', 'like', "%{$query}%")
-            ->orWhereJsonContains('tags', $query)
-            ->with('category')
-            ->get();
-    }
-
-    /**
-     * Extract content from uploaded file
-     * In a real app, this would use libraries to parse different file types
-     */
-    private function extractContentFromFile(UploadedFile $file): string
-    {
-        $extension = strtolower($file->getClientOriginalExtension());
-        
-        // This is a simplified version - in a real app you'd use specialized libraries
-        switch ($extension) {
-            case 'txt':
-                return file_get_contents($file->getRealPath());
-            case 'pdf':
-            case 'docx':
-            case 'doc':
-            case 'md':
-                return "Content extraction from {$extension} files would be implemented in a production environment.";
-            default:
-                return '';
-        }
+        $settings->update($updateData);
+        return $settings->fresh();
     }
 }

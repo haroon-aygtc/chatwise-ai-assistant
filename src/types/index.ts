@@ -5,69 +5,28 @@
  * API-specific types (requests/responses) are in @/services/api/types
  */
 
-// User Domain
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  lastActive: string;
-  avatar: string;
-}
+// Export all types from domain.ts (our source of truth)
+export * from "./domain";
 
-// Permission Domain
-export interface Permission {
-  id: string;
-  name: string;
-}
+// Selectively re-export from other files to avoid duplication
+// These files should not define their own versions of types already in domain.ts
 
-export interface PermissionCategory {
-  category: string;
-  permissions: Permission[];
-}
+// Export AI configuration specific types that don't duplicate domain.ts
+export type {
+  AIModel,
+  RoutingRule,
+  RuleCondition,
+  PromptTemplate,
+  PromptVariable,
+  FollowUpSuggestion,
+  BrandVoice,
+  DocumentCategory,
+  KnowledgeDocument,
+  ResponseFormat,
+} from "./ai-configuration";
 
-// Role Domain
-export interface Role {
-  id: string;
-  name: string;
-  description: string;
-  userCount: number;
-  permissions: string[];
-}
+// Re-export knowledge base types
+export * from './knowledge-base';
 
-// Activity Log Domain
-export interface ActivityLogEntry {
-  user: string;
-  action: string;
-  target: string;
-  timestamp: string;
-  avatar: string;
-}
-
-export interface NewUser {
-  name: string;
-  email: string;
-  role: string;
-}
-
-export interface EditedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-}
-
-export interface NewRole {
-  name: string;
-  description: string;
-  permissions: string[];
-}
-
-export interface EditedRole {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-}
+// We don't need to re-export anything from user.ts as the User interface
+// is already defined in domain.ts and there are no other unique types.

@@ -1,100 +1,82 @@
 
 import ApiService from '../api/base';
-import { FollowUpSuggestion } from '@/types/ai-configuration';
 
-interface FollowUpSettings {
+export interface FollowUpSetting {
+  id?: number;
   enabled: boolean;
   max_suggestions: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
-interface TestResponse {
-  response: string;
-  followUps: FollowUpSuggestion[];
-  settings: {
-    enabled: boolean;
-    max_suggestions: number;
-  };
+export interface FollowUpSuggestion {
+  id: string;
+  text: string;
+  category: string;
+  description?: string;
+  order: number;
+  is_active: boolean;
+  trigger_conditions?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
 }
 
-class FollowUpService {
-  private readonly baseUrl = '/follow-up-suggestions';
-
+const followUpService = {
   /**
-   * Get all follow-up suggestions.
+   * Get follow-up settings
    */
-  async getAllSuggestions(): Promise<FollowUpSuggestion[]> {
-    return ApiService.get<FollowUpSuggestion[]>(this.baseUrl);
-  }
-
+  getSettings: async (): Promise<FollowUpSetting> => {
+    return await ApiService.get<FollowUpSetting>('/follow-up/settings');
+  },
+  
   /**
-   * Get a specific follow-up suggestion by ID.
+   * Update follow-up settings
    */
-  async getSuggestionById(id: string): Promise<FollowUpSuggestion> {
-    return ApiService.get<FollowUpSuggestion>(`${this.baseUrl}/${id}`);
-  }
-
+  updateSettings: async (settings: Partial<FollowUpSetting>): Promise<FollowUpSetting> => {
+    return await ApiService.put<FollowUpSetting>('/follow-up/settings', settings);
+  },
+  
   /**
-   * Create a new follow-up suggestion.
+   * Get all follow-up suggestions
    */
-  async createSuggestion(suggestion: Partial<FollowUpSuggestion>): Promise<FollowUpSuggestion> {
-    return ApiService.post<FollowUpSuggestion>(this.baseUrl, suggestion);
-  }
-
+  getSuggestions: async (): Promise<FollowUpSuggestion[]> => {
+    return await ApiService.get<FollowUpSuggestion[]>('/follow-up/suggestions');
+  },
+  
   /**
-   * Update an existing follow-up suggestion.
+   * Create a new follow-up suggestion
    */
-  async updateSuggestion(id: string, suggestion: Partial<FollowUpSuggestion>): Promise<FollowUpSuggestion> {
-    return ApiService.put<FollowUpSuggestion>(`${this.baseUrl}/${id}`, suggestion);
-  }
-
+  createSuggestion: async (suggestion: Omit<FollowUpSuggestion, 'id'>): Promise<FollowUpSuggestion> => {
+    return await ApiService.post<FollowUpSuggestion>('/follow-up/suggestions', suggestion);
+  },
+  
   /**
-   * Delete a follow-up suggestion.
+   * Update an existing follow-up suggestion
    */
-  async deleteSuggestion(id: string): Promise<void> {
-    return ApiService.delete<void>(`${this.baseUrl}/${id}`);
-  }
-
+  updateSuggestion: async (id: string, suggestion: Partial<FollowUpSuggestion>): Promise<FollowUpSuggestion> => {
+    return await ApiService.put<FollowUpSuggestion>(`/follow-up/suggestions/${id}`, suggestion);
+  },
+  
   /**
-   * Move a suggestion up in order.
+   * Delete a follow-up suggestion
    */
-  async moveSuggestionUp(id: string): Promise<FollowUpSuggestion[]> {
-    return ApiService.post<FollowUpSuggestion[]>(`${this.baseUrl}/${id}/move-up`, {});
-  }
-
+  deleteSuggestion: async (id: string): Promise<void> => {
+    await ApiService.delete<void>(`/follow-up/suggestions/${id}`);
+  },
+  
   /**
-   * Move a suggestion down in order.
+   * Reorder follow-up suggestions
    */
-  async moveSuggestionDown(id: string): Promise<FollowUpSuggestion[]> {
-    return ApiService.post<FollowUpSuggestion[]>(`${this.baseUrl}/${id}/move-down`, {});
-  }
-
+  reorderSuggestions: async (ids: string[]): Promise<FollowUpSuggestion[]> => {
+    return await ApiService.put<FollowUpSuggestion[]>('/follow-up/suggestions/reorder', { ordered_ids: ids });
+  },
+  
   /**
-   * Reorder suggestions.
+   * Get suggestion categories
    */
-  async reorderSuggestions(orderedIds: string[]): Promise<FollowUpSuggestion[]> {
-    return ApiService.post<FollowUpSuggestion[]>(`${this.baseUrl}/reorder`, { ordered_ids: orderedIds });
-  }
+  getCategories: async (): Promise<string[]> => {
+    return await ApiService.get<string[]>('/follow-up/categories');
+  },
+};
 
-  /**
-   * Get follow-up settings.
-   */
-  async getSettings(): Promise<FollowUpSettings> {
-    return ApiService.get<FollowUpSettings>(`${this.baseUrl}/settings`);
-  }
-
-  /**
-   * Update follow-up settings.
-   */
-  async updateSettings(settings: Partial<FollowUpSettings>): Promise<FollowUpSettings> {
-    return ApiService.put<FollowUpSettings>(`${this.baseUrl}/settings`, settings);
-  }
-
-  /**
-   * Test follow-up suggestions.
-   */
-  async testSuggestions(): Promise<TestResponse> {
-    return ApiService.post<TestResponse>(`${this.baseUrl}/test`, {});
-  }
-}
-
-export default new FollowUpService();
+export default followUpService;

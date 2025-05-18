@@ -7,6 +7,8 @@ import { CategoryList } from "./CategoryList";
 import { SettingsPanel } from "./SettingsPanel";
 import { UploadDocumentDialog } from "./UploadDocumentDialog";
 import { useKnowledgeBase } from "@/hooks/knowledge-base/useKnowledgeBase";
+import { DocumentCategory } from "@/types/knowledge-base";
+import { DocumentCategory as AIDocumentCategory } from "@/types/ai-configuration";
 
 export const KnowledgeBaseManager = () => {
   const {
@@ -45,7 +47,7 @@ export const KnowledgeBaseManager = () => {
         <TabsContent value="documents" className="space-y-4 pt-4">
           <DocumentsSection
             documents={filteredDocuments}
-            categories={categories}
+            categories={categories as DocumentCategory[]}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             selectedDocumentId={selectedDocumentId}
@@ -70,7 +72,7 @@ export const KnowledgeBaseManager = () => {
         open={isUploadDialogOpen} 
         onOpenChange={setIsUploadDialogOpen}
         onUpload={handleUploadDocument}
-        categories={categories}
+        categories={categories as DocumentCategory[]}
         isUploading={addDocumentMutation.isPending}
       />
     </div>
