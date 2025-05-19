@@ -19,7 +19,7 @@ import TemplateLibrary from "./TemplateLibrary";
 import OneClickTesting from "./OneClickTesting";
 import { useAIModels } from "@/hooks/ai-configuration/useAIModels";
 
-export const PromptTemplateManager = () => {
+const PromptTemplateManager = () => {
   const {
     templates,
     isLoading,
@@ -321,3 +321,6 @@ export const PromptTemplateManager = () => {
     </div>
   );
 };
+
+export default PromptTemplateManager;
+export { PromptTemplateManager };
