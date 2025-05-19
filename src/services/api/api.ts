@@ -229,7 +229,13 @@ class HttpClient {
   public async fetchCsrfToken(): Promise<void> {
     // Skip in public mode
     if (isPublicApiMode) return;
-    await tokenService.initCsrfToken();
+    try {
+      await tokenService.initCsrfToken();
+    } catch (error) {
+      console.error("Failed to fetch CSRF token:", error);
+      // Don't throw the error to prevent blocking API calls
+      // The response interceptor will handle 419 errors and retry
+    }
   }
 
   /**
