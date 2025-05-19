@@ -1,18 +1,90 @@
+export type AIProvider =
+  | "OpenAI"
+  | "Google"
+  | "Anthropic"
+  | "HuggingFace"
+  | "OpenRouter"
+  | "Groq"
+  | "Mistral"
+  | "TogetherAI"
+  | "Custom";
+
+export interface BaseModelConfiguration {
+  temperature: number;
+  maxTokens: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+}
+
+export interface OpenAIConfiguration extends BaseModelConfiguration {
+  model: string;
+  organization?: string;
+}
+
+export interface GoogleConfiguration extends BaseModelConfiguration {
+  model: string;
+  safetySettings?: Record<string, unknown>;
+}
+
+export interface AnthropicConfiguration extends BaseModelConfiguration {
+  model: string;
+  topK?: number;
+}
+
+export interface HuggingFaceConfiguration extends BaseModelConfiguration {
+  model: string;
+  task?: string;
+  waitForModel?: boolean;
+}
+
+export interface OpenRouterConfiguration extends BaseModelConfiguration {
+  model: string;
+  routeType?: "fallback" | "fastest" | "lowest-cost";
+}
+
+export interface GroqConfiguration extends BaseModelConfiguration {
+  model: string;
+}
+
+export interface MistralConfiguration extends BaseModelConfiguration {
+  model: string;
+  safePrompt?: boolean;
+}
+
+export interface TogetherAIConfiguration extends BaseModelConfiguration {
+  model: string;
+  repetitionPenalty?: number;
+}
+
+export interface CustomConfiguration extends BaseModelConfiguration {
+  model?: string;
+  [key: string]: unknown;
+}
+
+export type ModelConfiguration =
+  | OpenAIConfiguration
+  | GoogleConfiguration
+  | AnthropicConfiguration
+  | HuggingFaceConfiguration
+  | OpenRouterConfiguration
+  | GroqConfiguration
+  | MistralConfiguration
+  | TogetherAIConfiguration
+  | CustomConfiguration;
 
 export interface AIModel {
   id: string;
   name: string;
-  provider: string;
+  provider: AIProvider;
   version: string;
   description?: string;
-  maxTokens?: number;
-  temperature?: number;
   apiKey?: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   createdAt?: string;
   updatedAt?: string;
-  
-  // Added properties to match all usages in the codebase
+
+  // Model specific fields
   modelId?: string;
   isActive?: boolean;
   isDefault?: boolean;
@@ -24,9 +96,13 @@ export interface AIModel {
   };
   pricePerToken?: number;
   contextSize?: number;
-  configuration?: Record<string, unknown>;
+  configuration: ModelConfiguration;
   context?: Record<string, unknown>;
   baseUrl?: string;
+
+  // Shorthand properties for backward compatibility
+  maxTokens?: number;
+  temperature?: number;
 }
 
 export interface ResponseFormat {
@@ -41,7 +117,7 @@ export interface ResponseFormat {
   active: boolean; // Required field - not optional
   createdAt?: string;
   updatedAt?: string;
-  
+
   // Added properties to match other usages in the codebase
   isDefault?: boolean;
   length?: string;
@@ -63,7 +139,7 @@ export interface CreateResponseFormatRequest {
   content?: string;
   sources?: string[];
   active?: boolean; // Optional in request, we set default in service
-  
+
   // Added fields to match other usages
   length?: string;
   tone?: string;

@@ -1,12 +1,12 @@
-
 import { Card } from "@/components/ui/card";
-import { AIModel } from "@/types/ai-configuration";
+import { AIModel, ModelConfiguration } from "@/types/ai-configuration";
 import { useState, useEffect } from "react";
-import { 
-  ModelCardHeader, 
-  ModelCardContent, 
-  ModelCardFooter 
+import {
+  ModelCardHeader,
+  ModelCardContent,
+  ModelCardFooter,
 } from "./components/model-card";
+import { useModelCardState } from "./hooks/useModelCardState";
 
 interface ModelCardProps {
   model: AIModel;
@@ -19,27 +19,24 @@ export const ModelCard = ({
   onUpdate,
   isUpdating = false,
 }: ModelCardProps) => {
-  // Cast configuration values to numbers to ensure proper typing
-  const initialTemperature = Number(model.configuration.temperature) || 0.7;
-  const initialMaxTokens = Number(model.configuration.maxTokens) || 2048;
-  
-  const [temperature, setTemperature] = useState<number>(initialTemperature);
-  const [maxTokens, setMaxTokens] = useState<number>(initialMaxTokens);
-  const [isActive, setIsActive] = useState(model.isActive);
-  const [apiKey, setApiKey] = useState(model.apiKey || "");
-  const [hasChanges, setHasChanges] = useState(false);
-
-  useEffect(() => {
-    // Check if any values have changed from their initial state
-    const temperatureChanged = temperature !== initialTemperature;
-    const maxTokensChanged = maxTokens !== initialMaxTokens;
-    const activeChanged = isActive !== model.isActive;
-    const apiKeyChanged = 
-      (apiKey !== "" && apiKey !== model.apiKey) || 
-      (apiKey === "" && model.apiKey !== undefined);
-
-    setHasChanges(temperatureChanged || maxTokensChanged || activeChanged || apiKeyChanged);
-  }, [temperature, maxTokens, isActive, apiKey, model, initialTemperature, initialMaxTokens]);
+  const {
+    temperature,
+    setTemperature,
+    maxTokens,
+    setMaxTokens,
+    isActive,
+    setIsActive,
+    apiKey,
+    setApiKey,
+    modelId,
+    setModelId,
+    baseUrl,
+    setBaseUrl,
+    providerSpecificState,
+    updateProviderSpecificState,
+    hasChanges,
+    handleReset,
+  } = useModelCardState(model);
 
   const handleTemperatureChange = (values: number[]) => {
     setTemperature(values[0]);
@@ -60,42 +57,105 @@ export const ModelCard = ({
     setApiKey(e.target.value);
   };
 
+  const handleModelIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setModelId(e.target.value);
+  };
+
+  const handleBaseUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBaseUrl(e.target.value);
+  };
+
+  const createUpdatedConfiguration = (): ModelConfiguration => {
+    // Start with the base configuration properties
+    const updatedConfig: any = {
+      ...model.configuration,
+      temperature,
+      maxTokens,
+    };
+
+    // Add the model ID if it exists
+    if (modelId) {
+      updatedConfig.model = modelId;
+    }
+
+    // Add provider-specific properties
+    switch (model.provider) {
+      case "OpenAI":
+        if (providerSpecificState.organization) {
+          updatedConfig.organization = providerSpecificState.organization;
+        }
+        break;
+      case "Google":
+        if (providerSpecificState.safetySettings) {
+          updatedConfig.safetySettings = providerSpecificState.safetySettings;
+        }
+        break;
+      case "Anthropic":
+        if (providerSpecificState.topK) {
+          updatedConfig.topK = providerSpecificState.topK;
+        }
+        break;
+      case "HuggingFace":
+        if (providerSpecificState.task) {
+          updatedConfig.task = providerSpecificState.task;
+        }
+        if (providerSpecificState.waitForModel !== undefined) {
+          updatedConfig.waitForModel = providerSpecificState.waitForModel;
+        }
+        break;
+      case "OpenRouter":
+        if (providerSpecificState.routeType) {
+          updatedConfig.routeType = providerSpecificState.routeType;
+        }
+        break;
+      case "Mistral":
+        if (providerSpecificState.safePrompt !== undefined) {
+          updatedConfig.safePrompt = providerSpecificState.safePrompt;
+        }
+        break;
+      case "TogetherAI":
+        if (providerSpecificState.repetitionPenalty) {
+          updatedConfig.repetitionPenalty =
+            providerSpecificState.repetitionPenalty;
+        }
+        break;
+    }
+
+    return updatedConfig;
+  };
+
   const handleApply = async () => {
+    const updatedConfiguration = createUpdatedConfiguration();
+
     await onUpdate(model.id, {
       isActive,
       apiKey: apiKey || undefined,
-      configuration: {
-        ...model.configuration,
-        temperature,
-        maxTokens,
-      },
+      baseUrl: baseUrl || undefined,
+      configuration: updatedConfiguration,
     });
-    setHasChanges(false);
-  };
-
-  const handleReset = () => {
-    setTemperature(initialTemperature);
-    setMaxTokens(initialMaxTokens);
-    setIsActive(model.isActive);
-    setApiKey(model.apiKey || "");
-    setHasChanges(false);
   };
 
   return (
     <Card className={isActive ? "border-primary/50" : ""}>
-      <ModelCardHeader 
-        model={model} 
-        isActive={isActive} 
-        onActiveChange={handleActiveChange} 
+      <ModelCardHeader
+        model={model}
+        isActive={isActive}
+        onActiveChange={handleActiveChange}
       />
       <ModelCardContent
         model={model}
         temperature={temperature}
         maxTokens={maxTokens}
         apiKey={apiKey}
+        modelId={modelId}
+        baseUrl={baseUrl}
+        providerSpecificState={providerSpecificState}
         onTemperatureChange={handleTemperatureChange}
         onMaxTokensChange={handleMaxTokensChange}
         onApiKeyChange={handleApiKeyChange}
+        onModelIdChange={handleModelIdChange}
+        onBaseUrlChange={handleBaseUrlChange}
+        updateProviderSpecificState={updateProviderSpecificState}
       />
       <ModelCardFooter
         hasChanges={hasChanges}

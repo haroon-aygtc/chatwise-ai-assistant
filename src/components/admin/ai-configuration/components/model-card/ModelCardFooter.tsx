@@ -1,7 +1,6 @@
-
-import React from "react";
-import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface ModelCardFooterProps {
   hasChanges: boolean;
@@ -10,31 +9,36 @@ interface ModelCardFooterProps {
   onApply: () => void;
 }
 
-export const ModelCardFooter: React.FC<ModelCardFooterProps> = ({
+export const ModelCardFooter = ({
   hasChanges,
   isUpdating,
   onReset,
   onApply,
-}) => {
+}: ModelCardFooterProps) => {
   return (
-    <CardFooter className="flex justify-between">
-      <Button
-        variant="outline"
-        onClick={onReset}
-        disabled={!hasChanges || isUpdating}
-      >
-        Reset
-      </Button>
-      <Button onClick={onApply} disabled={!hasChanges || isUpdating}>
-        {isUpdating ? (
-          <>
-            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-            Applying...
-          </>
-        ) : (
-          "Apply"
-        )}
-      </Button>
+    <CardFooter className="flex justify-end gap-2 pt-0">
+      {hasChanges && (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReset}
+            disabled={isUpdating}
+          >
+            Reset
+          </Button>
+          <Button size="sm" onClick={onApply} disabled={isUpdating}>
+            {isUpdating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Apply Changes"
+            )}
+          </Button>
+        </>
+      )}
     </CardFooter>
   );
 };
