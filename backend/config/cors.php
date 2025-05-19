@@ -38,7 +38,7 @@ return [
         'http://localhost'
     ],
 
-    'allowed_origins_patterns' => [],
+    
 
     'allowed_headers' => ['*'],
 

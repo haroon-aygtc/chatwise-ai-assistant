@@ -37,7 +37,19 @@ class Cors
         ]);
 
         $origin = $request->header('Origin');
-        if (in_array($origin, $allowedOrigins)) {
+        $originAllowed = in_array($origin, $allowedOrigins);
+        
+        // Check if origin matches any allowed pattern
+        if (!$originAllowed && $origin) {
+            foreach ($allowedPatterns as $pattern) {
+                if (preg_match($pattern, $origin)) {
+                    $originAllowed = true;
+                    break;
+                }
+            }
+        }
+        
+        if ($originAllowed) {
             $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
