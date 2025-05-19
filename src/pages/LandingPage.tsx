@@ -12,6 +12,8 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   ArrowRight,
   Bot,
@@ -33,7 +35,14 @@ import {
 
 const LandingPage = () => {
   const [activeView, setActiveView] = useState("dashboard"); // Default to "dashboard" view
+  const [isPublicMode, setIsPublicMode] = useState(false); // State for public API mode toggle
   const navigate = useNavigate();
+
+  const togglePublicMode = () => {
+    setIsPublicMode(!isPublicMode);
+    // Here you would typically update some API configuration
+    // or trigger an API call to change the backend mode
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,23 +99,22 @@ const LandingPage = () => {
 
               {/*Temporary API Tester and CSRF Debugger */}
               <Button
-                  variant={activeView === "api-tester" ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => navigate("/api-tester")}
-                >
-                  <Code className="mr-2 h-4 w-4" />
-                  API Tester
-                </Button>
+                variant={activeView === "api-tester" ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => navigate("/api-tester")}
+              >
+                <Code className="mr-2 h-4 w-4" />
+                API Tester
+              </Button>
               <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => navigate("/csrf-debug")}
-                >
-                  <ServerCog className="mr-2 h-4 w-4" />
-                  CSRF Debugger
-                </Button>
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => navigate("/csrf-debug")}
+              >
+                <ServerCog className="mr-2 h-4 w-4" />
+                CSRF Debugger
+              </Button>
               {/* End of Temporary API Tester and CSRF Debugger */}
-
             </div>
             <Button variant="ghost" size="icon" className="md:hidden">
               <svg
@@ -310,6 +318,55 @@ const LandingPage = () => {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* API Mode Section */}
+      <section className="py-8 bg-gradient-to-r from-amber-50 to-orange-50">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="md:flex">
+              <div className="p-6 md:w-2/3">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-800">
+                    API Security Mode
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="public-mode"
+                      checked={isPublicMode}
+                      onCheckedChange={togglePublicMode}
+                    />
+                    <Label htmlFor="public-mode" className="font-medium">
+                      {isPublicMode ? "Public" : "Secure"}
+                    </Label>
+                  </div>
+                </div>
+                <p className="text-gray-600 mb-2">
+                  {isPublicMode
+                    ? "CORS restrictions and CSRF protection are currently disabled."
+                    : "CORS restrictions and CSRF protection are currently enabled."}
+                </p>
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <p className="text-sm text-amber-800">
+                    <strong>Security Notice:</strong> Public API mode disables
+                    important security features and should only be used for
+                    development or testing purposes. Never use public mode in
+                    production environments.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-orange-400 to-orange-500 md:w-1/3 p-6 flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Shield className="h-12 w-12 mx-auto mb-2" />
+                  <h4 className="font-bold">API Security</h4>
+                  <p className="text-sm opacity-90">
+                    Toggle between secure and public modes
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
