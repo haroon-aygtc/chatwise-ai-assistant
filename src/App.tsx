@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -66,14 +62,31 @@ function App() {
             <Route path="api-tester" element={<ApiTester />} />
 
             {/* Protected routes */}
-            <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route
+              path="/home"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Admin routes */}
             <Route
               path="/admin"
               element={
-                <ProtectedRoute requiredRole="admin" requiredPermission="access admin panel">
+                <ProtectedRoute
+                  requiredRole="admin"
+                  requiredPermission="access admin panel"
+                >
                   <AdminLayout />
                 </ProtectedRoute>
               }
@@ -82,14 +95,8 @@ function App() {
               <Route path="dashboard" element={<AdminDashboardPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="users" element={<UserManagementPage />} />
-              <Route
-                path="ai-config"
-                element={<AIConfigurationPage />}
-              />
-              <Route
-                path="knowledge-base"
-                element={<KnowledgeBasePage />}
-              />
+              <Route path="ai-config" element={<AIConfigurationPage />} />
+              <Route path="knowledge-base" element={<KnowledgeBasePage />} />
               <Route path="widget-builder" element={<WidgetBuilderPage />} />
               <Route path="chat-sessions" element={<ChatSessionsPage />} />
               <Route path="settings" element={<SettingsPage />} />
@@ -97,6 +104,7 @@ function App() {
 
             {/* Error pages */}
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
+            {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster position="top-right" />

@@ -23,3 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 .history
+
+# Tempo files
+**/tempobook/dynamic/
+**/tempobook/storyboards/
+
+# Tempo files
+**/tempobook/dynamic/
+**/tempobook/storyboards/
