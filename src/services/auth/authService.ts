@@ -10,7 +10,7 @@ const authService = {
   async login(credentials: LoginCredentials) {
     // First, ensure we have a CSRF token
     try {
-      await fetch("/sanctum/csrf-cookie", {
+      await fetch(`${API_CONFIG.BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -45,7 +45,7 @@ const authService = {
   async register(data: RegisterData) {
     // First, ensure we have a CSRF token
     try {
-      await fetch("/sanctum/csrf-cookie", {
+      await fetch(`${API_CONFIG.BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -154,17 +154,51 @@ const authService = {
     try {
       const token = tokenService.getToken();
       if (!token) {
+        // Reduced log noise - only log in development environment
+        if (process.env.NODE_ENV === 'development') {
+          console.log("getCurrentUser: No token available");
+        }
         return null;
       }
 
       const headers = this.getAuthHeaders(token);
+
+      // Only log in development environment
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Fetching user data from API");
+      }
+
       const response = await axios.get(`${API_CONFIG.BASE_URL}/user`, {
         headers,
         withCredentials: true,
       });
-      return response.data.user;
+
+      // The user data is now consistently returned inside a 'user' property
+      const userData = response.data.user;
+
+      if (!userData) {
+        console.warn("No user data returned from API");
+        return null;
+      }
+
+      // Ensure permissions is an array
+      if (!userData.permissions) {
+        userData.permissions = [];
+      }
+
+      // Log permissions count for debugging - only in development
+      if (process.env.NODE_ENV === 'development') {
+        const permissionsCount = Array.isArray(userData.permissions) ? userData.permissions.length : 0;
+        console.log(`User data retrieved: ID=${userData.id}, ${permissionsCount} permissions`);
+      }
+
+      return userData;
     } catch (error) {
-      console.error("Error getting current user:", error);
+      // Only log detailed errors in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error getting current user:", error);
+      }
+
       // Only remove token if it's an authentication error
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         tokenService.removeToken();
