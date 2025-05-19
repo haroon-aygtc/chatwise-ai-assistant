@@ -107,5 +107,12 @@ export const removeGlobalHeader = (key: string): void =>
 export const getGlobalHeaders = (): Record<string, string> =>
   headersManager.getAll();
 
-// Export public mode status for use in other modules
+// Export public mode status and setter for use in other modules
 export const isPublicApiMode = isPublicMode;
+
+// Function to update public API mode
+export const setPublicApiMode = (value: boolean): void => {
+  localStorage.setItem("publicApiMode", value.toString());
+  // Force reload to apply changes
+  window.location.reload();
+};
