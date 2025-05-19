@@ -13,12 +13,10 @@ import axios, {
   AxiosError,
   AxiosInstance,
   AxiosRequestConfig,
-  InternalAxiosRequestConfig
+  InternalAxiosRequestConfig,
 } from "axios";
 import { toast } from "@/components/ui/use-toast";
-import API_CONFIG_IMPORT, {
-  getGlobalHeaders
-} from "./config";
+import API_CONFIG_IMPORT, { getGlobalHeaders } from "./config";
 import tokenService from "../auth/tokenService";
 
 // Use the imported config
@@ -62,12 +60,14 @@ class HttpClient {
       baseURL: API_CONFIG.BASE_URL,
       timeout: API_CONFIG.TIMEOUT,
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
       },
       withCredentials: true, // Always include credentials for CSRF to work
-      withXSRFToken: true,
+      withXSRFToken: true, // Enable automatic XSRF handling
+      xsrfCookieName: "XSRF-TOKEN", // Laravel's default CSRF cookie name
+      xsrfHeaderName: "X-XSRF-TOKEN", // Laravel's default CSRF header name
     });
 
     // Set up interceptors
@@ -89,31 +89,34 @@ class HttpClient {
 
         // Add global headers
         const globalHeaders = getGlobalHeaders();
-        Object.keys(globalHeaders).forEach(key => {
+        Object.keys(globalHeaders).forEach((key) => {
           config.headers[key] = globalHeaders[key];
         });
 
         // Explicitly add CSRF token if available
         const csrfToken = tokenService.getCsrfToken();
         if (csrfToken) {
-          config.headers['X-XSRF-TOKEN'] = csrfToken;
+          config.headers["X-XSRF-TOKEN"] = csrfToken;
         }
 
         // Log request in debug mode
         if (API_CONFIG.DEBUG) {
-          console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
-            params: config.params,
-            data: config.data,
-            headers: config.headers
-          });
+          console.log(
+            `🚀 Request: ${config.method?.toUpperCase()} ${config.url}`,
+            {
+              params: config.params,
+              data: config.data,
+              headers: config.headers,
+            },
+          );
         }
 
         return config;
       },
       (error) => {
-        console.error('Request error:', error);
+        console.error("Request error:", error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor
@@ -121,10 +124,13 @@ class HttpClient {
       (response) => {
         // Log response in debug mode
         if (API_CONFIG.DEBUG) {
-          console.log(`✅ Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
-            status: response.status,
-            data: response.data
-          });
+          console.log(
+            `✅ Response: ${response.config.method?.toUpperCase()} ${response.config.url}`,
+            {
+              status: response.status,
+              data: response.data,
+            },
+          );
         }
 
         return response;
@@ -133,20 +139,25 @@ class HttpClient {
         const response = error.response;
 
         // Handle HTML responses (usually server errors)
-        if (response?.data && typeof response.data === 'string' && response.data.includes('<!DOCTYPE')) {
+        if (
+          response?.data &&
+          typeof response.data === "string" &&
+          response.data.includes("<!DOCTYPE")
+        ) {
           toast({
-            title: 'Server Error',
-            description: 'Invalid HTML response from server. Contact support.',
-            variant: 'destructive',
+            title: "Server Error",
+            description: "Invalid HTML response from server. Contact support.",
+            variant: "destructive",
           });
-          return Promise.reject(new Error('Invalid HTML response received'));
+          return Promise.reject(new Error("Invalid HTML response received"));
         }
 
         // Extract error message
         const responseData = response?.data as ApiErrorResponse | undefined;
-        const message = responseData?.message ||
+        const message =
+          responseData?.message ||
           responseData?.error ||
-          'An unexpected error occurred';
+          "An unexpected error occurred";
 
         // Handle CSRF token expiry (status 419)
         if (response?.status === 419) {
@@ -155,7 +166,7 @@ class HttpClient {
             // Retry the original request
             return this.instance(error.config as AxiosRequestConfig);
           } catch (csrfError) {
-            console.error('CSRF token refresh failed:', csrfError);
+            console.error("CSRF token refresh failed:", csrfError);
           }
         }
 
@@ -163,35 +174,43 @@ class HttpClient {
         if (response?.status === 401) {
           // Don't immediately clear the token or redirect
           // Instead, let the auth hook handle token refresh
-          console.log('Authentication error detected, auth hook will handle refresh');
+          console.log(
+            "Authentication error detected, auth hook will handle refresh",
+          );
 
           // Only redirect if we're not already on the login page
-          if (!window.location.pathname.includes('/login')) {
+          if (!window.location.pathname.includes("/login")) {
             // Store the current URL to redirect back after login
-            sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
-            window.location.href = '/login?session=expired';
+            sessionStorage.setItem(
+              "redirectAfterLogin",
+              window.location.pathname,
+            );
+            window.location.href = "/login?session=expired";
           }
         }
 
         // Show toast for all errors except validation errors (status 422)
         if (response?.status !== 422) {
           toast({
-            title: 'Error',
+            title: "Error",
             description: message,
-            variant: 'destructive',
+            variant: "destructive",
           });
         }
 
         // Log error in debug mode
         if (API_CONFIG.DEBUG) {
-          console.error(`❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
-            status: response?.status,
-            data: response?.data
-          });
+          console.error(
+            `❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+            {
+              status: response?.status,
+              data: response?.data,
+            },
+          );
         }
 
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -229,9 +248,12 @@ class HttpClient {
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError;
-      if (axiosError.response?.status === 419 ||
-        (axiosError.response?.data as ApiErrorResponse)?.message === 'CSRF token mismatch.') {
-        console.log('CSRF token mismatch detected, retrying with fresh token');
+      if (
+        axiosError.response?.status === 419 ||
+        (axiosError.response?.data as ApiErrorResponse)?.message ===
+          "CSRF token mismatch."
+      ) {
+        console.log("CSRF token mismatch detected, retrying with fresh token");
         // Try once more with a fresh token
         await this.fetchCsrfToken();
         const response = await this.instance.post<T>(url, data);
@@ -274,12 +296,20 @@ class HttpClient {
   /**
    * Upload a file
    */
-  public async uploadFile<T = unknown>(url: string, formData: FormData): Promise<T> {
-    // Fetch CSRF token before file uploads
-    await this.fetchCsrfToken();
+  public async uploadFile<T = unknown>(
+    url: string,
+    formData: FormData,
+  ): Promise<T> {
+    // Check if we're in public API mode
+    const isPublicMode = import.meta.env.VITE_PUBLIC_API_MODE === "true";
+
+    // Only fetch CSRF token if not in public mode
+    if (!isPublicMode) {
+      await this.fetchCsrfToken();
+    }
 
     const config: AxiosRequestConfig = {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { "Content-Type": "multipart/form-data" },
     };
 
     const response = await this.instance.post<T>(url, formData, config);
@@ -304,8 +334,7 @@ const apiService = {
   patch: <T = unknown>(url: string, data?: ApiData) =>
     httpClient.patch<T>(url, data),
 
-  delete: <T = unknown>(url: string) =>
-    httpClient.delete<T>(url),
+  delete: <T = unknown>(url: string) => httpClient.delete<T>(url),
 
   uploadFile: <T = unknown>(url: string, formData: FormData) =>
     httpClient.uploadFile<T>(url, formData),

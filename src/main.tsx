@@ -19,7 +19,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>,
 );
 
-// Ensure CSRF token is fetched before rendering - disabled for now
-// We're rendering the app directly since the backend might not be available
-// If you need to enable CSRF protection later, uncomment this code and ensure
-// the backend is running at the configured URL
+// Ensure CSRF token is fetched before rendering
+import apiService from "./services/api/api";
+
+// Initialize CSRF token before app renders
+apiService.fetchCsrfToken().catch((error) => {
+  console.warn("Failed to fetch CSRF token:", error);
+  console.info(
+    "App will continue to render, but authentication may not work properly",
+  );
+});
