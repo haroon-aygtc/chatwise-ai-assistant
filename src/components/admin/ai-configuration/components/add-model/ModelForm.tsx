@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Select,
@@ -8,15 +7,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { AIModel } from "@/types/ai-configuration";
+import { AIModel, AIProvider } from "@/types/ai-configuration";
 import { TemperatureControl } from "./TemperatureControl";
 import { FormField } from "./FormField";
+import { ProviderSpecificFields } from "./ProviderSpecificFields";
 
 interface ModelFormProps {
-  provider: string;
-  setProvider: (provider: string) => void;
+  provider: AIProvider;
+  setProvider: (provider: AIProvider) => void;
   name: string;
   setName: (name: string) => void;
   description: string;
@@ -29,6 +28,30 @@ interface ModelFormProps {
   setTemperature: (temperature: number) => void;
   maxTokens: number;
   setMaxTokens: (maxTokens: number) => void;
+  modelId: string;
+  setModelId: (modelId: string) => void;
+  organization?: string;
+  setOrganization?: (organization: string) => void;
+  topP?: number;
+  setTopP?: (topP: number) => void;
+  topK?: number;
+  setTopK?: (topK: number) => void;
+  frequencyPenalty?: number;
+  setFrequencyPenalty?: (frequencyPenalty: number) => void;
+  presencePenalty?: number;
+  setPresencePenalty?: (presencePenalty: number) => void;
+  repetitionPenalty?: number;
+  setRepetitionPenalty?: (repetitionPenalty: number) => void;
+  task?: string;
+  setTask?: (task: string) => void;
+  waitForModel?: boolean;
+  setWaitForModel?: (waitForModel: boolean) => void;
+  routeType?: "fallback" | "fastest" | "lowest-cost";
+  setRouteType?: (routeType: "fallback" | "fastest" | "lowest-cost") => void;
+  safePrompt?: boolean;
+  setSafePrompt?: (safePrompt: boolean) => void;
+  baseUrl?: string;
+  setBaseUrl?: (baseUrl: string) => void;
 }
 
 export const ModelForm = ({
@@ -46,6 +69,30 @@ export const ModelForm = ({
   setTemperature,
   maxTokens,
   setMaxTokens,
+  modelId,
+  setModelId,
+  organization,
+  setOrganization,
+  topP,
+  setTopP,
+  topK,
+  setTopK,
+  frequencyPenalty,
+  setFrequencyPenalty,
+  presencePenalty,
+  setPresencePenalty,
+  repetitionPenalty,
+  setRepetitionPenalty,
+  task,
+  setTask,
+  waitForModel,
+  setWaitForModel,
+  routeType,
+  setRouteType,
+  safePrompt,
+  setSafePrompt,
+  baseUrl,
+  setBaseUrl,
 }: ModelFormProps) => {
   return (
     <div className="grid gap-4 py-4">
@@ -55,7 +102,7 @@ export const ModelForm = ({
         render={() => (
           <Select
             value={provider}
-            onValueChange={setProvider}
+            onValueChange={(value) => setProvider(value as AIProvider)}
             required
           >
             <SelectTrigger className="col-span-3" id="provider">
@@ -63,9 +110,14 @@ export const ModelForm = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="OpenAI">OpenAI</SelectItem>
-              <SelectItem value="Google">Google</SelectItem>
-              <SelectItem value="Anthropic">Anthropic</SelectItem>
-              <SelectItem value="Hugging Face">Hugging Face</SelectItem>
+              <SelectItem value="Google">Google (Gemini)</SelectItem>
+              <SelectItem value="Anthropic">Anthropic (Claude)</SelectItem>
+              <SelectItem value="HuggingFace">Hugging Face</SelectItem>
+              <SelectItem value="OpenRouter">OpenRouter</SelectItem>
+              <SelectItem value="Groq">Groq</SelectItem>
+              <SelectItem value="Mistral">Mistral</SelectItem>
+              <SelectItem value="TogetherAI">Together AI</SelectItem>
+              <SelectItem value="Custom">Custom Provider</SelectItem>
             </SelectContent>
           </Select>
         )}
@@ -126,9 +178,38 @@ export const ModelForm = ({
         )}
       />
 
-      <TemperatureControl 
-        temperature={temperature} 
-        setTemperature={setTemperature} 
+      {/* Provider-specific configuration fields */}
+      <ProviderSpecificFields
+        provider={provider}
+        modelId={modelId}
+        setModelId={setModelId}
+        organization={organization}
+        setOrganization={setOrganization}
+        topP={topP}
+        setTopP={setTopP}
+        topK={topK}
+        setTopK={setTopK}
+        frequencyPenalty={frequencyPenalty}
+        setFrequencyPenalty={setFrequencyPenalty}
+        presencePenalty={presencePenalty}
+        setPresencePenalty={setPresencePenalty}
+        repetitionPenalty={repetitionPenalty}
+        setRepetitionPenalty={setRepetitionPenalty}
+        task={task}
+        setTask={setTask}
+        waitForModel={waitForModel}
+        setWaitForModel={setWaitForModel}
+        routeType={routeType}
+        setRouteType={setRouteType}
+        safePrompt={safePrompt}
+        setSafePrompt={setSafePrompt}
+        baseUrl={baseUrl}
+        setBaseUrl={setBaseUrl}
+      />
+
+      <TemperatureControl
+        temperature={temperature}
+        setTemperature={setTemperature}
       />
 
       <FormField

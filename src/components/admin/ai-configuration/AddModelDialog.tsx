@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -37,6 +36,30 @@ export const AddModelDialog = ({
     setTemperature,
     maxTokens,
     setMaxTokens,
+    modelId,
+    setModelId,
+    organization,
+    setOrganization,
+    topP,
+    setTopP,
+    topK,
+    setTopK,
+    frequencyPenalty,
+    setFrequencyPenalty,
+    presencePenalty,
+    setPresencePenalty,
+    repetitionPenalty,
+    setRepetitionPenalty,
+    task,
+    setTask,
+    waitForModel,
+    setWaitForModel,
+    routeType,
+    setRouteType,
+    safePrompt,
+    setSafePrompt,
+    baseUrl,
+    setBaseUrl,
     isSubmitting,
     handleSubmit,
     isFormValid,
@@ -44,7 +67,7 @@ export const AddModelDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add AI Model</DialogTitle>
@@ -52,7 +75,7 @@ export const AddModelDialog = ({
               Configure a new AI model for your application
             </DialogDescription>
           </DialogHeader>
-          
+
           <ModelForm
             provider={provider}
             setProvider={setProvider}
@@ -68,8 +91,32 @@ export const AddModelDialog = ({
             setTemperature={setTemperature}
             maxTokens={maxTokens}
             setMaxTokens={setMaxTokens}
+            modelId={modelId}
+            setModelId={setModelId}
+            organization={organization}
+            setOrganization={setOrganization}
+            topP={topP}
+            setTopP={setTopP}
+            topK={topK}
+            setTopK={setTopK}
+            frequencyPenalty={frequencyPenalty}
+            setFrequencyPenalty={setFrequencyPenalty}
+            presencePenalty={presencePenalty}
+            setPresencePenalty={setPresencePenalty}
+            repetitionPenalty={repetitionPenalty}
+            setRepetitionPenalty={setRepetitionPenalty}
+            task={task}
+            setTask={setTask}
+            waitForModel={waitForModel}
+            setWaitForModel={setWaitForModel}
+            routeType={routeType}
+            setRouteType={setRouteType}
+            safePrompt={safePrompt}
+            setSafePrompt={setSafePrompt}
+            baseUrl={baseUrl}
+            setBaseUrl={setBaseUrl}
           />
-          
+
           <ModelDialogFooter
             isSubmitting={isSubmitting}
             onCancel={() => onOpenChange(false)}

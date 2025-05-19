@@ -1,7 +1,6 @@
-
-import React from "react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 
 interface ModelDialogFooterProps {
   isSubmitting: boolean;
@@ -9,13 +8,13 @@ interface ModelDialogFooterProps {
   isFormValid: boolean;
 }
 
-export const ModelDialogFooter = ({ 
-  isSubmitting, 
-  onCancel, 
-  isFormValid 
+export const ModelDialogFooter = ({
+  isSubmitting,
+  onCancel,
+  isFormValid,
 }: ModelDialogFooterProps) => {
   return (
-    <DialogFooter>
+    <DialogFooter className="mt-6">
       <Button
         type="button"
         variant="outline"
@@ -27,7 +26,7 @@ export const ModelDialogFooter = ({
       <Button type="submit" disabled={isSubmitting || !isFormValid}>
         {isSubmitting ? (
           <>
-            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Adding...
           </>
         ) : (
