@@ -26,19 +26,20 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        env('APP_URL', 'http://localhost:8000'),
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        'http://localhost:5174',
-        'http://127.0.0.1:5174',
-        'http://localhost:8080',
-        'http://127.0.0.1:8080',
-        'http://localhost'
-    ],
-
-    
+    // Use PUBLIC_API_MODE to quickly toggle between secure and public mode
+    'allowed_origins' => env('PUBLIC_API_MODE', false) === true || env('PUBLIC_API_MODE') === 'true' 
+        ? ['*'] 
+        : [
+            env('APP_URL', 'http://localhost:8000'),
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:5174',
+            'http://127.0.0.1:5174',
+            'http://localhost:8080',
+            'http://127.0.0.1:8080',
+            'http://localhost'
+        ],
 
     'allowed_headers' => ['*'],
 
@@ -46,6 +47,9 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    // Disable credentials requirement in public mode
+    'supports_credentials' => env('PUBLIC_API_MODE', false) === true || env('PUBLIC_API_MODE') === 'true' 
+        ? false 
+        : true,
 
 ];
