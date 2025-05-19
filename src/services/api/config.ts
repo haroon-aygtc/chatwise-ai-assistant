@@ -8,8 +8,15 @@
  * - Environment-specific settings
  */
 
-// Check if we're in public API mode
-const isPublicMode = import.meta.env.VITE_PUBLIC_API_MODE === "true";
+// Check if we're in public API mode (with localStorage persistence)
+const getPublicModeFromStorage = (): boolean => {
+  const storedValue = localStorage.getItem("publicApiMode");
+  return storedValue !== null
+    ? storedValue === "true"
+    : import.meta.env.VITE_PUBLIC_API_MODE === "true";
+};
+
+const isPublicMode = getPublicModeFromStorage();
 
 // Environment variables with fallbacks
 const API_CONFIG = Object.freeze({

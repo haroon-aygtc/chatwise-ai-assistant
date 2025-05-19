@@ -1,4 +1,3 @@
-
 import axios, { AxiosHeaders } from "axios";
 import { LoginCredentials, RegisterData } from "@/types/domain";
 import API_CONFIG from "../api/config";
@@ -9,7 +8,32 @@ const authService = {
    * Login a user
    */
   async login(credentials: LoginCredentials) {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/login`, credentials);
+    // First, ensure we have a CSRF token
+    try {
+      await fetch("/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+    } catch (error) {
+      console.warn("Failed to fetch CSRF token before login:", error);
+    }
+
+    const response = await axios.post(
+      `${API_CONFIG.BASE_URL}/login`,
+      credentials,
+      {
+        withCredentials: true,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      },
+    );
     const { user, token } = response.data;
     tokenService.setToken(token);
     return { user, token };
@@ -19,7 +43,28 @@ const authService = {
    * Register a new user
    */
   async register(data: RegisterData) {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/register`, data);
+    // First, ensure we have a CSRF token
+    try {
+      await fetch("/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+    } catch (error) {
+      console.warn("Failed to fetch CSRF token before registration:", error);
+    }
+
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/register`, data, {
+      withCredentials: true,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
     return response.data.user;
   },
 
@@ -32,7 +77,10 @@ const authService = {
       await axios.post(
         `${API_CONFIG.BASE_URL}/logout`,
         {},
-        { headers }
+        {
+          headers,
+          withCredentials: true,
+        },
       );
     } catch (error) {
       console.error("Logout error:", error);
@@ -46,7 +94,10 @@ const authService = {
    */
   async getProfile() {
     const headers = this.getAuthHeaders();
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/profile`, { headers });
+    const response = await axios.get(`${API_CONFIG.BASE_URL}/profile`, {
+      headers,
+      withCredentials: true,
+    });
     return response.data.user;
   },
 
@@ -58,7 +109,7 @@ const authService = {
     const headers = new AxiosHeaders();
 
     if (authToken) {
-      headers.set('Authorization', `Bearer ${authToken}`);
+      headers.set("Authorization", `Bearer ${authToken}`);
     }
 
     return headers;
@@ -68,19 +119,31 @@ const authService = {
    * Request password reset
    */
   async requestPasswordReset(email: string) {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/forgot-password`, { email });
+    const response = await axios.post(
+      `${API_CONFIG.BASE_URL}/forgot-password`,
+      { email },
+      { withCredentials: true },
+    );
     return response.data;
   },
 
   /**
    * Reset password with token
    */
-  async resetPassword(token: string, password: string, password_confirmation: string) {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/reset-password`, {
-      token,
-      password,
-      password_confirmation
-    });
+  async resetPassword(
+    token: string,
+    password: string,
+    password_confirmation: string,
+  ) {
+    const response = await axios.post(
+      `${API_CONFIG.BASE_URL}/reset-password`,
+      {
+        token,
+        password,
+        password_confirmation,
+      },
+      { withCredentials: true },
+    );
     return response.data;
   },
 
@@ -95,13 +158,20 @@ const authService = {
       }
 
       const headers = this.getAuthHeaders(token);
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/user`, { headers });
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/user`, {
+        headers,
+        withCredentials: true,
+      });
       return response.data.user;
     } catch (error) {
-      tokenService.removeToken();
+      console.error("Error getting current user:", error);
+      // Only remove token if it's an authentication error
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        tokenService.removeToken();
+      }
       return null;
     }
-  }
+  },
 };
 
 export default authService;
