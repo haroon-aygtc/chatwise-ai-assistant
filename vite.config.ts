@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -12,30 +11,51 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     entries: ["src/main.tsx"],
   },
-  
-  plugins: [
-    react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+
+  plugins: [react(), mode === "development" && componentTagger()].filter(
+    Boolean,
+  ),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  
+
   server: {
     port: 8080,
-    allowedHosts: true,
+    allowedHosts: process.env.TEMPO === "true" ? true : true,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
+      "/api": {
+        target: "http://localhost:8000",
         changeOrigin: true,
         secure: false,
+        bypass: (req) => {
+          // Return false to continue proxy, true to bypass
+          if (
+            req.url.startsWith("/api") &&
+            !req.headers.host?.includes("localhost:8000")
+          ) {
+            console.log("Bypassing API proxy for development");
+            return req.url;
+          }
+          return false;
+        },
       },
-      '/sanctum': {
-        target: 'http://localhost:8000',
+      "/sanctum": {
+        target: "http://localhost:8000",
         changeOrigin: true,
         secure: false,
+        bypass: (req) => {
+          // Return false to continue proxy, true to bypass
+          if (
+            req.url.startsWith("/sanctum") &&
+            !req.headers.host?.includes("localhost:8000")
+          ) {
+            console.log("Bypassing Sanctum proxy for development");
+            return req.url;
+          }
+          return false;
+        },
       },
     },
   },
