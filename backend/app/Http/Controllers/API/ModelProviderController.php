@@ -94,7 +94,7 @@ class ModelProviderController extends Controller
 
         $provider = ModelProvider::findOrFail($id);
         $provider->update($validated);
-        
+
         return response()->json(['data' => $provider, 'message' => 'Model provider updated successfully']);
     }
 
@@ -108,7 +108,7 @@ class ModelProviderController extends Controller
     {
         $provider = ModelProvider::findOrFail($id);
         $provider->delete();
-        
+
         return response()->json(['message' => 'Model provider deleted successfully']);
     }
 }
