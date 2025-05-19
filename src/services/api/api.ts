@@ -16,7 +16,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { toast } from "@/components/ui/use-toast";
-import API_CONFIG_IMPORT, { getGlobalHeaders } from "./config";
+import API_CONFIG_IMPORT, { getGlobalHeaders, isPublicApiMode } from "./config";
 import tokenService from "../auth/tokenService";
 
 // Use the imported config
@@ -64,8 +64,8 @@ class HttpClient {
         Accept: "application/json",
         "X-Requested-With": "XMLHttpRequest",
       },
-      withCredentials: true, // Always include credentials for CSRF to work
-      withXSRFToken: true, // Enable automatic XSRF handling
+      withCredentials: !isPublicApiMode, // Skip credentials in public mode
+      withXSRFToken: !isPublicApiMode, // Disable XSRF in public mode
       xsrfCookieName: "XSRF-TOKEN", // Laravel's default CSRF cookie name
       xsrfHeaderName: "X-XSRF-TOKEN", // Laravel's default CSRF header name
     });
@@ -93,10 +93,12 @@ class HttpClient {
           config.headers[key] = globalHeaders[key];
         });
 
-        // Explicitly add CSRF token if available
-        const csrfToken = tokenService.getCsrfToken();
-        if (csrfToken) {
-          config.headers["X-XSRF-TOKEN"] = csrfToken;
+        // Explicitly add CSRF token if available and not in public mode
+        if (!isPublicApiMode) {
+          const csrfToken = tokenService.getCsrfToken();
+          if (csrfToken) {
+            config.headers["X-XSRF-TOKEN"] = csrfToken;
+          }
         }
 
         // Log request in debug mode
@@ -159,8 +161,8 @@ class HttpClient {
           responseData?.error ||
           "An unexpected error occurred";
 
-        // Handle CSRF token expiry (status 419)
-        if (response?.status === 419) {
+        // Handle CSRF token expiry (status 419) - skip in public mode
+        if (!isPublicApiMode && response?.status === 419) {
           try {
             await tokenService.initCsrfToken();
             // Retry the original request
@@ -225,6 +227,8 @@ class HttpClient {
    * Fetch CSRF token
    */
   public async fetchCsrfToken(): Promise<void> {
+    // Skip in public mode
+    if (isPublicApiMode) return;
     await tokenService.initCsrfToken();
   }
 
@@ -240,8 +244,10 @@ class HttpClient {
    * Make a POST request
    */
   public async post<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before POST requests
-    await this.fetchCsrfToken();
+    // Fetch CSRF token before POST requests (skip in public mode)
+    if (!isPublicApiMode) {
+      await this.fetchCsrfToken();
+    }
 
     try {
       const response = await this.instance.post<T>(url, data);
@@ -249,9 +255,10 @@ class HttpClient {
     } catch (error) {
       const axiosError = error as AxiosError;
       if (
-        axiosError.response?.status === 419 ||
-        (axiosError.response?.data as ApiErrorResponse)?.message ===
-          "CSRF token mismatch."
+        !isPublicApiMode &&
+        (axiosError.response?.status === 419 ||
+          (axiosError.response?.data as ApiErrorResponse)?.message ===
+            "CSRF token mismatch.")
       ) {
         console.log("CSRF token mismatch detected, retrying with fresh token");
         // Try once more with a fresh token
@@ -267,8 +274,10 @@ class HttpClient {
    * Make a PUT request
    */
   public async put<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before PUT requests
-    await this.fetchCsrfToken();
+    // Fetch CSRF token before PUT requests (skip in public mode)
+    if (!isPublicApiMode) {
+      await this.fetchCsrfToken();
+    }
     const response = await this.instance.put<T>(url, data);
     return response.data;
   }
@@ -277,8 +286,10 @@ class HttpClient {
    * Make a PATCH request
    */
   public async patch<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before PATCH requests
-    await this.fetchCsrfToken();
+    // Fetch CSRF token before PATCH requests (skip in public mode)
+    if (!isPublicApiMode) {
+      await this.fetchCsrfToken();
+    }
     const response = await this.instance.patch<T>(url, data);
     return response.data;
   }
@@ -287,8 +298,10 @@ class HttpClient {
    * Make a DELETE request
    */
   public async delete<T = unknown>(url: string): Promise<T> {
-    // Fetch CSRF token before DELETE requests
-    await this.fetchCsrfToken();
+    // Fetch CSRF token before DELETE requests (skip in public mode)
+    if (!isPublicApiMode) {
+      await this.fetchCsrfToken();
+    }
     const response = await this.instance.delete<T>(url);
     return response.data;
   }
@@ -300,11 +313,8 @@ class HttpClient {
     url: string,
     formData: FormData,
   ): Promise<T> {
-    // Check if we're in public API mode
-    const isPublicMode = import.meta.env.VITE_PUBLIC_API_MODE === "true";
-
     // Only fetch CSRF token if not in public mode
-    if (!isPublicMode) {
+    if (!isPublicApiMode) {
       await this.fetchCsrfToken();
     }
 

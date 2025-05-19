@@ -1,4 +1,3 @@
-
 /**
  * API Configuration
  *
@@ -9,11 +8,14 @@
  * - Environment-specific settings
  */
 
+// Check if we're in public API mode
+const isPublicMode = import.meta.env.VITE_PUBLIC_API_MODE === "true";
+
 // Environment variables with fallbacks
 const API_CONFIG = Object.freeze({
   BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
   TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
-  WITH_CREDENTIALS: true,
+  WITH_CREDENTIALS: !isPublicMode, // Skip credentials in public mode
   DEBUG: import.meta.env.DEV,
 });
 
@@ -29,19 +31,19 @@ export const API_URL = API_CONFIG.BASE_URL;
 
 // Auth endpoints
 export const AUTH_ENDPOINTS = Object.freeze({
-  LOGIN: '/login',
-  REGISTER: '/register',
-  LOGOUT: '/logout',
-  CURRENT_USER: '/user',
-  CHECK_AUTH: '/check-auth',
-  RESET_PASSWORD_REQUEST: '/password/reset-request',
-  RESET_PASSWORD: '/password/reset',
-  VERIFY_EMAIL: '/verify-email',
+  LOGIN: "/login",
+  REGISTER: "/register",
+  LOGOUT: "/logout",
+  CURRENT_USER: "/user",
+  CHECK_AUTH: "/check-auth",
+  RESET_PASSWORD_REQUEST: "/password/reset-request",
+  RESET_PASSWORD: "/password/reset",
+  VERIFY_EMAIL: "/verify-email",
 });
 
 // User endpoints
 export const USER_ENDPOINTS = Object.freeze({
-  USERS: '/users',
+  USERS: "/users",
   USER_ROLES: (id: string) => `/users/${id}/roles`,
   USER_STATUS: (id: string) => `/users/${id}/status`,
   USER_PERMISSIONS: (id: string) => `/users/${id}/permissions`,
@@ -50,8 +52,8 @@ export const USER_ENDPOINTS = Object.freeze({
 
 // Permissions endpoints
 export const PERMISSION_ENDPOINTS = Object.freeze({
-  PERMISSIONS: '/permissions',
-  PERMISSION_CATEGORIES: '/permissions/categories',
+  PERMISSIONS: "/permissions",
+  PERMISSION_CATEGORIES: "/permissions/categories",
 });
 
 /**
@@ -98,6 +100,12 @@ class HeadersManager {
 export const headersManager = new HeadersManager();
 
 // Export convenience methods for backward compatibility
-export const addGlobalHeader = (key: string, value: string): void => headersManager.add(key, value);
-export const removeGlobalHeader = (key: string): void => headersManager.remove(key);
-export const getGlobalHeaders = (): Record<string, string> => headersManager.getAll();
+export const addGlobalHeader = (key: string, value: string): void =>
+  headersManager.add(key, value);
+export const removeGlobalHeader = (key: string): void =>
+  headersManager.remove(key);
+export const getGlobalHeaders = (): Record<string, string> =>
+  headersManager.getAll();
+
+// Export public mode status for use in other modules
+export const isPublicApiMode = isPublicMode;
