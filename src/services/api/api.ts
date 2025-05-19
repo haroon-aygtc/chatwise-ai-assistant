@@ -163,6 +163,7 @@ class HttpClient {
 
         // Handle CSRF token expiry (status 419) - skip in public mode
         if (!isPublicApiMode && response?.status === 419) {
+          console.log("CSRF token expired, refreshing...");
           try {
             await tokenService.initCsrfToken();
             // Retry the original request
@@ -174,11 +175,9 @@ class HttpClient {
 
         // Handle authentication errors (status 401)
         if (response?.status === 401) {
-          // Don't immediately clear the token or redirect
-          // Instead, let the auth hook handle token refresh
-          console.log(
-            "Authentication error detected, auth hook will handle refresh",
-          );
+          // Clear token on auth errors
+          tokenService.removeToken();
+          console.log("Authentication error detected, token cleared");
 
           // Only redirect if we're not already on the login page
           if (!window.location.pathname.includes("/login")) {
