@@ -6,10 +6,10 @@ use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class TogetherAIService extends BaseProviderService
+class AnthropicService extends BaseProviderService
 {
     /**
-     * Generate a response from Together AI
+     * Generate a response from Anthropic (Claude)
      *
      * @param string $prompt
      * @param array $configuration
@@ -31,14 +31,14 @@ class TogetherAIService extends BaseProviderService
             $configuration = $this->validateConfiguration($configuration, ['model']);
 
             // Use provided API key or fall back to env
-            $apiKey = $apiKey ?? env('TOGETHER_API_KEY');
+            $apiKey = $apiKey ?? env('ANTHROPIC_API_KEY');
 
             if (!$apiKey) {
-                throw new Exception('Together AI API key is required');
+                throw new Exception('Anthropic API key is required');
             }
 
             // Determine base URL
-            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
+            $baseUrl = $baseUrl ?? 'https://api.anthropic.com/v1';
 
             // Prepare request data
             $data = [
@@ -55,36 +55,37 @@ class TogetherAIService extends BaseProviderService
                 $data['top_p'] = $configuration['topP'];
             }
 
-            if (isset($configuration['repetitionPenalty'])) {
-                $data['repetition_penalty'] = $configuration['repetitionPenalty'];
+            if (isset($configuration['topK'])) {
+                $data['top_k'] = $configuration['topK'];
             }
 
             // Make API request
             $response = Http::withHeaders([
-                'Authorization' => "Bearer $apiKey",
+                'x-api-key' => $apiKey,
+                'anthropic-version' => '2023-06-01',
                 'Content-Type' => 'application/json',
-            ])->post("$baseUrl/chat/completions", $data);
+            ])->post("$baseUrl/messages", $data);
 
             if (!$response->successful()) {
-                throw new Exception('Together AI API error: ' . $response->body());
+                throw new Exception('Anthropic API error: ' . $response->body());
             }
 
             $responseData = $response->json();
 
             // Extract text from response
-            if (isset($responseData['choices'][0]['message']['content'])) {
-                return $responseData['choices'][0]['message']['content'];
+            if (isset($responseData['content'][0]['text'])) {
+                return $responseData['content'][0]['text'];
             }
 
-            throw new Exception('Unexpected response format from Together AI API');
+            throw new Exception('Unexpected response format from Anthropic API');
 
         } catch (Exception $e) {
-            $this->handleApiError($e, 'Together AI');
+            $this->handleApiError($e, 'Anthropic');
         }
     }
 
     /**
-     * Validate an API key with Together AI
+     * Validate an API key with Anthropic
      *
      * @param string $apiKey
      * @param string|null $baseUrl
@@ -93,22 +94,23 @@ class TogetherAIService extends BaseProviderService
     public function validateApiKey(string $apiKey, ?string $baseUrl = null): bool
     {
         try {
-            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
+            $baseUrl = $baseUrl ?? 'https://api.anthropic.com/v1';
 
             $response = Http::withHeaders([
-                'Authorization' => "Bearer $apiKey",
+                'x-api-key' => $apiKey,
+                'anthropic-version' => '2023-06-01',
                 'Content-Type' => 'application/json',
             ])->get("$baseUrl/models");
 
             return $response->successful();
         } catch (Exception $e) {
-            Log::error('Together AI API key validation error: ' . $e->getMessage());
+            Log::error('Anthropic API key validation error: ' . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Get default configuration for Together AI
+     * Get default configuration for Anthropic
      *
      * @return array
      */
@@ -117,8 +119,9 @@ class TogetherAIService extends BaseProviderService
         return [
             'temperature' => 0.7,
             'maxTokens' => 4096,
-            'model' => 'meta-llama/Llama-3-70b-chat',
-            'repetitionPenalty' => 1.1
+            'model' => 'claude-3-opus-20240229',
+            'topP' => 0.9,
+            'topK' => 40
         ];
     }
 }

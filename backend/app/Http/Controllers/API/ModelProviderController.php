@@ -1,114 +1,124 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Services\Providers;
 
-use App\Http\Controllers\Controller;
-use App\Models\ModelProvider;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Exception;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
-class ModelProviderController extends Controller
+class TogetherAIService extends BaseProviderService
 {
     /**
-     * Create a new controller instance.
-     */
-    public function __construct()
-    {
-        $this->middleware('auth:api')->except(['index']);
-        $this->middleware('permission:manage models')->except(['index', 'show']);
-    }
-
-    /**
-     * Get all model providers.
+     * Generate a response from Together AI
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @param string $prompt
+     * @param array $configuration
+     * @param string|null $apiKey
+     * @param string|null $baseUrl
+     * @param array $options
+     * @return string
+     * @throws Exception
      */
-    public function index()
-    {
-        $providers = ModelProvider::where('isActive', true)->get();
-        return response()->json(['data' => $providers]);
-    }
+    public function generateResponse(
+        string $prompt,
+        array $configuration,
+        ?string $apiKey = null,
+        ?string $baseUrl = null,
+        array $options = []
+    ): string {
+        try {
+            // Validate configuration
+            $configuration = $this->validateConfiguration($configuration, ['model']);
 
-    /**
-     * Get model provider by ID.
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function show($id)
-    {
-        $provider = ModelProvider::with('models')->findOrFail($id);
-        return response()->json(['data' => $provider]);
-    }
+            // Use provided API key or fall back to env
+            $apiKey = $apiKey ?? env('TOGETHER_API_KEY');
 
-    /**
-     * Create a new model provider.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'apiKeyName' => 'required|string|max:255',
-            'apiKeyRequired' => 'boolean',
-            'baseUrlRequired' => 'boolean',
-            'baseUrlName' => 'nullable|string|max:255',
-            'isActive' => 'boolean',
-            'logoUrl' => 'nullable|string|url',
-        ]);
+            if (!$apiKey) {
+                throw new Exception('Together AI API key is required');
+            }
 
-        // Generate slug from name
-        $validated['slug'] = Str::slug($validated['name']);
+            // Determine base URL
+            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
 
-        $provider = ModelProvider::create($validated);
-        return response()->json(['data' => $provider, 'message' => 'Model provider created successfully'], 201);
-    }
+            // Prepare request data
+            $data = [
+                'model' => $configuration['model'],
+                'messages' => [
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'max_tokens' => $configuration['maxTokens'] ?? 4096,
+                'temperature' => $configuration['temperature'] ?? 0.7,
+            ];
 
-    /**
-     * Update an existing model provider.
-     *
-     * @param Request $request
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function update(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'apiKeyName' => 'sometimes|string|max:255',
-            'apiKeyRequired' => 'boolean',
-            'baseUrlRequired' => 'boolean',
-            'baseUrlName' => 'nullable|string|max:255',
-            'isActive' => 'boolean',
-            'logoUrl' => 'nullable|string|url',
-        ]);
+            // Add optional parameters if they exist in configuration
+            if (isset($configuration['topP'])) {
+                $data['top_p'] = $configuration['topP'];
+            }
 
-        // Update slug if name changes
-        if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+            if (isset($configuration['repetitionPenalty'])) {
+                $data['repetition_penalty'] = $configuration['repetitionPenalty'];
+            }
+
+            // Make API request
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer $apiKey",
+                'Content-Type' => 'application/json',
+            ])->post("$baseUrl/chat/completions", $data);
+
+            if (!$response->successful()) {
+                throw new Exception('Together AI API error: ' . $response->body());
+            }
+
+            $responseData = $response->json();
+
+            // Extract text from response
+            if (isset($responseData['choices'][0]['message']['content'])) {
+                return $responseData['choices'][0]['message']['content'];
+            }
+
+            throw new Exception('Unexpected response format from Together AI API');
+
+        } catch (Exception $e) {
+            $this->handleApiError($e, 'Together AI');
         }
-
-        $provider = ModelProvider::findOrFail($id);
-        $provider->update($validated);
-        
-        return response()->json(['data' => $provider, 'message' => 'Model provider updated successfully']);
     }
 
     /**
-     * Delete a model provider.
+     * Validate an API key with Together AI
      *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * @param string $apiKey
+     * @param string|null $baseUrl
+     * @return bool
      */
-    public function destroy($id)
+    public function validateApiKey(string $apiKey, ?string $baseUrl = null): bool
     {
-        $provider = ModelProvider::findOrFail($id);
-        $provider->delete();
-        
-        return response()->json(['message' => 'Model provider deleted successfully']);
+        try {
+            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
+
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer $apiKey",
+                'Content-Type' => 'application/json',
+            ])->get("$baseUrl/models");
+
+            return $response->successful();
+        } catch (Exception $e) {
+            Log::error('Together AI API key validation error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get default configuration for Together AI
+     *
+     * @return array
+     */
+    public function getDefaultConfiguration(): array
+    {
+        return [
+            'temperature' => 0.7,
+            'maxTokens' => 4096,
+            'model' => 'meta-llama/Llama-3-70b-chat',
+            'repetitionPenalty' => 1.1
+        ];
     }
 }

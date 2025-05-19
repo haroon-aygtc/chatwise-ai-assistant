@@ -3,158 +3,160 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreateAIModelRequest;
+use App\Http\Requests\UpdateAIModelRequest;
+use App\Http\Requests\TestModelRequest;
 use App\Models\AIModel;
 use App\Services\AIModelService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class AIModelController extends Controller
 {
     protected $aiModelService;
 
-    /**
-     * Create a new controller instance.
-     *
-     * @param AIModelService $aiModelService
-     */
     public function __construct(AIModelService $aiModelService)
     {
         $this->aiModelService = $aiModelService;
-        $this->middleware('auth:api')->except(['getPublicModels']);
-        $this->middleware('permission:manage models')->except(['getPublicModels', 'index', 'show']);
     }
 
     /**
-     * Get all AI models.
+     * Get all AI models
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function index()
+    public function index(): JsonResponse
     {
         $models = $this->aiModelService->getAllModels();
         return response()->json(['data' => $models]);
     }
 
     /**
-     * Get public AI models (no auth required).
+     * Get models by provider
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @param string $provider
+     * @return JsonResponse
      */
-    public function getPublicModels()
+    public function getByProvider(string $provider): JsonResponse
+    {
+        $models = $this->aiModelService->getModelsByProvider($provider);
+        return response()->json(['data' => $models]);
+    }
+
+    /**
+     * Get public models (no auth required)
+     *
+     * @return JsonResponse
+     */
+    public function getPublicModels(): JsonResponse
     {
         $models = $this->aiModelService->getPublicModels();
         return response()->json(['data' => $models]);
     }
 
     /**
-     * Get an AI model by ID.
+     * Get a specific model by ID
      *
      * @param string $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show(string $id): JsonResponse
     {
         $model = $this->aiModelService->getModelById($id);
         return response()->json(['data' => $model]);
     }
 
     /**
-     * Create a new AI model.
+     * Create a new AI model
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param CreateAIModelRequest $request
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function store(CreateAIModelRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'provider' => 'required|string|max:255',
-            'modelId' => 'required|string|max:255',
-            'apiKey' => 'nullable|string',
-            'baseUrl' => 'nullable|string|url',
-            'isActive' => 'boolean',
-            'isDefault' => 'boolean',
-            'capabilities' => 'array',
-            'capabilities.chat' => 'boolean',
-            'capabilities.completion' => 'boolean',
-            'capabilities.embeddings' => 'boolean',
-            'capabilities.vision' => 'boolean',
-            'pricePerToken' => 'required|numeric',
-            'contextSize' => 'required|integer',
-        ]);
-
-        $model = $this->aiModelService->createModel($validated);
-        return response()->json(['data' => $model, 'message' => 'AI model created successfully'], 201);
+        $model = $this->aiModelService->createModel($request->validated());
+        return response()->json(['data' => $model], 201);
     }
 
     /**
-     * Update an existing AI model.
+     * Update an existing AI model
      *
-     * @param Request $request
+     * @param UpdateAIModelRequest $request
      * @param string $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function update(Request $request, $id)
+    public function update(UpdateAIModelRequest $request, string $id): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'provider' => 'sometimes|string|max:255',
-            'modelId' => 'sometimes|string|max:255',
-            'apiKey' => 'nullable|string',
-            'baseUrl' => 'nullable|string|url',
-            'isActive' => 'boolean',
-            'isDefault' => 'boolean',
-            'capabilities' => 'sometimes|array',
-            'capabilities.chat' => 'sometimes|boolean',
-            'capabilities.completion' => 'sometimes|boolean',
-            'capabilities.embeddings' => 'sometimes|boolean',
-            'capabilities.vision' => 'sometimes|boolean',
-            'pricePerToken' => 'sometimes|numeric',
-            'contextSize' => 'sometimes|integer',
-        ]);
-
-        $model = $this->aiModelService->updateModel($id, $validated);
-        return response()->json(['data' => $model, 'message' => 'AI model updated successfully']);
+        $model = $this->aiModelService->updateModel($id, $request->validated());
+        return response()->json(['data' => $model]);
     }
 
     /**
-     * Delete an AI model.
+     * Delete an AI model
      *
      * @param string $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function destroy($id)
+    public function destroy(string $id): JsonResponse
     {
         $this->aiModelService->deleteModel($id);
-        return response()->json(['message' => 'AI model deleted successfully']);
+        return response()->json(['success' => true]);
     }
 
     /**
-     * Set a model as the default.
+     * Set a model as the default
      *
      * @param string $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function setDefault($id)
+    public function setDefault(string $id): JsonResponse
     {
         $model = $this->aiModelService->setDefaultModel($id);
-        return response()->json(['data' => $model, 'message' => 'Default model updated successfully']);
+        return response()->json(['data' => $model]);
     }
 
     /**
-     * Test a model with a prompt.
+     * Test a model with a prompt
+     *
+     * @param TestModelRequest $request
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function testModel(TestModelRequest $request, string $id): JsonResponse
+    {
+        $response = $this->aiModelService->testModel(
+            $id,
+            $request->input('prompt'),
+            $request->input('options', [])
+        );
+
+        return response()->json(['data' => ['response' => $response]]);
+    }
+
+    /**
+     * Test a model configuration without saving
      *
      * @param Request $request
-     * @param string $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function testModel(Request $request, $id)
+    public function testConfiguration(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $this->validate($request, [
+            'provider' => 'required|string',
+            'configuration' => 'required|array',
             'prompt' => 'required|string',
-            'options' => 'sometimes|array',
+            'apiKey' => 'nullable|string',
+            'baseUrl' => 'nullable|string',
         ]);
 
-        $response = $this->aiModelService->testModel($id, $validated['prompt'], $validated['options'] ?? []);
+        $response = $this->aiModelService->testModelConfiguration(
+            $request->input('provider'),
+            $request->input('configuration'),
+            $request->input('prompt'),
+            $request->input('apiKey'),
+            $request->input('baseUrl')
+        );
+
         return response()->json(['data' => ['response' => $response]]);
     }
 }

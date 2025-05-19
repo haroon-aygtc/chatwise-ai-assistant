@@ -1,51 +1,58 @@
-
-import React from "react";
-import { Sparkles } from "lucide-react";
+import { CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import {
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { AIModel } from "@/types/ai-configuration";
+  import { getProviderColor } from "@/utils/helpers";
 
 interface ModelCardHeaderProps {
   model: AIModel;
   isActive: boolean;
-  onActiveChange: (checked: boolean) => void;
+  onActiveChange: (value: boolean) => void;
 }
 
-export const ModelCardHeader: React.FC<ModelCardHeaderProps> = ({
+export const ModelCardHeader = ({
   model,
   isActive,
   onActiveChange,
-}) => {
-  // Determine icon color based on provider
-  const getIconColor = () => {
-    switch (model.provider.toLowerCase()) {
-      case "google":
-        return "text-blue-500";
-      case "hugging face":
-        return "text-yellow-500";
-      case "openai":
-        return "text-green-500";
-      case "anthropic":
-        return "text-purple-500";
-      default:
-        return "text-gray-500";
-    }
-  };
+}: ModelCardHeaderProps) => {
+  const providerColor = getProviderColor(model.provider);
 
   return (
-    <CardHeader>
-      <div className="flex items-center justify-between">
-        <CardTitle className="flex items-center">
-          <Sparkles className={`mr-2 h-5 w-5 ${getIconColor()}`} />
-          {model.name}
-        </CardTitle>
-        <Switch checked={isActive} onCheckedChange={onActiveChange} />
+    <CardHeader className="pb-2">
+      <div className="flex justify-between items-start">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">{model.name}</h3>
+            {model.isDefault && (
+              <Badge variant="outline" className="text-xs bg-primary/10">
+                Default
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge
+              variant="outline"
+              className={`text-xs ${providerColor}`}
+            >
+              {model.provider}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              v{model.version}
+            </span>
+          </div>
+          {model.description && (
+            <p className="text-sm text-muted-foreground mt-2">
+              {model.description}
+            </p>
+          )}
+        </div>
+        <Switch
+          checked={isActive}
+          onCheckedChange={onActiveChange}
+          aria-label="Toggle model active state"
+        />
       </div>
-      <CardDescription>{model.description}</CardDescription>
     </CardHeader>
   );
 };
+

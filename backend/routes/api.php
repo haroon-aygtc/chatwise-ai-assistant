@@ -1,12 +1,20 @@
 <?php
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AIModelController;
+use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\ChatController;
+use App\Http\Controllers\API\FollowUpController;
+use App\Http\Controllers\API\KnowledgeBaseController;
 use App\Http\Controllers\API\ModelProviderController;
 use App\Http\Controllers\API\PermissionController;
+use App\Http\Controllers\API\PromptTemplateController;
+use App\Http\Controllers\API\ResponseFormatController;
 use App\Http\Controllers\API\RoleController;
-use App\Http\Controllers\API\AuthController;
-use App\Http\Controllers\API\KnowledgeBaseController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\API\SettingsController;
+use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\WidgetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,274 +22,159 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
 |
 */
 
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
-
-
-// Example protected route
-// Route::middleware('auth:sanctum')->get('/protected', [ExampleController::class, 'protected']);
-
-// Route::apiResource('products', ProductController::class);
-
-// Route::group(['middleware' => ['auth:sanctum']], function () {
-//     // All secure URL's
-//     Route::get('profile', function(Request $request) {
-//         return auth()->user();
-//     });
-
-//     // Refresh token
-//     Route::get('refresh', [AuthController::class, 'refresh']);
-
-//     // Logout
-//     Route::post('logout', [AuthController::class, 'logout']);
-// });
-
-// Role and Permission routes
-// Route::middleware(['auth:api', 'role:admin'])->group(function () {
-//     // Roles
-//     Route::get('/roles', [RoleController::class, 'index']);
-//     Route::get('/roles/{role}', [RoleController::class, 'show']);
-//     Route::post('/roles', [RoleController::class, 'store']);
-//     Route::put('/roles/{role}', [RoleController::class, 'update']);
-//     Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
-//     Route::put('/roles/{role}/permissions', [RoleController::class, 'updatePermissions']);
-
-//     // Permissions
-//     Route::get('/permissions', [PermissionController::class, 'index']);
-//     Route::get('/permissions/categories', [PermissionController::class, 'getByCategory']);
-// });
-
-// AI Model routes - "AI Configuration"
-// Route::prefix('ai')->group(function () {
-//     // Public endpoints (no auth required)
-//     Route::get('/models/public', [AIModelController::class, 'getPublicModels']);
-
-//     // Auth required endpoints
-//     Route::middleware(['auth:api'])->group(function () {
-//         // AI Models
-//         Route::get('/models', [AIModelController::class, 'index']);
-//         Route::get('/models/{id}', [AIModelController::class, 'show']);
-//         Route::post('/models', [AIModelController::class, 'store'])->middleware('permission:manage models');
-//         Route::put('/models/{id}', [AIModelController::class, 'update'])->middleware('permission:manage models');
-//         Route::delete('/models/{id}', [AIModelController::class, 'destroy'])->middleware('permission:manage models');
-//         Route::post('/models/{id}/default', [AIModelController::class, 'setDefault'])->middleware('permission:manage models');
-//         Route::post('/models/{id}/test', [AIModelController::class, 'testModel']);
-
-//         // Model Providers
-//         Route::get('/providers', [ModelProviderController::class, 'index']);
-//         Route::get('/providers/{id}', [ModelProviderController::class, 'show']);
-//         Route::post('/providers', [ModelProviderController::class, 'store'])->middleware('permission:manage models');
-//         Route::put('/providers/{id}', [ModelProviderController::class, 'update'])->middleware('permission:manage models');
-//         Route::delete('/providers/{id}', [ModelProviderController::class, 'destroy'])->middleware('permission:manage models');
-//     });
-
-//     // Follow-up suggestions
-//     Route::get('/follow-up/settings', [\App\Http\Controllers\API\FollowUpController::class, 'getSettings']);
-//     Route::put('/follow-up/settings', [\App\Http\Controllers\API\FollowUpController::class, 'updateSettings']);
-//     Route::get('/follow-up/suggestions', [\App\Http\Controllers\API\FollowUpController::class, 'getSuggestions']);
-//     Route::post('/follow-up/suggestions', [\App\Http\Controllers\API\FollowUpController::class, 'createSuggestion']);
-//     Route::put('/follow-up/suggestions/{id}', [\App\Http\Controllers\API\FollowUpController::class, 'updateSuggestion']);
-//     Route::delete('/follow-up/suggestions/{id}', [\App\Http\Controllers\API\FollowUpController::class, 'deleteSuggestion']);
-//     Route::put('/follow-up/suggestions/reorder', [\App\Http\Controllers\API\FollowUpController::class, 'reorderSuggestions']);
-//     Route::get('/follow-up/categories', [\App\Http\Controllers\API\FollowUpController::class, 'getCategories']);
-
-//     // System prompt
-//     // Route::get('/ai-configuration/system-prompt', [\App\Http\Controllers\API\AIConfigurationController::class, 'getSystemPrompt']);
-//     // Route::put('/ai-configuration/system-prompt', [\App\Http\Controllers\API\AIConfigurationController::class, 'updateSystemPrompt']);
-
-//     // Prompt templates
-//     Route::get('/prompt-templates', [\App\Http\Controllers\API\PromptTemplateController::class, 'index']);
-//     Route::get('/prompt-templates/{id}', [\App\Http\Controllers\API\PromptTemplateController::class, 'show']);
-//     Route::post('/prompt-templates', [\App\Http\Controllers\API\PromptTemplateController::class, 'store']);
-//     Route::put('/prompt-templates/{id}', [\App\Http\Controllers\API\PromptTemplateController::class, 'update']);
-//     Route::delete('/prompt-templates/{id}', [\App\Http\Controllers\API\PromptTemplateController::class, 'destroy']);
-//     Route::get('/prompt-templates/categories/list', [\App\Http\Controllers\API\PromptTemplateController::class, 'getCategories']);
-//     Route::post('/prompt-templates/{id}/increment-usage', [\App\Http\Controllers\API\PromptTemplateController::class, 'incrementUsage']);
-
-//      // Response formats
-//     Route::get('/response-formats', [\App\Http\Controllers\API\ResponseFormatController::class, 'index']);
-//     Route::get('/response-formats/default', [\App\Http\Controllers\API\ResponseFormatController::class, 'getDefault']);
-//     Route::get('/response-formats/{id}', [\App\Http\Controllers\API\ResponseFormatController::class, 'show']);
-//     Route::post('/response-formats', [\App\Http\Controllers\API\ResponseFormatController::class, 'store']);
-//     Route::put('/response-formats/{id}', [\App\Http\Controllers\API\ResponseFormatController::class, 'update']);
-//     Route::delete('/response-formats/{id}', [\App\Http\Controllers\API\ResponseFormatController::class, 'destroy']);
-//     Route::post('/response-formats/{id}/set-default', [\App\Http\Controllers\API\ResponseFormatController::class, 'setDefault']);
-//     Route::post('/response-formats/{id}/test', [\App\Http\Controllers\API\ResponseFormatController::class, 'test']);
-
-//     // Widgets
-//     Route::get('/widgets', [\App\Http\Controllers\API\WidgetController::class, 'index']);
-//     Route::get('/widgets/{id}', [\App\Http\Controllers\API\WidgetController::class, 'show']);
-//     Route::post('/widgets', [\App\Http\Controllers\API\WidgetController::class, 'store']);
-//     Route::put('/widgets/{id}', [\App\Http\Controllers\API\WidgetController::class, 'update']);
-//     Route::delete('/widgets/{id}', [\App\Http\Controllers\API\WidgetController::class, 'destroy']);
-//     Route::get('/widgets/{id}/analytics', [\App\Http\Controllers\API\WidgetController::class, 'getAnalytics']);
-
-//     //settings
-//     Route::get('/get-app-settings', [\App\Http\Controllers\API\SettingsController::class, 'getAppSettings']);
-//     Route::put('/update-app-settings', [\App\Http\Controllers\API\SettingsController::class, 'updateAppSettings']);
-//     Route::get('/get-user-settings', [\App\Http\Controllers\API\SettingsController::class, 'getUserSettings']);
-//     Route::post('/update-user-settings', [\App\Http\Controllers\API\SettingsController::class, 'updateUserSettings']);
-//     Route::put('/reset-user-settings', [\App\Http\Controllers\API\SettingsController::class, 'resetUserSettings']);
-
-
-//     // Widget Settings
-//     // Route::get('/widget-settings', [\App\Http\Controllers\API\WidgetSettingController::class, 'index']);
-//     // Route::get('/widget-settings/{id}', [\App\Http\Controllers\API\WidgetSettingController::class, 'show']);
-//     // Route::post('/widget-settings', [\App\Http\Controllers\API\WidgetSettingController::class, 'store']);
-//     // Route::put('/widget-settings/{id}', [\App\Http\Controllers\API\WidgetSettingController::class, 'update']);
-//     // Route::delete('/widget-settings/{id}', [\App\Http\Controllers\API\WidgetSettingController::class, 'destroy']);
-
-//     // User Settings
-//     Route::get('/users', [\App\Http\Controllers\API\UserController::class, 'index']);
-//     Route::get('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'show']);
-//     Route::post('/users', [\App\Http\Controllers\API\UserController::class, 'store']);
-//     Route::put('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'update']);
-//     Route::delete('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'destroy']);
-//     Route::put('/users/{id}/status', [\App\Http\Controllers\API\UserController::class, 'updateStatus']);
-//     Route::put('/users/{id}/assign-roles', [\App\Http\Controllers\API\UserController::class, 'assignRoles']);
-
-
-// });
-
-//testapi
-Route::get('/users-all', [\App\Http\Controllers\API\UserController::class, 'getAllUsers']); // Test API
-
-
-
-// Authentication routes
-Route::post('/register', [AuthController::class, 'register']);
+// Public routes
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/password/reset-request', [AuthController::class, 'resetPasswordRequest']);
+Route::post('/password/reset', [AuthController::class, 'resetPassword']);
 
-// Get authenticated user
-Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'user']);
+// AI Models - public endpoints
+Route::get('/ai/models/public', [AIModelController::class, 'getPublicModels']);
 
+// Protected routes
 Route::middleware('auth:sanctum')->group(function () {
+    // User routes
+    Route::get('/user', [AuthController::class, 'currentUser']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/check-auth', [AuthController::class, 'checkAuth']);
 
-    // User Settings
-    Route::get('/users', [\App\Http\Controllers\API\UserController::class, 'index']);
-    Route::get('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'show']);
-    Route::post('/users', [\App\Http\Controllers\API\UserController::class, 'store']);
-    Route::put('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'update']);
-    Route::delete('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'destroy']);
-    Route::put('/users/{id}/status', [\App\Http\Controllers\API\UserController::class, 'updateStatus']);
-    Route::put('/users/{id}/assign-roles', [\App\Http\Controllers\API\UserController::class, 'assignRoles']);
-    Route::get('/users/{id}/permissions', [\App\Http\Controllers\API\UserController::class, 'getUserPermissions']);
-    Route::put('/users/{id}/permissions', [\App\Http\Controllers\API\UserController::class, 'updateUserPermissions']);
+    // AI Models
+    Route::prefix('ai')->group(function () {
+        // Models
+        Route::get('/models', [AIModelController::class, 'index']);
+        Route::get('/models/provider/{provider}', [AIModelController::class, 'getByProvider']);
+        Route::get('/models/{id}', [AIModelController::class, 'show']);
+        Route::post('/models', [AIModelController::class, 'store']);
+        Route::put('/models/{id}', [AIModelController::class, 'update']);
+        Route::delete('/models/{id}', [AIModelController::class, 'destroy']);
+        Route::post('/models/{id}/default', [AIModelController::class, 'setDefault']);
+        Route::post('/models/{id}/test', [AIModelController::class, 'testModel']);
+        Route::post('/models/test-configuration', [AIModelController::class, 'testConfiguration']);
 
-    Route::get('/roles', [RoleController::class, 'index']);
-    Route::get('/roles/{role}', [RoleController::class, 'show']);
-    Route::post('/roles', [RoleController::class, 'store']);
-    Route::put('/roles/{role}', [RoleController::class, 'update']);
-    Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
-    Route::put('/roles/{role}/permissions', [RoleController::class, 'updatePermissions']);
+        // Providers
+        Route::get('/providers', [ModelProviderController::class, 'index']);
+        Route::get('/providers/{id}', [ModelProviderController::class, 'show']);
+        Route::get('/providers/{id}/models', [ModelProviderController::class, 'getModels']);
+        Route::post('/providers', [ModelProviderController::class, 'store']);
+        Route::put('/providers/{id}', [ModelProviderController::class, 'update']);
+        Route::delete('/providers/{id}', [ModelProviderController::class, 'destroy']);
+        Route::post('/providers/validate-key', [ModelProviderController::class, 'validateApiKey']);
 
-    // Permissions
-    Route::get('/permissions', [PermissionController::class, 'index']);
-    Route::get('/permissions/categories', [PermissionController::class, 'getByCategory']);
+        // Routing rules
+        Route::get('/routing-rules', [AIModelController::class, 'getRoutingRules']);
+        Route::post('/routing-rules', [AIModelController::class, 'createRoutingRule']);
+        Route::put('/routing-rules/{id}', [AIModelController::class, 'updateRoutingRule']);
+        Route::delete('/routing-rules/{id}', [AIModelController::class, 'deleteRoutingRule']);
 
-    Route::get('/models', [AIModelController::class, 'index']);
-    Route::get('/models/{id}', [AIModelController::class, 'show']);
-    Route::post('/models', [AIModelController::class, 'store'])->middleware('permission:manage models');
-    Route::put('/models/{id}', [AIModelController::class, 'update'])->middleware('permission:manage models');
-    Route::delete('/models/{id}', [AIModelController::class, 'destroy'])->middleware('permission:manage models');
-    Route::post('/models/{id}/default', [AIModelController::class, 'setDefault'])->middleware('permission:manage models');
-    Route::post('/models/{id}/test', [AIModelController::class, 'testModel']);
+        // Prompt templates
+        Route::get('/prompt-templates', [PromptTemplateController::class, 'index']);
+        Route::get('/prompt-templates/{id}', [PromptTemplateController::class, 'show']);
+        Route::post('/prompt-templates', [PromptTemplateController::class, 'store']);
+        Route::put('/prompt-templates/{id}', [PromptTemplateController::class, 'update']);
+        Route::delete('/prompt-templates/{id}', [PromptTemplateController::class, 'destroy']);
+        Route::get('/prompt-templates/categories', [PromptTemplateController::class, 'getCategories']);
 
-    // Model Providers
-    Route::get('/providers', [ModelProviderController::class, 'index']);
-    Route::get('/providers/{id}', [ModelProviderController::class, 'show']);
-    Route::post('/providers', [ModelProviderController::class, 'store'])->middleware('permission:manage models');
-    Route::put('/providers/{id}', [ModelProviderController::class, 'update'])->middleware('permission:manage models');
-    Route::delete('/providers/{id}', [ModelProviderController::class, 'destroy'])->middleware('permission:manage models');
+        // Response formats
+        Route::get('/response-formats', [ResponseFormatController::class, 'index']);
+        Route::get('/response-formats/{id}', [ResponseFormatController::class, 'show']);
+        Route::post('/response-formats', [ResponseFormatController::class, 'store']);
+        Route::put('/response-formats/{id}', [ResponseFormatController::class, 'update']);
+        Route::delete('/response-formats/{id}', [ResponseFormatController::class, 'destroy']);
+    });
 
+    // Chat
+    Route::prefix('chat')->group(function () {
+        Route::get('/sessions', [ChatController::class, 'getSessions']);
+        Route::get('/sessions/{id}', [ChatController::class, 'getSession']);
+        Route::post('/sessions', [ChatController::class, 'createSession']);
+        Route::put('/sessions/{id}', [ChatController::class, 'updateSession']);
+        Route::delete('/sessions/{id}', [ChatController::class, 'deleteSession']);
+
+        Route::get('/sessions/{sessionId}/messages', [ChatController::class, 'getMessages']);
+        Route::post('/sessions/{sessionId}/messages', [ChatController::class, 'sendMessage']);
+    });
 
     // Follow-up suggestions
-    Route::get('/follow-up/settings', [\App\Http\Controllers\API\FollowUpController::class, 'getSettings']);
-    Route::put('/follow-up/settings', [\App\Http\Controllers\API\FollowUpController::class, 'updateSettings']);
-    Route::get('/follow-up/suggestions', [\App\Http\Controllers\API\FollowUpController::class, 'getSuggestions']);
-    Route::post('/follow-up/suggestions', [\App\Http\Controllers\API\FollowUpController::class, 'createSuggestion']);
-    Route::put('/follow-up/suggestions/{id}', [\App\Http\Controllers\API\FollowUpController::class, 'updateSuggestion']);
-    Route::delete('/follow-up/suggestions/{id}', [\App\Http\Controllers\API\FollowUpController::class, 'deleteSuggestion']);
-    Route::put('/follow-up/suggestions/reorder', [\App\Http\Controllers\API\FollowUpController::class, 'reorderSuggestions']);
-    Route::get('/follow-up/categories', [\App\Http\Controllers\API\FollowUpController::class, 'getCategories']);
+    Route::prefix('follow-up')->group(function () {
+        Route::get('/settings', [FollowUpController::class, 'getSettings']);
+        Route::put('/settings', [FollowUpController::class, 'updateSettings']);
+        Route::get('/suggestions', [FollowUpController::class, 'getSuggestions']);
+        Route::post('/suggestions', [FollowUpController::class, 'createSuggestion']);
+        Route::put('/suggestions/{id}', [FollowUpController::class, 'updateSuggestion']);
+        Route::delete('/suggestions/{id}', [FollowUpController::class, 'deleteSuggestion']);
+        Route::put('/suggestions/reorder', [FollowUpController::class, 'reorderSuggestions']);
+        Route::get('/categories', [FollowUpController::class, 'getCategories']);
+    });
 
-    // System prompt
-    // Route::get('/ai-configuration/system-prompt', [\App\Http\Controllers\API\AIConfigurationController::class, 'getSystemPrompt']);
-    // Route::put('/ai-configuration/system-prompt', [\App\Http\Controllers\API\AIConfigurationController::class, 'updateSystemPrompt']);
-
-    // Prompt templates
-    Route::get('/prompt-templates', [\App\Http\Controllers\API\PromptTemplateController::class, 'index']);
-    Route::get('/prompt-templates/{id}', [\App\Http\Controllers\API\PromptTemplateController::class, 'show']);
-    Route::post('/prompt-templates', [\App\Http\Controllers\API\PromptTemplateController::class, 'store']);
-    Route::put('/prompt-templates/{id}', [\App\Http\Controllers\API\PromptTemplateController::class, 'update']);
-    Route::delete('/prompt-templates/{id}', [\App\Http\Controllers\API\PromptTemplateController::class, 'destroy']);
-    Route::get('/prompt-templates/categories/list', [\App\Http\Controllers\API\PromptTemplateController::class, 'getCategories']);
-    Route::post('/prompt-templates/{id}/increment-usage', [\App\Http\Controllers\API\PromptTemplateController::class, 'incrementUsage']);
-
-     // Response formats
-    Route::get('/response-formats', [\App\Http\Controllers\API\ResponseFormatController::class, 'index']);
-    Route::get('/response-formats/default', [\App\Http\Controllers\API\ResponseFormatController::class, 'getDefault']);
-    Route::get('/response-formats/{id}', [\App\Http\Controllers\API\ResponseFormatController::class, 'show']);
-    Route::post('/response-formats', [\App\Http\Controllers\API\ResponseFormatController::class, 'store']);
-    Route::put('/response-formats/{id}', [\App\Http\Controllers\API\ResponseFormatController::class, 'update']);
-    Route::delete('/response-formats/{id}', [\App\Http\Controllers\API\ResponseFormatController::class, 'destroy']);
-    Route::post('/response-formats/{id}/set-default', [\App\Http\Controllers\API\ResponseFormatController::class, 'setDefault']);
-    Route::post('/response-formats/{id}/test', [\App\Http\Controllers\API\ResponseFormatController::class, 'test']);
-
-    // Widgets
-    Route::get('/widgets', [\App\Http\Controllers\API\WidgetController::class, 'index']);
-    Route::get('/widgets/{id}', [\App\Http\Controllers\API\WidgetController::class, 'show']);
-    Route::post('/widgets', [\App\Http\Controllers\API\WidgetController::class, 'store']);
-    Route::put('/widgets/{id}', [\App\Http\Controllers\API\WidgetController::class, 'update']);
-    Route::delete('/widgets/{id}', [\App\Http\Controllers\API\WidgetController::class, 'destroy']);
-    Route::get('/widgets/{id}/analytics', [\App\Http\Controllers\API\WidgetController::class, 'getAnalytics']);
-
-    //settings
-    Route::get('/get-app-settings', [\App\Http\Controllers\API\SettingsController::class, 'getAppSettings']);
-    Route::put('/update-app-settings', [\App\Http\Controllers\API\SettingsController::class, 'updateAppSettings']);
-    Route::get('/get-user-settings', [\App\Http\Controllers\API\SettingsController::class, 'getUserSettings']);
-    Route::post('/update-user-settings', [\App\Http\Controllers\API\SettingsController::class, 'updateUserSettings']);
-    Route::put('/reset-user-settings', [\App\Http\Controllers\API\SettingsController::class, 'resetUserSettings']);
-
-
-    // Widget Settings
-    // Route::get('/widget-settings', [\App\Http\Controllers\API\WidgetSettingController::class, 'index']);
-    // Route::get('/widget-settings/{id}', [\App\Http\Controllers\API\WidgetSettingController::class, 'show']);
-    // Route::post('/widget-settings', [\App\Http\Controllers\API\WidgetSettingController::class, 'store']);
-    // Route::put('/widget-settings/{id}', [\App\Http\Controllers\API\WidgetSettingController::class, 'update']);
-    // Route::delete('/widget-settings/{id}', [\App\Http\Controllers\API\WidgetSettingController::class, 'destroy']);
-
-
-    // Knowledge Base routes
+    // Knowledge base
     Route::prefix('knowledge-base')->group(function () {
-        // Documents
-        Route::get('/documents', [KnowledgeBaseController::class, 'getAllDocuments']);
-        Route::get('/documents/{id}', [KnowledgeBaseController::class, 'getDocumentById']);
-        Route::post('/documents', [KnowledgeBaseController::class, 'createDocument']);
-        Route::post('/documents/upload', [KnowledgeBaseController::class, 'createDocument']);
-        Route::put('/documents/{id}', [KnowledgeBaseController::class, 'updateDocument']);
-        Route::delete('/documents/{id}', [KnowledgeBaseController::class, 'deleteDocument']);
-        Route::get('/documents/search', [KnowledgeBaseController::class, 'searchDocuments']);
-
-        // Categories
-        Route::get('/categories', [KnowledgeBaseController::class, 'getAllCategories']);
-        Route::get('/categories/{id}', [KnowledgeBaseController::class, 'getCategoryById']);
+        Route::get('/categories', [KnowledgeBaseController::class, 'getCategories']);
         Route::post('/categories', [KnowledgeBaseController::class, 'createCategory']);
         Route::put('/categories/{id}', [KnowledgeBaseController::class, 'updateCategory']);
         Route::delete('/categories/{id}', [KnowledgeBaseController::class, 'deleteCategory']);
 
-        // Settings
-        Route::get('/settings', [KnowledgeBaseController::class, 'getSettings']);
-        Route::put('/settings', [KnowledgeBaseController::class, 'updateSettings']);
+        Route::get('/documents', [KnowledgeBaseController::class, 'getDocuments']);
+        Route::get('/documents/{id}', [KnowledgeBaseController::class, 'getDocument']);
+        Route::post('/documents', [KnowledgeBaseController::class, 'createDocument']);
+        Route::post('/documents/upload', [KnowledgeBaseController::class, 'uploadDocument']);
+        Route::put('/documents/{id}', [KnowledgeBaseController::class, 'updateDocument']);
+        Route::delete('/documents/{id}', [KnowledgeBaseController::class, 'deleteDocument']);
     });
 
+    // User management
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'index']);
+        Route::get('/{id}', [UserController::class, 'show']);
+        Route::post('/', [UserController::class, 'store']);
+        Route::put('/{id}', [UserController::class, 'update']);
+        Route::delete('/{id}', [UserController::class, 'destroy']);
+        Route::get('/{id}/roles', [UserController::class, 'getRoles']);
+        Route::post('/{id}/roles', [UserController::class, 'assignRoles']);
+        Route::get('/{id}/permissions', [UserController::class, 'getPermissions']);
+    });
+
+    // Roles and permissions
+    Route::prefix('roles')->group(function () {
+        Route::get('/', [RoleController::class, 'index']);
+        Route::get('/{id}', [RoleController::class, 'show']);
+        Route::post('/', [RoleController::class, 'store']);
+        Route::put('/{id}', [RoleController::class, 'update']);
+        Route::delete('/{id}', [RoleController::class, 'destroy']);
+        Route::get('/{id}/permissions', [RoleController::class, 'getPermissions']);
+        Route::post('/{id}/permissions', [RoleController::class, 'assignPermissions']);
+    });
+
+    Route::get('/permissions', [PermissionController::class, 'index']);
+    Route::get('/permissions/categories', [PermissionController::class, 'getCategories']);
+
+    // Settings
+    Route::prefix('settings')->group(function () {
+        Route::get('/', [SettingsController::class, 'index']);
+        Route::put('/', [SettingsController::class, 'update']);
+        Route::get('/{key}', [SettingsController::class, 'get']);
+        Route::put('/{key}', [SettingsController::class, 'set']);
+    });
+
+    // Widget
+    Route::prefix('widgets')->group(function () {
+        Route::get('/', [WidgetController::class, 'index']);
+        Route::get('/{id}', [WidgetController::class, 'show']);
+        Route::post('/', [WidgetController::class, 'store']);
+        Route::put('/{id}', [WidgetController::class, 'update']);
+        Route::delete('/{id}', [WidgetController::class, 'destroy']);
+        Route::get('/{id}/settings', [WidgetController::class, 'getSettings']);
+        Route::put('/{id}/settings', [WidgetController::class, 'updateSettings']);
+        Route::post('/{id}/test', [WidgetController::class, 'testWidget']);
+    });
 });
 
-?>
+// Widget public endpoints
+Route::prefix('widget')->group(function () {
+    Route::get('/{id}', [WidgetController::class, 'getPublicWidget']);
+    Route::post('/{id}/chat', [WidgetController::class, 'chat']);
+});

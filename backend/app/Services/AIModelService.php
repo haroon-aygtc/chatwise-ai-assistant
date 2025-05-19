@@ -3,123 +3,178 @@
 namespace App\Services;
 
 use App\Models\AIModel;
+use App\Services\Providers\OpenAIService;
+use App\Services\Providers\GoogleAIService;
+use App\Services\Providers\AnthropicService;
+use App\Services\Providers\HuggingFaceService;
+use App\Services\Providers\MistralService;
+use App\Services\Providers\GroqService;
+use App\Services\Providers\TogetherAIService;
+use App\Services\Providers\OpenRouterService;
+use App\Services\Providers\CustomProviderService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Database\Eloquent\Collection;
 use Exception;
 
 class AIModelService
 {
+    protected $providerServices = [];
+
+    public function __construct(
+        OpenAIService $openAIService,
+        GoogleAIService $googleAIService,
+        AnthropicService $anthropicService,
+        HuggingFaceService $huggingFaceService,
+        MistralService $mistralService,
+        GroqService $groqService,
+        TogetherAIService $togetherAIService,
+        OpenRouterService $openRouterService,
+        CustomProviderService $customProviderService
+    ) {
+        $this->providerServices = [
+            'OpenAI' => $openAIService,
+            'Google' => $googleAIService,
+            'Anthropic' => $anthropicService,
+            'HuggingFace' => $huggingFaceService,
+            'Mistral' => $mistralService,
+            'Groq' => $groqService,
+            'TogetherAI' => $togetherAIService,
+            'OpenRouter' => $openRouterService,
+            'Custom' => $customProviderService,
+        ];
+    }
+
     /**
-     * Get all AI models.
+     * Get all AI models
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return Collection
      */
-    public function getAllModels()
+    public function getAllModels(): Collection
     {
         return AIModel::all();
     }
 
     /**
-     * Get public AI models (active and default only).
+     * Get models by provider
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param string $provider
+     * @return Collection
      */
-    public function getPublicModels()
+    public function getModelsByProvider(string $provider): Collection
     {
-        return AIModel::where('isActive', true)->get();
+        return AIModel::where('provider', $provider)->get();
     }
 
     /**
-     * Get an AI model by ID.
+     * Get public AI models (no auth required)
+     *
+     * @return Collection
+     */
+    public function getPublicModels(): Collection
+    {
+        return AIModel::where('is_public', true)->get();
+    }
+
+    /**
+     * Get a specific AI model by ID
      *
      * @param string $id
      * @return AIModel
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * @throws Exception
      */
-    public function getModelById($id)
+    public function getModelById(string $id): AIModel
     {
-        return AIModel::findOrFail($id);
-    }
+        $model = AIModel::find($id);
 
-    /**
-     * Create a new AI model.
-     *
-     * @param array $modelData
-     * @return AIModel
-     */
-    public function createModel(array $modelData)
-    {
-        // If this is marked as default, unset all other defaults
-        if (isset($modelData['isDefault']) && $modelData['isDefault']) {
-            $this->unsetDefaultModels();
+        if (!$model) {
+            throw new Exception("AI model not found");
         }
 
-        return AIModel::create($modelData);
-    }
-
-    /**
-     * Update an existing AI model.
-     *
-     * @param string $id
-     * @param array $modelData
-     * @return AIModel
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
-     */
-    public function updateModel($id, array $modelData)
-    {
-        $model = AIModel::findOrFail($id);
-
-        // If this is being set as default, unset all other defaults
-        if (isset($modelData['isDefault']) && $modelData['isDefault'] && !$model->isDefault) {
-            $this->unsetDefaultModels();
-        }
-
-        $model->update($modelData);
         return $model;
     }
 
     /**
-     * Delete an AI model.
+     * Create a new AI model
+     *
+     * @param array $data
+     * @return AIModel
+     */
+    public function createModel(array $data): AIModel
+    {
+        // Ensure configuration has required fields
+        if (!isset($data['configuration'])) {
+            $data['configuration'] = [
+                'temperature' => $data['temperature'] ?? 0.7,
+                'maxTokens' => $data['maxTokens'] ?? 2048,
+                'model' => $data['modelId'] ?? null,
+            ];
+        }
+
+        return AIModel::create($data);
+    }
+
+    /**
+     * Update an existing AI model
+     *
+     * @param string $id
+     * @param array $data
+     * @return AIModel
+     * @throws Exception
+     */
+    public function updateModel(string $id, array $data): AIModel
+    {
+        $model = $this->getModelById($id);
+
+        // Update configuration if temperature or maxTokens are provided
+        if (isset($data['configuration']) &&
+            (isset($data['temperature']) || isset($data['maxTokens']))) {
+
+            $data['configuration'] = array_merge($data['configuration'], [
+                'temperature' => $data['temperature'] ?? $data['configuration']['temperature'] ?? null,
+                'maxTokens' => $data['maxTokens'] ?? $data['configuration']['maxTokens'] ?? null,
+            ]);
+        }
+
+        $model->update($data);
+        return $model->fresh();
+    }
+
+    /**
+     * Delete an AI model
      *
      * @param string $id
      * @return bool
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * @throws Exception
      */
-    public function deleteModel($id)
+    public function deleteModel(string $id): bool
     {
-        $model = AIModel::findOrFail($id);
+        $model = $this->getModelById($id);
         return $model->delete();
     }
 
     /**
-     * Set a model as the default.
+     * Set a model as the default
      *
      * @param string $id
      * @return AIModel
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * @throws Exception
      */
-    public function setDefaultModel($id)
+    public function setDefaultModel(string $id): AIModel
     {
-        // Unset current defaults
-        $this->unsetDefaultModels();
+        $model = $this->getModelById($id);
 
-        // Set the new default
-        $model = AIModel::findOrFail($id);
-        $model->update(['isDefault' => true]);
-        
+        // Reset all models to non-default
+        AIModel::where('is_default', true)->update(['is_default' => false]);
+
+        // Set this model as default
+        $model->is_default = true;
+        $model->save();
+
         return $model;
     }
 
     /**
-     * Unset isDefault flag from all models.
-     */
-    private function unsetDefaultModels()
-    {
-        AIModel::where('isDefault', true)->update(['isDefault' => false]);
-    }
-
-    /**
-     * Test a model with a prompt.
+     * Test a model with a prompt
      *
      * @param string $id
      * @param string $prompt
@@ -127,36 +182,96 @@ class AIModelService
      * @return string
      * @throws Exception
      */
-    public function testModel($id, $prompt, array $options = [])
+    public function testModel(string $id, string $prompt, array $options = []): string
     {
-        try {
-            $model = AIModel::findOrFail($id);
-            
-            // This would normally connect to the appropriate AI provider API
-            // For now, we're just returning a mock response
-            return "This is a test response from the {$model->name} model. Your prompt was: '{$prompt}'";
-            
-            // In a real implementation, we would use the model's configuration to send a request to the appropriate API
-            /*
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer {$model->apiKey}",
-                'Content-Type' => 'application/json',
-            ])->post($model->baseUrl ?: 'https://api.example.com/v1/completions', [
-                'model' => $model->modelId,
-                'prompt' => $prompt,
-                'max_tokens' => $options['max_tokens'] ?? 100,
-                'temperature' => $options['temperature'] ?? 0.7,
-            ]);
-            
-            if ($response->successful()) {
-                return $response->json()['choices'][0]['text'];
-            }
-            
-            throw new Exception('API request failed: ' . $response->body());
-            */
-        } catch (Exception $e) {
-            Log::error('Error testing AI model: ' . $e->getMessage());
-            throw $e;
+        $model = $this->getModelById($id);
+
+        if (!isset($this->providerServices[$model->provider])) {
+            throw new Exception("Provider service not found for {$model->provider}");
         }
+
+        $providerService = $this->providerServices[$model->provider];
+
+        return $providerService->generateResponse(
+            $prompt,
+            $model->configuration,
+            $model->apiKey,
+            $model->baseUrl,
+            $options
+        );
+    }
+
+    /**
+     * Test a model configuration without saving
+     *
+     * @param string $provider
+     * @param array $configuration
+     * @param string $prompt
+     * @param string|null $apiKey
+     * @param string|null $baseUrl
+     * @return string
+     * @throws Exception
+     */
+    public function testModelConfiguration(
+        string $provider,
+        array $configuration,
+        string $prompt,
+        ?string $apiKey = null,
+        ?string $baseUrl = null
+    ): string {
+        if (!isset($this->providerServices[$provider])) {
+            throw new Exception("Provider service not found for {$provider}");
+        }
+
+        $providerService = $this->providerServices[$provider];
+
+        return $providerService->generateResponse(
+            $prompt,
+            $configuration,
+            $apiKey,
+            $baseUrl
+        );
+    }
+
+    /**
+     * Validate API key for a provider
+     *
+     * @param string $provider
+     * @param string $apiKey
+     * @param string|null $baseUrl
+     * @return bool
+     */
+    public function validateProviderApiKey(string $provider, string $apiKey, ?string $baseUrl = null): bool
+    {
+        if (!isset($this->providerServices[$provider])) {
+            return false;
+        }
+
+        $providerService = $this->providerServices[$provider];
+
+        try {
+            return $providerService->validateApiKey($apiKey, $baseUrl);
+        } catch (Exception $e) {
+            Log::error("API key validation error: {$e->getMessage()}");
+            return false;
+        }
+    }
+
+    /**
+     * Get default configuration for a provider
+     *
+     * @param string $provider
+     * @return array
+     */
+    public function getProviderDefaultConfiguration(string $provider): array
+    {
+        if (!isset($this->providerServices[$provider])) {
+            return [
+                'temperature' => 0.7,
+                'maxTokens' => 2048,
+            ];
+        }
+
+        return $this->providerServices[$provider]->getDefaultConfiguration();
     }
 }

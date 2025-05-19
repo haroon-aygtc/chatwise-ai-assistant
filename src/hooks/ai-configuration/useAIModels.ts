@@ -1,119 +1,199 @@
+import { useState, useEffect, useCallback } from 'react';
+import { AIModel, AIProvider } from '@/types/ai-configuration';
+import * as aiModelService from '@/services/ai-configuration/aiModelService';
+import { toast } from '@/components/ui/use-toast';
 
-import { useState } from "react";
-import { AIModel, RoutingRule } from "@/types/ai-configuration";
+export const useAIModels = () => {
+  const [models, setModels] = useState<AIModel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-export function useAIModels() {
-  const [models, setModels] = useState<AIModel[]>([
-    {
-      id: "model-1",
-      name: "ChatGPT-4",
-      description: "OpenAI's GPT-4 Model",
-      provider: "OpenAI",
-      version: "4.0", // This is now properly typed
-      modelId: "gpt-4",
-      isActive: true,
-      isDefault: true,
-      status: 'active', // Added the required status property
-      capabilities: {
-        chat: true,
-        completion: true,
-        embeddings: false,
-        vision: false,
-      },
-      pricePerToken: 0.0001,
-      contextSize: 8192,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      configuration: {
-        temperature: 0.7,
-        maxTokens: 1000,
-        topP: 1,
-        frequencyPenalty: 0,
-        presencePenalty: 0,
-      },
-    },
-    {
-      id: "model-2",
-      name: "Gemini-Pro",
-      description: "Google's Gemini Pro Model",
-      provider: "Google",
-      version: "Pro", // This is now properly typed
-      modelId: "gemini-pro",
-      isActive: true,
-      isDefault: false,
-      status: 'active', // Added the required status property
-      capabilities: {
-        chat: true,
-        completion: true,
-        embeddings: false,
-        vision: false,
-      },
-      pricePerToken: 0.00008,
-      contextSize: 32768,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      configuration: {
-        temperature: 0.6,
-        maxTokens: 1000,
-        topP: 1,
-        frequencyPenalty: 0,
-        presencePenalty: 0,
-      },
-    },
-  ]);
+  // Fetch all models
+  const fetchModels = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await aiModelService.getAllModels();
+      setModels(data);
+    } catch (err) {
+      setError('Failed to fetch AI models');
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch AI models. Please try again.',
+        variant: 'destructive',
+      });
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  const [routingRules, setRoutingRules] = useState<RoutingRule[]>([
-    {
-      id: "rule-1",
-      name: "Legal Routing",
-      modelId: "model-1",
-      description: "Route legal queries to ChatGPT-4",
-      conditions: [
-        {
-          field: "message",
-          operator: "contains",
-          value: "legal",
-        },
-      ],
-      priority: 1,
-    },
-  ]);
+  // Fetch models by provider
+  const fetchModelsByProvider = useCallback(async (provider: AIProvider) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await aiModelService.getModelsByProvider(provider);
+      setModels(data);
+    } catch (err) {
+      setError(`Failed to fetch ${provider} models`);
+      toast({
+        title: 'Error',
+        description: `Failed to fetch ${provider} models. Please try again.`,
+        variant: 'destructive',
+      });
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Create a new model
+  const createModel = useCallback(async (model: Omit<AIModel, 'id' | 'createdAt' | 'updatedAt'>) => {
+    setIsUpdating(true);
+    try {
+      const newModel = await aiModelService.createModel(model);
+      setModels(prev => [...prev, newModel]);
+      toast({
+        title: 'Success',
+        description: `${model.name} has been added successfully.`,
+      });
+      return newModel;
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to create AI model. Please try again.',
+        variant: 'destructive',
+      });
+      console.error(err);
+      throw err;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, []);
+
+  // Update an existing model
+  const updateModel = useCallback(async (id: string, updates: Partial<AIModel>) => {
+    setIsUpdating(true);
+    try {
+      const updatedModel = await aiModelService.updateModel(id, updates);
+      setModels(prev => prev.map(model => model.id === id ? updatedModel : model));
+      toast({
+        title: 'Success',
+        description: 'Model updated successfully.',
+      });
+      return updatedModel;
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update AI model. Please try again.',
+        variant: 'destructive',
+      });
+      console.error(err);
+      throw err;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, []);
+
+  // Delete a model
+  const deleteModel = useCallback(async (id: string) => {
+    setIsUpdating(true);
+    try {
+      await aiModelService.deleteModel(id);
+      setModels(prev => prev.filter(model => model.id !== id));
+      toast({
+        title: 'Success',
+        description: 'Model deleted successfully.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete AI model. Please try again.',
+        variant: 'destructive',
+      });
+      console.error(err);
+      throw err;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, []);
+
+  // Set a model as default
+  const setDefaultModel = useCallback(async (id: string) => {
+    setIsUpdating(true);
+    try {
+      const updatedModel = await aiModelService.setDefaultModel(id);
+      setModels(prev => prev.map(model => ({
+        ...model,
+        isDefault: model.id === id
+      })));
+      toast({
+        title: 'Success',
+        description: 'Default model set successfully.',
+      });
+      return updatedModel;
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to set default model. Please try again.',
+        variant: 'destructive',
+      });
+      console.error(err);
+      throw err;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, []);
+
+  // Test a model with a prompt
+  const testModel = useCallback(async (id: string, prompt: string, options?: Record<string, unknown>) => {
+    try {
+      return await aiModelService.testModel(id, prompt, options);
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to test AI model. Please try again.',
+        variant: 'destructive',
+      });
+      console.error(err);
+      throw err;
+    }
+  }, []);
+
+  // Validate API key for a provider
+  const validateApiKey = useCallback(async (provider: AIProvider, apiKey: string, baseUrl?: string) => {
+    try {
+      return await aiModelService.validateProviderApiKey(provider, apiKey, baseUrl);
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to validate API key. Please try again.',
+        variant: 'destructive',
+      });
+      console.error(err);
+      return false;
+    }
+  }, []);
+
+  // Load models on component mount
+  useEffect(() => {
+    fetchModels();
+  }, [fetchModels]);
 
   return {
     models,
-    routingRules,
-    isLoading: false,
-    isSaving: false,
-    error: null,
-    updateModel: (updatedModel: Partial<AIModel>) => {
-      setModels((prev) =>
-        prev.map((m) => (m.id === updatedModel.id ? { ...m, ...updatedModel } : m))
-      );
-      return Promise.resolve(true);
-    },
-    updateRoutingRules: (rules: RoutingRule[]) => {
-      setRoutingRules(rules);
-      return Promise.resolve(true);
-    },
-    addRoutingRule: (rule: Omit<RoutingRule, "id">) => {
-      const newRule = {
-        id: `rule-${routingRules.length + 1}`,
-        ...rule,
-      };
-      setRoutingRules((prev) => [...prev, newRule]);
-      return newRule;
-    },
-    deleteRoutingRule: (id: string) => {
-      setRoutingRules((prev) => prev.filter((r) => r.id !== id));
-      return Promise.resolve();
-    },
-    saveAllChanges: async () => {
-      console.log("Saving models & rules...");
-      return true;
-    },
-    refreshData: () => {
-      console.log("Refreshing data...");
-    },
-    hasChanges: true,
+    isLoading,
+    error,
+    isUpdating,
+    fetchModels,
+    fetchModelsByProvider,
+    createModel,
+    updateModel,
+    deleteModel,
+    setDefaultModel,
+    testModel,
+    validateApiKey
   };
-}
+};
