@@ -1,100 +1,80 @@
-
-import { Edit, Copy, Trash2, Tag } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React from "react";
 import {
   Card,
-  CardHeader,
   CardContent,
   CardFooter,
+  CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PromptTemplate } from "@/types/ai-configuration";
+import { Edit, Trash2, Variable, Play } from "lucide-react";
 
 interface TemplateCardProps {
   template: PromptTemplate;
-  categoryName: string;
-  onEdit: (template: PromptTemplate) => void;
-  onDelete: (id: string) => void;
-  onClone: (template: PromptTemplate) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onTest?: () => void;
 }
 
 export const TemplateCard = ({
   template,
-  categoryName,
   onEdit,
   onDelete,
-  onClone,
+  onTest,
 }: TemplateCardProps) => {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center">
-              {template.name}
-              {template.isDefault && (
-                <Badge className="ml-2" variant="secondary">
-                  Default
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{template.name}</CardTitle>
+        {template.category && (
+          <Badge variant="outline" className="w-fit">
+            {template.category}
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <p className="text-sm text-muted-foreground">
+          {template.description || "No description provided."}
+        </p>
+        {template.variables && template.variables.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Variable className="h-3.5 w-3.5" />
+              <span>{template.variables.length} variables</span>
+            </div>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {template.variables.slice(0, 3).map((variable) => (
+                <Badge
+                  key={variable.name}
+                  variant="secondary"
+                  className="text-xs"
+                >
+                  {variable.name}
+                </Badge>
+              ))}
+              {template.variables.length > 3 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{template.variables.length - 3} more
                 </Badge>
               )}
-            </CardTitle>
-            <CardDescription>{template.description}</CardDescription>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(template)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onClone(template)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive"
-              onClick={() => onDelete(template.id)}
-              disabled={template.isDefault}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="p-4 bg-muted rounded-md">
-            <pre className="whitespace-pre-wrap text-sm">
-              {template.template}
-            </pre>
-          </div>
-          <div>
-            <Label>Variables</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {template.variables &&
-                template.variables.map((variable) => (
-                  <Badge key={variable.name} variant="outline">
-                    {variable.name}
-                  </Badge>
-                ))}
             </div>
           </div>
-        </div>
+        )}
       </CardContent>
-      <CardFooter>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Tag className="mr-2 h-4 w-4" />
-          {categoryName || "General"}
-        </div>
+      <CardFooter className="flex justify-end gap-2 pt-2">
+        {onTest && (
+          <Button variant="outline" size="sm" onClick={onTest}>
+            <Play className="h-4 w-4 mr-1" /> Test
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          <Edit className="h-4 w-4 mr-1" /> Edit
+        </Button>
+        <Button variant="outline" size="sm" onClick={onDelete}>
+          <Trash2 className="h-4 w-4 mr-1" /> Delete
+        </Button>
       </CardFooter>
     </Card>
   );

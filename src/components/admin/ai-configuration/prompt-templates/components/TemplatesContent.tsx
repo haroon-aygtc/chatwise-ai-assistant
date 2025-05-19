@@ -1,85 +1,56 @@
-
 import React from "react";
-import { PromptTemplate, PromptTemplateCategory } from "@/types/ai-configuration";
+import { PromptTemplate } from "@/types/ai-configuration";
+import { TemplateCard } from "../TemplateCard";
+import { EmptyTemplateState } from "../EmptyTemplateState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TemplatesContentProps {
   templates: PromptTemplate[];
-  categoryOptions: PromptTemplateCategory[];
   isLoading: boolean;
-  hasFilters: boolean;
-  onAddTemplate: () => void;
-  onEditTemplate: (template: PromptTemplate) => void;
-  onDeleteTemplate: (id: string) => void;
-  onCloneTemplate: (template: PromptTemplate) => void;
+  onEdit: (template: PromptTemplate) => void;
+  onDelete: (id: string) => void;
+  onTest?: (template: PromptTemplate) => void;
 }
 
-export const TemplatesContent: React.FC<TemplatesContentProps> = ({
+export const TemplatesContent = ({
   templates,
-  categoryOptions,
   isLoading,
-  hasFilters,
-  onAddTemplate,
-  onEditTemplate,
-  onDeleteTemplate,
-  onCloneTemplate
-}) => {
+  onEdit,
+  onDelete,
+  onTest,
+}: TemplatesContentProps) => {
   if (isLoading) {
-    return <div>Loading templates...</div>;
-  }
-
-  if (templates.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
-        <h3 className="text-lg font-medium">No templates found</h3>
-        <p className="text-muted-foreground mb-4">
-          {hasFilters
-            ? "Try changing your search or filter criteria."
-            : "Create your first prompt template to get started."}
-        </p>
-        {!hasFilters && (
-          <button
-            onClick={onAddTemplate}
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-          >
-            Create Template
-          </button>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="border rounded-lg p-4 space-y-3">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+            <div className="flex justify-end space-x-2 pt-2">
+              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
+  if (templates.length === 0) {
+    return <EmptyTemplateState />;
+  }
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {templates.map((template) => (
-        <div
+        <TemplateCard
           key={template.id}
-          className="border rounded-lg p-4 hover:border-primary transition-colors"
-        >
-          <h3 className="font-medium">{template.name}</h3>
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-            {template.description || "No description"}
-          </p>
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              onClick={() => onCloneTemplate(template)}
-              className="text-xs px-2 py-1 rounded border hover:bg-accent"
-            >
-              Clone
-            </button>
-            <button
-              onClick={() => onEditTemplate(template)}
-              className="text-xs px-2 py-1 rounded border hover:bg-accent"
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => onDeleteTemplate(template.id)}
-              className="text-xs px-2 py-1 rounded border hover:bg-accent text-destructive"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+          template={template}
+          onEdit={() => onEdit(template)}
+          onDelete={() => onDelete(template.id)}
+          onTest={onTest ? () => onTest(template) : undefined}
+        />
       ))}
     </div>
   );
