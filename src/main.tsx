@@ -7,6 +7,7 @@ import "intl-tel-input/build/css/intlTelInput.css";
 import { BrowserRouter } from "react-router-dom";
 // Import the dev tools and initialize them
 import { TempoDevtools } from "tempo-devtools";
+import { AuthProvider } from "@/hooks/auth/useAuth";
 TempoDevtools.init();
 
 // Ensure CSRF token is fetched before rendering
@@ -34,7 +35,9 @@ const initApp = async () => {
     if (DEBUG) console.log("Rendering application...");
     ReactDOM.createRoot(document.getElementById("root")!).render(
       <BrowserRouter basename={basename}>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </BrowserRouter>
     );
   }

@@ -1,124 +1,126 @@
 <?php
 
-namespace App\Services\Providers;
+namespace Database\Seeders;
 
-use Exception;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Models\ModelProvider;
+use Illuminate\Database\Seeder;
 
-class TogetherAIService extends BaseProviderService
+class ModelProviderSeeder extends Seeder
 {
     /**
-     * Generate a response from Together AI
+     * Run the database seeds.
      *
-     * @param string $prompt
-     * @param array $configuration
-     * @param string|null $apiKey
-     * @param string|null $baseUrl
-     * @param array $options
-     * @return string
-     * @throws Exception
+     * @return void
      */
-    public function generateResponse(
-        string $prompt,
-        array $configuration,
-        ?string $apiKey = null,
-        ?string $baseUrl = null,
-        array $options = []
-    ): string {
-        try {
-            // Validate configuration
-            $configuration = $this->validateConfiguration($configuration, ['model']);
-
-            // Use provided API key or fall back to env
-            $apiKey = $apiKey ?? env('TOGETHER_API_KEY');
-
-            if (!$apiKey) {
-                throw new Exception('Together AI API key is required');
-            }
-
-            // Determine base URL
-            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
-
-            // Prepare request data
-            $data = [
-                'model' => $configuration['model'],
-                'messages' => [
-                    ['role' => 'user', 'content' => $prompt]
-                ],
-                'max_tokens' => $configuration['maxTokens'] ?? 4096,
-                'temperature' => $configuration['temperature'] ?? 0.7,
-            ];
-
-            // Add optional parameters if they exist in configuration
-            if (isset($configuration['topP'])) {
-                $data['top_p'] = $configuration['topP'];
-            }
-
-            if (isset($configuration['repetitionPenalty'])) {
-                $data['repetition_penalty'] = $configuration['repetitionPenalty'];
-            }
-
-            // Make API request
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer $apiKey",
-                'Content-Type' => 'application/json',
-            ])->post("$baseUrl/chat/completions", $data);
-
-            if (!$response->successful()) {
-                throw new Exception('Together AI API error: ' . $response->body());
-            }
-
-            $responseData = $response->json();
-
-            // Extract text from response
-            if (isset($responseData['choices'][0]['message']['content'])) {
-                return $responseData['choices'][0]['message']['content'];
-            }
-
-            throw new Exception('Unexpected response format from Together AI API');
-
-        } catch (Exception $e) {
-            $this->handleApiError($e, 'Together AI');
-        }
-    }
-
-    /**
-     * Validate an API key with Together AI
-     *
-     * @param string $apiKey
-     * @param string|null $baseUrl
-     * @return bool
-     */
-    public function validateApiKey(string $apiKey, ?string $baseUrl = null): bool
+    public function run()
     {
-        try {
-            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
-
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer $apiKey",
-                'Content-Type' => 'application/json',
-            ])->get("$baseUrl/models");
-
-            return $response->successful();
-        } catch (Exception $e) {
-            Log::error('Together AI API key validation error: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Get default configuration for Together AI
-     *
-     * @return array
-     */
-    public function getDefaultConfiguration(): array
-    {
-        return [
-            'temperature' => 0.7,
-            'maxTokens' => 4096,
-            'model' => 'meta-llama/Llama-3-70b-chat',
-            'repetitionPenalty' => 1.1
+        $providers = [
+            [
+                'name' => 'OpenAI',
+                'slug' => 'openai',
+                'description' => 'Official OpenAI API provider',
+                'apiKeyName' => 'OPENAI_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'OPENAI_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/openai.png',
+            ],
+            [
+                'name' => 'Anthropic',
+                'slug' => 'anthropic',
+                'description' => 'Anthropic Claude API provider',
+                'apiKeyName' => 'ANTHROPIC_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'ANTHROPIC_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/anthropic.png',
+            ],
+            [
+                'name' => 'TogetherAI',
+                'slug' => 'together',
+                'description' => 'TogetherAI API for open models',
+                'apiKeyName' => 'TOGETHER_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'TOGETHER_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/together.png',
+            ],
+            [
+                'name' => 'Mistral',
+                'slug' => 'mistral',
+                'description' => 'Mistral AI API provider',
+                'apiKeyName' => 'MISTRAL_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'MISTRAL_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/mistral.png',
+            ],
+            [
+                'name' => 'Groq',
+                'slug' => 'groq',
+                'description' => 'Groq high-performance LLM provider',
+                'apiKeyName' => 'GROQ_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'GROQ_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/groq.png',
+            ],
+            [
+                'name' => 'OpenRouter',
+                'slug' => 'openrouter',
+                'description' => 'OpenRouter multi-model provider',
+                'apiKeyName' => 'OPENROUTER_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'OPENROUTER_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/openrouter.png',
+            ],
+            [
+                'name' => 'HuggingFace',
+                'slug' => 'huggingface',
+                'description' => 'HuggingFace inference API',
+                'apiKeyName' => 'HUGGINGFACE_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'HUGGINGFACE_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/huggingface.png',
+            ],
+            [
+                'name' => 'Google Gemini',
+                'slug' => 'gemini',
+                'description' => 'Google Gemini AI provider',
+                'apiKeyName' => 'GEMINI_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => 'GEMINI_API_URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/gemini.png',
+            ],
+            [
+                'name' => 'Custom Provider',
+                'slug' => 'custom',
+                'description' => 'Custom LLM provider configuration',
+                'apiKeyName' => 'CUSTOM_API_KEY',
+                'apiKeyRequired' => false,
+                'baseUrlRequired' => true,
+                'baseUrlName' => 'API URL',
+                'isActive' => true,
+                'logoUrl' => '/assets/providers/custom.png',
+            ],
         ];
+
+        foreach ($providers as $provider) {
+            ModelProvider::updateOrCreate(
+                ['slug' => $provider['slug']],
+                $provider
+            );
+        }
     }
 }

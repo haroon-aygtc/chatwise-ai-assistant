@@ -19,6 +19,17 @@ import { toast } from "@/components/ui/use-toast";
 import API_CONFIG_IMPORT, { getGlobalHeaders, isPublicApiMode } from "./config";
 import tokenService from "../auth/tokenService";
 
+// Extend AxiosRequestConfig to include our custom properties
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    _requestKey?: string;
+  }
+
+  interface AxiosError {
+    duplicateRequest?: boolean;
+  }
+}
+
 // Use the imported config
 const API_CONFIG = API_CONFIG_IMPORT;
 
@@ -47,12 +58,24 @@ export interface ApiErrorResponse {
   status?: number;
 }
 
+// Keep track of in-flight requests to prevent duplicates
+const pendingRequests = new Map<string, Promise<any>>();
+
+// Create a request key based on method, url and params/data to identify duplicates
+const createRequestKey = (config: AxiosRequestConfig): string => {
+  const { method, url, params, data } = config;
+  return `${method}:${url}:${JSON.stringify(params)}:${JSON.stringify(data)}`;
+};
+
+// HTTP Client class below
+
 /**
  * HTTP Client
  * Wraps axios with custom configuration and interceptors
  */
 class HttpClient {
   private instance: AxiosInstance;
+  private rateLimitedRoutes = ['/ai/models', '/ai/routing-rules']; // Routes that should be rate limited
 
   constructor() {
     // Create axios instance with default config
@@ -81,6 +104,38 @@ class HttpClient {
     // Request interceptor
     this.instance.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
+        // Check if this route should be rate limited
+        if (config.method === 'get' && config.url) {
+          const shouldRateLimit = this.rateLimitedRoutes.some(route =>
+            config.url?.includes(route)
+          );
+
+          if (shouldRateLimit) {
+            // Create a unique key for this request
+            const requestKey = createRequestKey(config);
+
+            // Check if an identical request is already in flight
+            if (pendingRequests.has(requestKey)) {
+              // Return the existing promise to avoid duplicate requests
+              return Promise.reject({
+                config,
+                response: { status: 429 }, // Use 429 to indicate client-side rate limiting
+                message: 'Request already in progress',
+                duplicateRequest: true
+              });
+            }
+
+            // Store this request in the pending map
+            const requestPromise = new Promise((resolve) => {
+              // We'll resolve this later in the response interceptor
+              config._requestKey = requestKey;
+              resolve(true);
+            });
+
+            pendingRequests.set(requestKey, requestPromise);
+          }
+        }
+
         // Add auth token if available
         const token = tokenService.getToken();
         if (token) {
@@ -116,6 +171,12 @@ class HttpClient {
         return config;
       },
       (error) => {
+        // Handle client-side rate limiting
+        if (error.duplicateRequest) {
+          console.log('Request skipped (duplicate in progress):', error.config?.url);
+          return Promise.reject(error);
+        }
+
         console.error("Request error:", error);
         return Promise.reject(error);
       },
@@ -124,6 +185,11 @@ class HttpClient {
     // Response interceptor
     this.instance.interceptors.response.use(
       (response) => {
+        // Remove from pending requests map if this was a tracked request
+        if (response.config._requestKey) {
+          pendingRequests.delete(response.config._requestKey);
+        }
+
         // Log response in debug mode
         if (API_CONFIG.DEBUG) {
           console.log(
@@ -138,7 +204,33 @@ class HttpClient {
         return response;
       },
       async (error: AxiosError) => {
+        // Remove from pending requests map if this was a tracked request
+        if (error.config?._requestKey) {
+          pendingRequests.delete(error.config._requestKey);
+        }
+
+        // Handle client-side rate limiting
+        if (error.duplicateRequest) {
+          // Silently reject duplicate requests without showing errors
+          return Promise.reject(error);
+        }
+
         const response = error.response;
+
+        // Handle 500 errors more gracefully for certain endpoints
+        if (response?.status === 500) {
+          const url = error.config?.url || '';
+
+          if (this.rateLimitedRoutes.some(route => url.includes(route))) {
+            console.log(`Server error for rate-limited route (${url}). Handling gracefully.`);
+            // For AI models and routing rules, return empty arrays instead of failing
+            if (url.includes('/ai/models')) {
+              return Promise.resolve({ data: { data: [] } });
+            } else if (url.includes('/ai/routing-rules')) {
+              return Promise.resolve({ data: { data: [] } });
+            }
+          }
+        }
 
         // Handle HTML responses (usually server errors)
         if (
@@ -186,12 +278,23 @@ class HttpClient {
               "redirectAfterLogin",
               window.location.pathname,
             );
-            window.location.href = "/login?session=expired";
+
+            // Use history API instead of direct location change to avoid full page reload
+            // This prevents the "page refresh returns to login" issue
+            if (window.history && window.history.pushState) {
+              window.history.pushState({}, '', '/login?session=expired');
+              // Dispatch a custom event to notify the app about the route change
+              window.dispatchEvent(new CustomEvent('app:auth:expired'));
+            } else {
+              // Fallback for older browsers
+              window.location.href = "/login?session=expired";
+            }
           }
         }
 
         // Show toast for all errors except validation errors (status 422)
-        if (response?.status !== 422) {
+        // and rate limiting errors (status 429)
+        if (response?.status !== 422 && response?.status !== 429) {
           toast({
             title: "Error",
             description: message,
@@ -249,40 +352,14 @@ class HttpClient {
    * Make a POST request
    */
   public async post<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before POST requests (skip in public mode)
-    if (!isPublicApiMode) {
-      await this.fetchCsrfToken();
-    }
-
-    try {
-      const response = await this.instance.post<T>(url, data);
-      return response.data;
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (
-        !isPublicApiMode &&
-        (axiosError.response?.status === 419 ||
-          (axiosError.response?.data as ApiErrorResponse)?.message ===
-            "CSRF token mismatch.")
-      ) {
-        console.log("CSRF token mismatch detected, retrying with fresh token");
-        // Try once more with a fresh token
-        await this.fetchCsrfToken();
-        const response = await this.instance.post<T>(url, data);
-        return response.data;
-      }
-      throw error;
-    }
+    const response = await this.instance.post<T>(url, data);
+    return response.data;
   }
 
   /**
    * Make a PUT request
    */
   public async put<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before PUT requests (skip in public mode)
-    if (!isPublicApiMode) {
-      await this.fetchCsrfToken();
-    }
     const response = await this.instance.put<T>(url, data);
     return response.data;
   }
@@ -291,10 +368,6 @@ class HttpClient {
    * Make a PATCH request
    */
   public async patch<T = unknown>(url: string, data?: ApiData): Promise<T> {
-    // Fetch CSRF token before PATCH requests (skip in public mode)
-    if (!isPublicApiMode) {
-      await this.fetchCsrfToken();
-    }
     const response = await this.instance.patch<T>(url, data);
     return response.data;
   }
@@ -303,10 +376,6 @@ class HttpClient {
    * Make a DELETE request
    */
   public async delete<T = unknown>(url: string): Promise<T> {
-    // Fetch CSRF token before DELETE requests (skip in public mode)
-    if (!isPublicApiMode) {
-      await this.fetchCsrfToken();
-    }
     const response = await this.instance.delete<T>(url);
     return response.data;
   }
@@ -318,50 +387,46 @@ class HttpClient {
     url: string,
     formData: FormData,
   ): Promise<T> {
-    // Only fetch CSRF token if not in public mode
-    if (!isPublicApiMode) {
-      await this.fetchCsrfToken();
-    }
-
-    const config: AxiosRequestConfig = {
-      headers: { "Content-Type": "multipart/form-data" },
-    };
-
-    const response = await this.instance.post<T>(url, formData, config);
+    const response = await this.instance.post<T>(url, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   }
 }
 
-// Create and export a singleton instance
+// Create a singleton instance
 const httpClient = new HttpClient();
 
-// Export the API service with all methods
-const apiService = {
-  get: <T = unknown>(url: string, params?: ApiParams) =>
-    httpClient.get<T>(url, params),
+// Export an instance for direct use
+export default httpClient;
 
-  post: <T = unknown>(url: string, data?: ApiData) =>
-    httpClient.post<T>(url, data),
+// Export various methods for convenience
+export const get = <T = unknown>(url: string, params?: ApiParams): Promise<T> =>
+  httpClient.get(url, params);
 
-  put: <T = unknown>(url: string, data?: ApiData) =>
-    httpClient.put<T>(url, data),
+export const post = <T = unknown>(
+  url: string,
+  data?: ApiData,
+): Promise<T> => httpClient.post(url, data);
 
-  patch: <T = unknown>(url: string, data?: ApiData) =>
-    httpClient.patch<T>(url, data),
+export const put = <T = unknown>(
+  url: string,
+  data?: ApiData,
+): Promise<T> => httpClient.put(url, data);
 
-  delete: <T = unknown>(url: string) => httpClient.delete<T>(url),
+export const patch = <T = unknown>(
+  url: string,
+  data?: ApiData,
+): Promise<T> => httpClient.patch(url, data);
 
-  uploadFile: <T = unknown>(url: string, formData: FormData) =>
-    httpClient.uploadFile<T>(url, formData),
+export const del = <T = unknown>(url: string): Promise<T> =>
+  httpClient.delete(url);
 
-  // For backward compatibility and advanced use cases
-  fetchCsrfToken: () => httpClient.fetchCsrfToken(),
-  getAxiosInstance: () => httpClient.getAxiosInstance(),
-  axios: httpClient.getAxiosInstance(),
-};
+export const upload = <T = unknown>(
+  url: string,
+  formData: FormData,
+): Promise<T> => httpClient.uploadFile(url, formData);
 
-// Export for use in other modules
-export default apiService;
-
-// Export the getCsrfToken function for backward compatibility
 export const getCsrfToken = () => httpClient.fetchCsrfToken();

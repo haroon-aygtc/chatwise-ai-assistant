@@ -35,26 +35,10 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
-  // Add try-catch block to debug AuthProvider issues
-  let auth;
-  try {
-    if (DEBUG) console.log("Attempting to use useAuth hook");
-    auth = useAuth();
-    if (DEBUG) console.log("Successfully accessed useAuth", auth);
-  } catch (error) {
-    console.error("Failed to access useAuth:", error);
-    // Provide a fallback empty object with necessary properties
-    auth = {
-      login: async () => {
-        console.error("Login called with mock auth object");
-        return false;
-      }
-    };
-  }
-
-  const { login } = auth;
+  const { login } = useAuth();
   const { toast } = useToast();
+
+  if (DEBUG) console.log("LoginForm rendered, auth hook loaded properly");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

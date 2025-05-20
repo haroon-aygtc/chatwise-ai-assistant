@@ -22,6 +22,8 @@ import { ResponseFormatterManager } from "@/components/admin/ai-configuration/re
 import { FollowUpManager } from "@/components/admin/ai-configuration/FollowUpManager";
 import { RedirectComponent } from "@/components/admin/ai-configuration/RedirectComponent";
 import { useAuth } from "@/hooks/auth/useAuth";
+import LoginPage from "@/pages/auth/LoginPage";
+import SignupPage from "@/pages/auth/SignupPage";
 
 // Debug flag
 const DEBUG = import.meta.env.DEV;
@@ -172,6 +174,8 @@ function App() {
                   {/* Public routes */}
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/api-tester" element={<ApiTester />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<SignupPage />} />
 
                   {/* Protected routes using MainLayout */}
                   <Route

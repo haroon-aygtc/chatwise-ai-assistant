@@ -6,10 +6,10 @@ use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class TogetherAIService extends BaseProviderService
+class OpenRouterService extends BaseProviderService
 {
     /**
-     * Generate a response from Together AI
+     * Generate a response from OpenRouter
      *
      * @param string $prompt
      * @param array $configuration
@@ -31,14 +31,14 @@ class TogetherAIService extends BaseProviderService
             $configuration = $this->validateConfiguration($configuration, ['model']);
 
             // Use provided API key or fall back to env
-            $apiKey = $apiKey ?? env('TOGETHER_API_KEY');
+            $apiKey = $apiKey ?? env('OPENROUTER_API_KEY');
 
             if (!$apiKey) {
-                throw new Exception('Together AI API key is required');
+                throw new Exception('OpenRouter API key is required');
             }
 
             // Determine base URL
-            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
+            $baseUrl = $baseUrl ?? 'https://openrouter.ai/api/v1';
 
             // Prepare request data
             $data = [
@@ -55,18 +55,23 @@ class TogetherAIService extends BaseProviderService
                 $data['top_p'] = $configuration['topP'];
             }
 
-            if (isset($configuration['repetitionPenalty'])) {
-                $data['repetition_penalty'] = $configuration['repetitionPenalty'];
+            if (isset($configuration['frequencyPenalty'])) {
+                $data['frequency_penalty'] = $configuration['frequencyPenalty'];
+            }
+
+            if (isset($configuration['presencePenalty'])) {
+                $data['presence_penalty'] = $configuration['presencePenalty'];
             }
 
             // Make API request
             $response = Http::withHeaders([
                 'Authorization' => "Bearer $apiKey",
                 'Content-Type' => 'application/json',
+                'HTTP-Referer' => env('APP_URL', 'https://chatwise-ai-assistant.app')
             ])->post("$baseUrl/chat/completions", $data);
 
             if (!$response->successful()) {
-                throw new Exception('Together AI API error: ' . $response->body());
+                throw new Exception('OpenRouter API error: ' . $response->body());
             }
 
             $responseData = $response->json();
@@ -76,15 +81,15 @@ class TogetherAIService extends BaseProviderService
                 return $responseData['choices'][0]['message']['content'];
             }
 
-            throw new Exception('Unexpected response format from Together AI API');
+            throw new Exception('Unexpected response format from OpenRouter API');
 
         } catch (Exception $e) {
-            $this->handleApiError($e, 'Together AI');
+            $this->handleApiError($e, 'OpenRouter');
         }
     }
 
     /**
-     * Validate an API key with Together AI
+     * Validate an API key with OpenRouter
      *
      * @param string $apiKey
      * @param string|null $baseUrl
@@ -93,7 +98,7 @@ class TogetherAIService extends BaseProviderService
     public function validateApiKey(string $apiKey, ?string $baseUrl = null): bool
     {
         try {
-            $baseUrl = $baseUrl ?? 'https://api.together.xyz/v1';
+            $baseUrl = $baseUrl ?? 'https://openrouter.ai/api/v1';
 
             $response = Http::withHeaders([
                 'Authorization' => "Bearer $apiKey",
@@ -102,13 +107,13 @@ class TogetherAIService extends BaseProviderService
 
             return $response->successful();
         } catch (Exception $e) {
-            Log::error('Together AI API key validation error: ' . $e->getMessage());
+            Log::error('OpenRouter API key validation error: ' . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Get default configuration for Together AI
+     * Get default configuration for OpenRouter
      *
      * @return array
      */
@@ -117,8 +122,9 @@ class TogetherAIService extends BaseProviderService
         return [
             'temperature' => 0.7,
             'maxTokens' => 4096,
-            'model' => 'meta-llama/Llama-3-70b-chat',
-            'repetitionPenalty' => 1.1
+            'model' => 'anthropic/claude-3-opus:beta',
+            'frequencyPenalty' => 0,
+            'presencePenalty' => 0
         ];
     }
 }
