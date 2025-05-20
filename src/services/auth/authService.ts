@@ -294,6 +294,15 @@ const authService = {
       // Cache user data for refresh scenarios
       localStorage.setItem("cached_user_data", JSON.stringify(userData));
 
+      // Update in-memory cache
+      // Note: Private fields can only be used within classes, not in objects
+      // Using regular property instead
+      this._userCache = {
+        data: userData,
+        timestamp: Date.now(),
+        ttl: 5000,
+      };
+
       return userData;
     } catch (error) {
       // During page refresh, be more lenient with auth errors - improved detection

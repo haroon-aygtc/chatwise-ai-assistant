@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { User } from "@/types/user";
 import { Role } from "@/types";
@@ -45,7 +46,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { toast } = useToast();
 
   // Track ongoing refresh to prevent multiple simultaneous attempts
-  const refreshInProgress = React.useRef<boolean>(false);
+  const refreshInProgress = useRef<boolean>(false);
+
+  // Track last refresh time to prevent excessive refreshes
+  const lastRefreshTime = useRef<number>(0);
+  const MIN_REFRESH_INTERVAL = 2000; // 2 seconds minimum between refreshes
 
   // Define login function with proper error handling
   const login = useCallback(
@@ -161,13 +166,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  // Function to refresh authentication status
+  // Function to refresh authentication status with rate limiting
   const refreshAuth = useCallback(async (): Promise<void> => {
     // Prevent multiple simultaneous refresh attempts
     if (refreshInProgress.current) {
       return;
     }
 
+    // Rate limit refreshes
+    const now = Date.now();
+    if (now - lastRefreshTime.current < MIN_REFRESH_INTERVAL) {
+      console.log("Auth refresh rate limited, skipping");
+      return;
+    }
+
+    lastRefreshTime.current = now;
     refreshInProgress.current = true;
     setIsLoading(true);
 
