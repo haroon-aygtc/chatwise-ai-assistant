@@ -175,10 +175,12 @@ const authService = {
         return null;
       }
 
-      // Check for page load/refresh scenario
-      const isPageRefresh = sessionStorage.getItem('prevent_auth_redirect') === 'true' ||
-        document.readyState !== 'complete' ||
-        performance.navigation.type === 1;
+      // Improved page reload detection using modern methods
+      const isPageReload = document.readyState !== 'complete';
+      const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+      const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
+      const hasPreventRedirectFlag = sessionStorage.getItem('prevent_auth_redirect') === 'true';
+      const isPageRefresh = isPageReload || isRecentPageLoad || hasPreventRedirectFlag;
 
       // If we're in a page refresh and have a session marker, assume session is valid
       if (isPageRefresh && sessionStorage.getItem("has_active_session") === "true") {
@@ -240,10 +242,12 @@ const authService = {
 
       return userData;
     } catch (error) {
-      // During page refresh, be more lenient with auth errors
-      const isPageRefresh = sessionStorage.getItem('prevent_auth_redirect') === 'true' ||
-        document.readyState !== 'complete' ||
-        performance.navigation.type === 1;
+      // During page refresh, be more lenient with auth errors - improved detection
+      const isPageReload = document.readyState !== 'complete';
+      const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+      const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
+      const hasPreventRedirectFlag = sessionStorage.getItem('prevent_auth_redirect') === 'true';
+      const isPageRefresh = isPageReload || isRecentPageLoad || hasPreventRedirectFlag;
 
       if (isPageRefresh && sessionStorage.getItem("has_active_session") === "true") {
         console.log("Auth check failed during page refresh");

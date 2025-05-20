@@ -122,18 +122,47 @@ const tokenService = {
   },
 
   /**
-   * Validate token with improved robustness
+   * Validate token with improved robustness and better page refresh handling
    */
   validateToken: (): boolean => {
     const token = localStorage.getItem("auth_token");
     const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
-    const isPageReload = document.readyState !== 'complete' || performance.navigation.type === 1;
 
+    // Improved page reload detection using modern and legacy methods
+    let isPageReload = document.readyState !== 'complete';
+
+    // Modern method using Navigation API
+    if (typeof performance !== 'undefined' &&
+      typeof performance.getEntriesByType === 'function') {
+      const navEntries = performance.getEntriesByType('navigation');
+      if (navEntries.length > 0) {
+        isPageReload = isPageReload || (navEntries[0] as any).type === 'reload';
+      }
+    }
+
+    // Check session storage for a page load marker
+    const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+    const timeSinceLoad = Date.now() - pageLoadTime;
+
+    // Consider it a page reload if we're within 3 seconds of page load time
+    isPageReload = isPageReload || (timeSinceLoad < 3000);
+
+    // Set a flag to prevent redirect during page reload
+    if (isPageReload) {
+      sessionStorage.setItem('prevent_auth_redirect', 'true');
+      // Clear this flag after a short delay
+      setTimeout(() => {
+        sessionStorage.removeItem('prevent_auth_redirect');
+      }, 3000);
+    }
+
+    // No token means not authenticated
     if (!token) {
       return false;
     }
 
     try {
+      // For non-JWT tokens
       if (!token.includes('.')) {
         const expStr = localStorage.getItem("token_expiration");
         if (expStr) {
@@ -141,12 +170,15 @@ const tokenService = {
           const isExpired = expTime < Date.now();
 
           if (isExpired) {
-            tokenService.removeToken();
+            // Don't remove token during page reload to prevent flashing
+            if (!isPageReload) {
+              tokenService.removeToken();
+            }
             return false;
           }
         }
 
-        // During page reload, assume token is valid if there's a token and active session
+        // During page reload, be more lenient with validation
         if (isPageReload && hasActiveSession) {
           return true;
         }
@@ -159,6 +191,7 @@ const tokenService = {
         if (lastAccessedStr) {
           const lastAccessed = parseInt(lastAccessedStr, 10);
           const now = Date.now();
+          // Consider token valid if accessed within the last hour
           if (now - lastAccessed < 60 * 60 * 1000) {
             return true;
           }
@@ -167,6 +200,7 @@ const tokenService = {
         return true;
       }
 
+      // For JWT tokens
       const decoded: any = jwtDecode(token);
       const now = Date.now() / 1000;
 
@@ -176,8 +210,21 @@ const tokenService = {
 
       const isExpired = decoded.exp < now;
 
+      // During page reload, be more lenient with slightly expired tokens
+      // This prevents flashing of login screen during refresh
+      if (isPageReload && hasActiveSession && isExpired) {
+        // Only allow a grace period of 5 seconds for expired tokens during reload
+        const gracePeriod = 5; // seconds
+        if (now - decoded.exp < gracePeriod) {
+          return true;
+        }
+      }
+
       if (isExpired) {
-        tokenService.removeToken();
+        // Don't remove token during page reload to prevent flashing
+        if (!isPageReload) {
+          tokenService.removeToken();
+        }
         return false;
       }
 
@@ -193,67 +240,112 @@ const tokenService = {
         const expTime = parseInt(expStr, 10);
         const isExpired = expTime < Date.now();
 
-        if (isExpired) {
+        if (isExpired && !isPageReload) {
           tokenService.removeToken();
           return false;
         }
 
-        return true;
+        return !isExpired;
       }
+
+      // If we have an active session marker, trust it
       return hasActiveSession;
     }
   },
 
   /**
-   * Check if token is expired with improved handling
+   * Check if token is expired with improved handling and page refresh awareness
    */
   isTokenExpired: (): boolean => {
     const token = localStorage.getItem("auth_token");
     const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
 
+    // Check if we're in a page reload scenario
+    const isPageReload = document.readyState !== 'complete';
+    const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+    const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
+    const isRefreshScenario = isPageReload || isRecentPageLoad;
+
+    // No token means it's expired
     if (!token) return true;
 
+    // Check stored expiration time first
     const expStr = localStorage.getItem("token_expiration");
     if (expStr) {
       const expTime = parseInt(expStr, 10);
       const isExpired = expTime < Date.now();
 
-      if (isExpired) {
+      // During page refresh, don't immediately remove token to prevent flashing
+      if (isExpired && !isRefreshScenario) {
         tokenService.removeToken();
         return true;
       }
 
-      return false;
+      // During refresh, be more lenient with slightly expired tokens
+      if (isExpired && isRefreshScenario) {
+        // Only consider it not expired if it's within 5 seconds of expiry during refresh
+        const expiredBy = Date.now() - expTime;
+        if (expiredBy < 5000) { // 5 second grace period
+          return false;
+        }
+        return true;
+      }
+
+      return isExpired;
     }
 
-    if (hasActiveSession && token) {
+    // If we have an active session and token, consider it not expired during initial load
+    if (hasActiveSession && token && isRefreshScenario) {
       return false;
     }
 
     try {
+      // For non-JWT tokens
       if (!token.includes('.')) {
         const lastAccessedStr = localStorage.getItem("token_last_accessed");
         if (lastAccessedStr) {
           const lastAccessed = parseInt(lastAccessedStr, 10);
           const now = Date.now();
+          // Consider token valid if accessed within the last hour
           if (now - lastAccessed < 60 * 60 * 1000) {
             return false;
           }
         }
 
+        // During refresh, be more lenient
+        if (isRefreshScenario && hasActiveSession) {
+          return false;
+        }
+
         return false;
       }
 
+      // For JWT tokens
       const decoded: any = jwtDecode(token);
       const now = Date.now() / 1000;
       const isExpired = decoded.exp && decoded.exp < now;
 
-      if (isExpired) {
+      // During refresh, be more lenient with slightly expired tokens
+      if (isExpired && isRefreshScenario && hasActiveSession) {
+        // Only allow a grace period of 5 seconds for expired tokens during reload
+        const gracePeriod = 5; // seconds
+        if (now - decoded.exp < gracePeriod) {
+          return false;
+        }
+      }
+
+      if (isExpired && !isRefreshScenario) {
         tokenService.removeToken();
       }
 
       return isExpired;
     } catch (error) {
+      // During refresh, trust the session marker
+      if (isRefreshScenario && hasActiveSession) {
+        return false;
+      }
+
+      // If we have an active session marker outside of refresh, still trust it
       if (hasActiveSession) {
         return false;
       }

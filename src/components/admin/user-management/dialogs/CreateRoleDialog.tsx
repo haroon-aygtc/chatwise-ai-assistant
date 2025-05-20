@@ -177,7 +177,7 @@ export function CreateRoleDialog({
               <TabsList className="grid grid-cols-2 mb-4">
                 <TabsTrigger value="details">Role Details</TabsTrigger>
                 <TabsTrigger value="permissions" className="relative">
-                  Permissions
+                  <span>Permissions</span>
                   {selectedCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {selectedCount}
@@ -229,7 +229,7 @@ export function CreateRoleDialog({
                           <AlertDialog open={showSelectAllDialog} onOpenChange={setShowSelectAllDialog}>
                             <AlertDialogTrigger asChild>
                               <Button variant="outline" size="sm" className="text-xs">
-                                Select All Permissions
+                                <span>Select All Permissions</span>
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -240,8 +240,12 @@ export function CreateRoleDialog({
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleSelectAll}>Continue</AlertDialogAction>
+                                <AlertDialogCancel>
+                                  <span>Cancel</span>
+                                </AlertDialogCancel>
+                                <AlertDialogAction onClick={handleSelectAll}>
+                                  <span>Continue</span>
+                                </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -253,7 +257,7 @@ export function CreateRoleDialog({
                     </TooltipProvider>
 
                     <Button variant="outline" size="sm" className="text-xs" onClick={handleClearAll} disabled={selectedCount === 0}>
-                      Clear All
+                      <span>Clear All</span>
                     </Button>
                   </div>
                 </div>
@@ -294,8 +298,8 @@ export function CreateRoleDialog({
               <Button type="submit" disabled={isCreating}>
                 {isCreating ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" key="creating-loader" />
-                    <span key="creating-text">Creating...</span>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Creating...</span>
                   </>
                 ) : (
                   "Create Role"

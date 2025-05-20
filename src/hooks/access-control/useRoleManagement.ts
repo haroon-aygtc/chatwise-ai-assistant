@@ -68,8 +68,37 @@ export function useRoleManagement() {
     permissions: string[]
   ) => {
     try {
+      // First update the role details
       await RoleService.updateRole(id, { name, description });
-      await RoleService.updateRolePermissions(id, permissions);
+
+      // Then update the permissions
+      try {
+        await RoleService.updateRolePermissions(id, permissions);
+      } catch (permError) {
+        console.error("Failed to update role permissions:", permError);
+
+        // Extract validation errors from the response
+        let errorMessage = "Failed to update role permissions. Please try again.";
+
+        if (permError.response?.status === 422) {
+          const validationErrors = permError.response.data?.errors;
+          if (validationErrors) {
+            // Get the first validation error message
+            const firstErrorField = Object.keys(validationErrors)[0];
+            if (firstErrorField && validationErrors[firstErrorField][0]) {
+              errorMessage = validationErrors[firstErrorField][0];
+            }
+          }
+        }
+
+        toast({
+          variant: "destructive",
+          title: "Permission Error",
+          description: errorMessage,
+        });
+
+        throw permError;
+      }
 
       toast({
         title: "Role updated",
@@ -79,11 +108,22 @@ export function useRoleManagement() {
       await fetchRoles();
     } catch (error) {
       console.error("Failed to update role:", error);
+
+      // Extract error message from the response
+      let errorMessage = "Failed to update role. Please try again.";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update role. Please try again.",
+        description: errorMessage,
       });
+
       throw error;
     }
   }, [fetchRoles, toast]);

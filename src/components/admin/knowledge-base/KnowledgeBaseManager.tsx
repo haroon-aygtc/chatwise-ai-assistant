@@ -1,103 +1,320 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { KnowledgeBaseHeader } from "./KnowledgeBaseHeader";
 import { DocumentsSection } from "./DocumentsSection";
 import { CategoryList } from "./CategoryList";
 import { SettingsPanel } from "./SettingsPanel";
 import { UploadDocumentDialog } from "./UploadDocumentDialog";
 import { useKnowledgeBase } from "@/hooks/knowledge-base/useKnowledgeBase";
-import { DocumentCategory } from "@/types/knowledge-base";
+import { DocumentCategory, ResourceType, KnowledgeResource } from "@/types/knowledge-base";
+import { PaginatedResponse } from "@/services/api/types";
 import { DocumentCategory as AIDocumentCategory } from "@/types/ai-configuration";
-import { toast } from "@/components/ui/use-toast";
+import { CollectionsSection } from "./CollectionsSection";
+import { ProfilesSection } from "./ProfilesSection";
+import { DirectoriesSection } from "./DirectoriesSection";
+import { ArticlesSection } from "./ArticlesSection";
+import { FAQsSection } from "./FAQsSection";
+import { FileUploadsSection } from "./FileUploadsSection";
+import { Button } from "@/components/ui/button";
+import { PlusIcon, RefreshCw, Loader2, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ResourceDialog } from "./dialogs/ResourceDialog";
+import { ContextScopesSection } from "./ContextScopesSection";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/use-toast";
 
-export const KnowledgeBaseManager = () => {
+// Type that represents the possible tabs
+type TabValue = "articles" | "directories" | "faqs" | "files" | "collections" | "profiles" | "scopes";
+
+export function KnowledgeBaseManager() {
+  const [activeTab, setActiveTab] = useState<TabValue>("articles");
+  const { toast } = useToast();
+
+  // Get data from the hook with proper typing - only extract what we need
   const {
-    filteredDocuments,
-    categories,
+    resources,
+    collections,
+    profiles,
+    contextScopes,
+    isLoadingResources,
+    isLoadingCollections,
+    isLoadingProfiles,
+    isLoadingContextScopes,
     searchQuery,
     setSearchQuery,
-    selectedDocumentId,
-    setSelectedDocumentId,
-    isUploadDialogOpen,
-    setIsUploadDialogOpen,
-    isLoadingDocuments,
-    isLoadingCategories,
-    isDocumentsError,
-    addDocumentMutation,
     handleRefresh,
-    handleUploadDocument,
-    handleDeleteDocument,
+    resourcesQueryParams,
+    handlePageChange,
+    selectedResourceId,
+    setSelectedResourceId,
+    handleAddResource,
+    handleUpdateResource,
+    handleDeleteResource
   } = useKnowledgeBase();
 
-  const [activeTab, setActiveTab] = useState("documents");
+  // Filter resources by type with proper typing and safety checks
+  const resourcesData = resources &&
+    (resources as PaginatedResponse<KnowledgeResource>)?.data &&
+    Array.isArray((resources as PaginatedResponse<KnowledgeResource>)?.data)
+    ? (resources as PaginatedResponse<KnowledgeResource>).data
+    : [];
 
-  // Initial data load error handling
+  // Apply additional type safety to each filter operation
+  const articles = resourcesData.filter((r: KnowledgeResource) =>
+    r && r.resourceType === "ARTICLE");
+
+  const directories = resourcesData.filter((r: KnowledgeResource) =>
+    r && r.resourceType === "DIRECTORY");
+
+  const faqs = resourcesData.filter((r: KnowledgeResource) =>
+    r && r.resourceType === "FAQ");
+
+  const files = resourcesData.filter((r: KnowledgeResource) =>
+    r && r.resourceType === "FILE_UPLOAD");
+
+  const isLoading = isLoadingResources || isLoadingCollections || isLoadingProfiles || isLoadingContextScopes;
+
+  // Initial data fetching with error handling
   useEffect(() => {
-    if (isDocumentsError) {
-      toast({
-        title: "Error loading knowledge base",
-        description:
-          "There was a problem loading the knowledge base. Please try refreshing.",
-        variant: "destructive",
-      });
+    // Call handleRefresh directly since it's not an async function
+    if (handleRefresh) {
+      try {
+        handleRefresh();
+      } catch (error) {
+        console.error("Error fetching knowledge base data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load knowledge base data. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [isDocumentsError]);
+  }, [handleRefresh, toast]);
+
+  // Handle errors for missing API endpoints
+  useEffect(() => {
+    if (isLoadingProfiles || isLoadingContextScopes) return;
+
+    // Check if we have errors but the API returned empty arrays
+    if ((isLoadingProfiles === false && isLoadingContextScopes === false) &&
+      (Array.isArray(profiles) && profiles.length === 0 ||
+        Array.isArray(contextScopes) && contextScopes.length === 0)) {
+      console.log("Knowledge base API endpoints may be missing or returning errors");
+      // Don't show error toast to avoid overwhelming the user
+    }
+  }, [isLoadingProfiles, isLoadingContextScopes, profiles, contextScopes]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading knowledge base data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle case when resources data is missing
+  if (!resources || !(resources as PaginatedResponse<KnowledgeResource>).data) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="flex flex-col items-center space-y-4 max-w-md text-center">
+          <AlertCircle className="h-8 w-8 text-amber-500" />
+          <h3 className="text-lg font-semibold">Knowledge Base API Unavailable</h3>
+          <p className="text-muted-foreground">
+            The knowledge base API endpoints appear to be missing or returning errors.
+            Please check your backend configuration.
+          </p>
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            className="mt-4"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <KnowledgeBaseHeader
-        onRefresh={handleRefresh}
-        onOpenUploadDialog={() => setIsUploadDialogOpen(true)}
-        isLoading={isLoadingDocuments}
-      />
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Knowledge Base Management</h2>
+        <p className="text-muted-foreground">
+          Manage all the knowledge resources that the AI assistant can access
+        </p>
+      </div>
 
-      <Tabs
-        defaultValue="documents"
-        value={activeTab}
-        onValueChange={setActiveTab}
-      >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)}>
+        <TabsList className="grid grid-cols-7 w-full max-w-4xl">
+          <TabsTrigger value="articles">Articles</TabsTrigger>
+          <TabsTrigger value="directories">Directories</TabsTrigger>
+          <TabsTrigger value="faqs">FAQs</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="collections">Collections</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
+          <TabsTrigger value="scopes">Context Scopes</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="documents" className="space-y-4 pt-4">
-          <DocumentsSection
-            documents={filteredDocuments}
-            categories={categories as DocumentCategory[]}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedDocumentId={selectedDocumentId}
-            onSelectDocument={setSelectedDocumentId}
-            onDeleteDocument={handleDeleteDocument}
-            isLoading={isLoadingDocuments}
-            isError={isDocumentsError}
-            onRefresh={handleRefresh}
-          />
-        </TabsContent>
+        <div className="mt-6">
+          <TabsContent value="articles" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Articles</CardTitle>
+                <CardDescription>
+                  Manage articles, blog posts, and other knowledge content
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ArticlesSection
+                  resources={articles || []}
+                  isLoading={isLoadingResources}
+                  searchQuery={searchQuery || ""}
+                  onSearchChange={setSearchQuery || (() => { })}
+                  selectedResourceId={selectedResourceId}
+                  onSelectResource={setSelectedResourceId}
+                  onDeleteResource={handleDeleteResource}
+                  isError={false}
+                  currentPage={resourcesQueryParams.page || 1}
+                  onPageChange={handlePageChange}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="categories" className="space-y-4 pt-4">
-          <CategoryList
-            categories={categories}
-            isLoading={isLoadingCategories}
-          />
-        </TabsContent>
+          <TabsContent value="directories" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Directories</CardTitle>
+                <CardDescription>
+                  Manage context directories and filesystem sources
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DirectoriesSection
+                  resources={directories || []}
+                  isLoading={isLoadingResources}
+                  searchQuery={searchQuery || ""}
+                  onSearchChange={setSearchQuery || (() => { })}
+                  selectedResourceId={selectedResourceId}
+                  onSelectResource={setSelectedResourceId}
+                  onDeleteResource={handleDeleteResource}
+                  isError={false}
+                  currentPage={resourcesQueryParams.page || 1}
+                  onPageChange={handlePageChange}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="settings" className="space-y-4 pt-4">
-          <SettingsPanel />
-        </TabsContent>
+          <TabsContent value="faqs" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>FAQs</CardTitle>
+                <CardDescription>
+                  Manage frequently asked questions and their answers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FAQsSection
+                  resources={faqs || []}
+                  isLoading={isLoadingResources}
+                  searchQuery={searchQuery || ""}
+                  onSearchChange={setSearchQuery || (() => { })}
+                  selectedResourceId={null}
+                  onSelectResource={() => { }}
+                  onDeleteResource={() => { }}
+                  isError={false}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="files" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Files</CardTitle>
+                <CardDescription>
+                  Manage file uploads and document libraries
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FileUploadsSection
+                  resources={files || []}
+                  isLoading={isLoadingResources}
+                  searchQuery={searchQuery || ""}
+                  onSearchChange={setSearchQuery || (() => { })}
+                  selectedResourceId={null}
+                  onSelectResource={() => { }}
+                  onDeleteResource={() => { }}
+                  isError={false}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="collections" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Collections</CardTitle>
+                <CardDescription>
+                  Organize resources into collections
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CollectionsSection
+                  collections={Array.isArray(collections) ? collections : []}
+                  resources={[...articles, ...directories, ...faqs, ...files]}
+                  isLoading={isLoadingCollections}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profiles" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Knowledge Profiles</CardTitle>
+                <CardDescription>
+                  Configure which collections are available to the AI
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProfilesSection
+                  profiles={Array.isArray(profiles) ? profiles : []}
+                  collections={Array.isArray(collections) ? collections : []}
+                  contextScopes={Array.isArray(contextScopes) ? contextScopes : []}
+                  isLoading={isLoadingProfiles}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="scopes" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Context Scopes</CardTitle>
+                <CardDescription>
+                  Define context-based rules for knowledge access
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ContextScopesSection
+                  contextScopes={Array.isArray(contextScopes) ? contextScopes : []}
+                  isLoading={isLoadingContextScopes}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
       </Tabs>
-
-      <UploadDocumentDialog
-        open={isUploadDialogOpen}
-        onOpenChange={setIsUploadDialogOpen}
-        onUpload={handleUploadDocument}
-        categories={categories as DocumentCategory[]}
-        isUploading={addDocumentMutation.isPending}
-      />
     </div>
   );
-};
+}
 
 export default KnowledgeBaseManager;

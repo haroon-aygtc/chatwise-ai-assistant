@@ -10,10 +10,16 @@ export interface PaginatedResponse<T> {
   meta?: any;
 }
 
-// API request parameters that get converted to URL query parameters
-export interface ApiRequestParams {
+// Pagination parameters
+export interface PaginationParams {
   page?: number;
-  per_page?: number;
+  perPage?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+// API request parameters that get converted to URL query parameters
+export interface ApiRequestParams extends PaginationParams {
   role?: string;
   status?: string;
   search?: string;

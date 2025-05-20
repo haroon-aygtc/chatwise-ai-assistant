@@ -56,9 +56,8 @@ export function CategoryPermissionsGroup({
       <div className="space-y-3 border rounded-lg p-4">
         <div className="flex items-center justify-between pb-2 border-b">
           <div className="flex items-center space-x-2">
-            {/* Each child in a flex container needs a key */}
+            {/* Checkbox for the category */}
             <Checkbox
-              key={`checkbox-${category}`}
               id={`category-${category}`}
               checked={allSelected}
               indeterminate={someSelected}
@@ -67,15 +66,14 @@ export function CategoryPermissionsGroup({
               className="h-5 w-5"
             />
             <label
-              key={`label-${category}`}
               htmlFor={`category-${category}`}
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none cursor-pointer"
             >
               {category}
             </label>
 
-            {/* Tooltip also needs a key as it's a child in the flex container */}
-            <Tooltip key={`tooltip-${category}`}>
+            {/* Info tooltip */}
+            <Tooltip>
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
@@ -86,15 +84,12 @@ export function CategoryPermissionsGroup({
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Each child in this flex container also needs a key */}
             <Badge
-              key={`badge-${category}`}
               variant={allSelected ? "success" : someSelected ? "secondary" : "outline"}
             >
               {selectedCount}/{permissions.length}
             </Badge>
             <Button
-              key={`btn-all-${category}`}
               variant="ghost"
               size="sm"
               onClick={() => handleToggleAll(true)}
@@ -104,7 +99,6 @@ export function CategoryPermissionsGroup({
               <CheckCircle2 className="h-3 w-3 mr-1" /> All
             </Button>
             <Button
-              key={`btn-none-${category}`}
               variant="ghost"
               size="sm"
               onClick={() => handleToggleAll(false)}
@@ -118,8 +112,12 @@ export function CategoryPermissionsGroup({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
           {permissions.map((permission) => {
+            // Always use permission name for backend compatibility
+            const permName = permission.name;
+            // Use ID only for display/key purposes
             const permId = permission.id || permission.name;
-            const isSelected = selectedPermissions.includes(permId);
+            const isSelected = selectedPermissions.includes(permName);
+
             return (
               <Tooltip key={`tooltip-${permId}`}>
                 <TooltipTrigger asChild>
@@ -129,7 +127,7 @@ export function CategoryPermissionsGroup({
                       key={`checkbox-${permId}`}
                       id={`perm-${permId}`}
                       checked={isSelected}
-                      onCheckedChange={(checked) => onTogglePermission(permId, !!checked)}
+                      onCheckedChange={(checked) => onTogglePermission(permName, !!checked)}
                       disabled={disabled}
                     />
                     <label

@@ -56,10 +56,26 @@ class RoleService {
     id: string,
     permissions: string[]
   ): Promise<{ role: Role; message: string }> {
-    return await apiService.put<{ role: Role; message: string }>(
-      `/roles/${id}/permissions`,
-      { permissions }
-    );
+    // Ensure permissions is an array of strings (names, not IDs)
+    const validPermissions = permissions
+      .filter(p => p && typeof p === 'string')
+      .map(p => p.trim());
+
+    // Log the permissions being sent for debugging
+    console.log(`Updating permissions for role ${id}:`, validPermissions);
+
+    try {
+      return await apiService.put<{ role: Role; message: string }>(
+        `/roles/${id}/permissions`,
+        { permissions: validPermissions }
+      );
+    } catch (error) {
+      // Log detailed error information
+      if (error.response?.status === 422) {
+        console.error('Validation error when updating permissions:', error.response?.data);
+      }
+      throw error;
+    }
   }
 }
 

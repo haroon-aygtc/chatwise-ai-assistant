@@ -207,6 +207,19 @@ class HttpClient {
         // Handle knowledge base specific errors to prevent infinite loops
         if (response?.status === 500 && url.includes('/knowledge-base')) {
           console.error(`Knowledge base API error for ${url}:`, error);
+          console.warn(`Using fallback data for ${url}`);
+
+          // For resources listing endpoints, return empty data
+          if (url.includes('/resources')) {
+            return Promise.resolve({
+              data: {
+                data: [],
+                total: 0,
+                current_page: 1,
+                last_page: 1
+              }
+            });
+          }
 
           // For document listing endpoints, return empty data
           if (url.includes('/documents')) {
@@ -220,8 +233,23 @@ class HttpClient {
             });
           }
 
+          // For collections endpoints, return empty array
+          if (url.includes('/collections')) {
+            return Promise.resolve({ data: [] });
+          }
+
           // For category endpoints, return empty array
           if (url.includes('/categories')) {
+            return Promise.resolve({ data: [] });
+          }
+
+          // For profiles endpoints, return empty array
+          if (url.includes('/profiles')) {
+            return Promise.resolve({ data: [] });
+          }
+
+          // For context-scopes endpoints, return empty array
+          if (url.includes('/context-scopes')) {
             return Promise.resolve({ data: [] });
           }
 
@@ -231,10 +259,15 @@ class HttpClient {
               data: {
                 isEnabled: true,
                 priority: 'medium',
-                includeCitations: true
+                includeCitations: true,
+                vectorDimensions: 1536,
+                vectorDatabase: "local"
               }
             });
           }
+
+          // For any other knowledge base endpoint, return empty data
+          return Promise.resolve({ data: [] });
         }
 
         // Handle 500 errors more gracefully for certain endpoints
@@ -287,16 +320,59 @@ class HttpClient {
 
         // Handle authentication errors (status 401)
         if (response?.status === 401) {
-          // Clear token on auth errors
-          tokenService.removeToken();
-          console.log("Authentication error detected, token cleared");
+          // Improved page reload detection
+          const isPageReload = document.readyState !== 'complete';
+          const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+          const timeSinceLoad = Date.now() - pageLoadTime;
+          const isRecentPageLoad = timeSinceLoad < 3000;
 
-          // Check for page load scenario or explicit redirect prevention
+          // Check for explicit redirect prevention flag
+          const hasPreventRedirectFlag = sessionStorage.getItem('prevent_auth_redirect') === 'true';
+
+          // Check if we have an active session marker
+          const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+
+          // Determine if we should prevent redirect
           const preventRedirect =
-            sessionStorage.getItem('prevent_auth_redirect') === 'true' ||
-            document.readyState !== 'complete' ||
-            performance.navigation.type === 1 ||
-            Date.now() - Number(sessionStorage.getItem('page_load_time') || '0') < 2000;
+            hasPreventRedirectFlag ||
+            isPageReload ||
+            isRecentPageLoad ||
+            (hasActiveSession && timeSinceLoad < 5000); // More lenient if we had an active session
+
+          // Log the authentication error with context
+          console.log(`Authentication error detected. Redirect prevention: ${preventRedirect ? 'Yes' : 'No'}`, {
+            isPageReload,
+            timeSinceLoad,
+            hasPreventRedirectFlag,
+            hasActiveSession,
+            path: window.location.pathname
+          });
+
+          // During page refresh, don't immediately clear the token to prevent flashing
+          if (!preventRedirect) {
+            tokenService.removeToken();
+            console.log("Token cleared due to authentication error");
+          } else {
+            console.log("Token preserved during page refresh despite 401 error");
+
+            // For API calls during page refresh with active session, retry once after a delay
+            if (hasActiveSession && (isPageReload || isRecentPageLoad)) {
+              const originalRequest = error.config as any;
+
+              // Only retry if we haven't already
+              if (!originalRequest._retry) {
+                originalRequest._retry = true;
+
+                // Wait a short time before retrying
+                return new Promise(resolve => {
+                  setTimeout(() => {
+                    console.log("Retrying request after 401 during page refresh");
+                    resolve(this.instance(originalRequest));
+                  }, 1000);
+                });
+              }
+            }
+          }
 
           // Only redirect if we're not already on the login page and not in a prevent redirect scenario
           if (!window.location.pathname.includes("/login") && !preventRedirect) {
@@ -312,7 +388,7 @@ class HttpClient {
               // Dispatch a custom event to notify the app about the route change
               window.dispatchEvent(new CustomEvent('app:auth:expired'));
             } else {
-              // Fallback for older browsers, but don't redirect if it's a page reload
+              // Fallback for older browsers
               window.location.href = "/login?session=expired";
             }
           }

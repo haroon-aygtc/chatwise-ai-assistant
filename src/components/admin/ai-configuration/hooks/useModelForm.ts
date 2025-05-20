@@ -155,36 +155,66 @@ export const useModelForm = (
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const configuration = createProviderSpecificConfig();
+    try {
+      const configuration = createProviderSpecificConfig();
 
-    // Create new model
-    const newModel: AIModel = {
-      id: `model-${Date.now()}`,
-      name,
-      description,
-      provider,
-      version,
-      maxTokens,
-      temperature,
-      isActive: true,
-      status: "active",
-      apiKey: apiKey || undefined,
-      baseUrl: baseUrl || undefined,
-      modelId,
-      configuration,
-    };
+      // Create new model with proper fields for the API
+      const newModel: Omit<AIModel, "id" | "createdAt" | "updatedAt"> = {
+        name,
+        description,
+        provider,
+        version,
+        maxTokens,
+        temperature,
+        isActive: true,
+        status: "active",
+        apiKey: apiKey || undefined,
+        baseUrl: baseUrl || undefined,
+        modelId,
+        configuration,
+        // Add required fields for the backend
+        pricePerToken: 0.0001, // Default value
+        contextSize: maxTokens, // Use maxTokens as contextSize
+        capabilities: {
+          chat: true,
+          completion: true,
+          embeddings: false,
+          vision: false
+        }
+      };
 
-    // Simulate API delay
-    setTimeout(() => {
-      onSuccess(newModel);
+      // Import the aiModelService
+      const { createModel } = await import('@/services/ai-configuration/aiModelService');
+
+      // Call the actual API
+      const createdModel = await createModel(newModel);
+
+      // Pass the created model to the success handler
+      onSuccess(createdModel);
       setIsSubmitting(false);
       onOpenChange(false);
       resetForm();
-    }, 1000);
+    } catch (error) {
+      console.error("Failed to create AI model:", error);
+      setIsSubmitting(false);
+
+      // Show error using toast if available
+      try {
+        const { toast } = await import('@/components/ui/use-toast');
+        toast({
+          title: "Error creating model",
+          description: error.message || "Failed to create AI model. Please try again.",
+          variant: "destructive",
+        });
+      } catch (toastError) {
+        // Fallback to alert if toast is not available
+        alert(`Error creating model: ${error.message || "Unknown error"}`);
+      }
+    }
   };
 
   const isFormValid = Boolean(name && version && modelId);

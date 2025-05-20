@@ -200,6 +200,95 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/permissions', [PermissionController::class, 'index']);
     Route::get('/permissions/categories', [PermissionController::class, 'getByCategory']);
 
+    // Knowledge Base routes
+    Route::prefix('knowledge-base')->group(function () {
+        // Resources
+        Route::get('/resources', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllResources']);
+        Route::get('/resources/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getResourceById']);
+        Route::post('/resources', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createResource']);
+        Route::put('/resources/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateResource']);
+        Route::delete('/resources/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'deleteResource']);
+        Route::post('/resources/search', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'searchResources']);
+
+        // File resources
+        Route::post('/resources/files/upload', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'uploadFile']);
+        Route::put('/resources/files/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateFileResource']);
+        Route::post('/resources/files/{id}/reprocess', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'reprocessFile']);
+
+        // Directory resources
+        Route::post('/resources/directories', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createDirectory']);
+        Route::put('/resources/directories/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateDirectory']);
+        Route::post('/resources/directories/{id}/sync', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'syncDirectory']);
+
+        // Web resources
+        Route::post('/resources/web', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createWebResource']);
+        Route::put('/resources/web/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateWebResource']);
+        Route::post('/resources/web/{id}/scrape', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'scrapeWebResource']);
+
+        // Collections
+        Route::get('/collections', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllCollections']);
+        Route::get('/collections/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getCollectionById']);
+        Route::post('/collections', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createCollection']);
+        Route::put('/collections/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateCollection']);
+        Route::delete('/collections/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'deleteCollection']);
+
+        // Profiles
+        Route::get('/profiles', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllProfiles']);
+        Route::get('/profiles/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getProfileById']);
+        Route::post('/profiles', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createProfile']);
+        Route::put('/profiles/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateProfile']);
+        Route::delete('/profiles/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'deleteProfile']);
+
+        // Context Scopes
+        Route::get('/context-scopes', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllContextScopes']);
+        Route::get('/context-scopes/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getContextScopeById']);
+        Route::post('/context-scopes', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createContextScope']);
+        Route::put('/context-scopes/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateContextScope']);
+        Route::delete('/context-scopes/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'deleteContextScope']);
+
+        // Legacy document routes
+        Route::get('/documents', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllDocuments']);
+        Route::get('/documents/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getDocumentById']);
+        Route::post('/documents', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createDocument']);
+        Route::post('/documents/upload', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'uploadDocument']);
+        Route::put('/documents/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateDocument']);
+        Route::delete('/documents/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'deleteDocument']);
+        Route::get('/documents/search', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'searchDocuments']);
+
+        // Categories
+        Route::get('/categories', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllCategories']);
+        Route::get('/categories/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getCategoryById']);
+        Route::post('/categories', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createCategory']);
+        Route::put('/categories/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateCategory']);
+        Route::delete('/categories/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'deleteCategory']);
+
+        // Settings
+        Route::get('/settings', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getSettings']);
+        Route::put('/settings', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateSettings']);
+
+        // Debug route for testing knowledge base - remove after testing
+        Route::get('/debug/knowledge-base/resources', function () {
+            try {
+                $service = app(\App\Services\KnowledgeBaseService::class);
+                $resources = $service->getAllResources(1, 10);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Successfully fetched resources',
+                    'data' => $resources,
+                    'time' => now()->toDateTimeString()
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error fetching resources: ' . $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'time' => now()->toDateTimeString()
+                ], 500);
+            }
+        });
+    });
+
     // AI routes with /ai prefix
     Route::prefix('ai')->group(function () {
         // AI Models

@@ -190,12 +190,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Set page load time in sessionStorage
     sessionStorage.setItem('page_load_time', Date.now().toString());
 
+    // Set a flag to indicate this is a page load/refresh
+    sessionStorage.setItem('prevent_auth_redirect', 'true');
+
+    // Clear the flag after a short delay
+    setTimeout(() => {
+      sessionStorage.removeItem('prevent_auth_redirect');
+    }, 5000); // Give more time for initial auth to complete
+
     const initializeAuth = async () => {
       setIsLoading(true);
 
       try {
-        // Check for page reload context
-        const isPageLoad = sessionStorage.getItem('prevent_auth_redirect') === 'true';
+        // Improved page reload detection
+        const isPageReload = document.readyState !== 'complete';
+        const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+        const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
+        const isRefreshScenario = isPageReload || isRecentPageLoad;
 
         // Check for session storage marker first (helps with page refreshes)
         const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
@@ -205,8 +216,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // During page load with active session, be more lenient
         // This prevents brief flashes of login page during refresh
-        if (isPageLoad && hasActiveSession && token) {
+        if ((isRefreshScenario || hasActiveSession) && token) {
+          console.log("Auth: Page refresh or active session detected");
+
           try {
+            // Use a shorter timeout for the initial auth check during refresh
             const userData = await authService.getCurrentUser();
 
             if (userData) {
@@ -222,10 +236,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 permissions: permissions, // Ensure permissions is set
               } as User);
 
+              // Update the session marker
+              sessionStorage.setItem("has_active_session", "true");
+
               setIsLoading(false);
               return;
             }
           } catch (loadError) {
+            // If we're in a refresh scenario with active session, don't immediately log out
+            // This prevents jarring redirects during page refresh
+            if (isRefreshScenario && hasActiveSession) {
+              console.log("Auth: Preserving session during refresh despite error");
+              // Return a temporary user to prevent redirect
+              setUser({
+                id: 'temp-user',
+                name: 'Loading...',
+                email: '',
+                permissions: [],
+                roles: [],
+              } as User);
+
+              // Schedule a proper auth check after a short delay
+              setTimeout(() => {
+                refreshAuth();
+              }, 2000);
+
+              setIsLoading(false);
+              return;
+            }
+
             // If we fail here during page load, don't clear session yet
             // We'll retry with full error handling below
             console.log("Initial auth check failed during page load");

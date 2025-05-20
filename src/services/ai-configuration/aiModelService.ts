@@ -83,11 +83,60 @@ export const createModel = async (
       };
     }
 
-    const response = await apiService.post<{ data: AIModel }>(
-      "/ai/models",
-      model,
-    );
-    return response.data;
+    // Ensure required fields are present
+    const modelToCreate = {
+      ...model,
+      pricePerToken: model.pricePerToken || 0.0001,
+      contextSize: model.contextSize || model.maxTokens || 2048,
+      capabilities: model.capabilities || {
+        chat: true,
+        completion: true,
+        embeddings: false,
+        vision: false
+      },
+      isActive: model.isActive !== undefined ? model.isActive : true,
+      isDefault: model.isDefault !== undefined ? model.isDefault : false,
+    };
+
+    // Log the model being created for debugging
+    console.log("Creating AI model:", modelToCreate);
+
+    try {
+      const response = await apiService.post<{ data: AIModel }>(
+        "/ai/models",
+        modelToCreate,
+      );
+      console.log("AI model created successfully:", response.data);
+      return response.data;
+    } catch (apiError) {
+      // Log detailed error information
+      console.error("API Error creating AI model:", apiError.response?.data || apiError);
+
+      // If there's a validation error, provide more details
+      if (apiError.response?.status === 422) {
+        const validationErrors = apiError.response.data?.errors as Record<string, string[]>;
+        let errorMessage = 'Validation failed';
+
+        if (validationErrors && typeof validationErrors === 'object') {
+          try {
+            errorMessage = Object.entries(validationErrors)
+              .map(([field, errors]) => {
+                if (Array.isArray(errors)) {
+                  return `${field}: ${errors.join(', ')}`;
+                }
+                return `${field}: ${String(errors)}`;
+              })
+              .join('; ');
+          } catch (parseError) {
+            console.error("Error parsing validation errors:", parseError);
+          }
+        }
+
+        throw new Error(`Validation error: ${errorMessage}`);
+      }
+
+      throw apiError;
+    }
   } catch (error) {
     console.error("Error creating AI model:", error);
     throw error;
@@ -242,6 +291,95 @@ export const getProviderModelOptions = async (
     );
     throw error;
   }
+};
+
+/**
+ * Fetch available models from a provider without saving them to the database
+ */
+export const fetchProviderModels = async (
+  providerSlug: string,
+): Promise<AIModel[]> => {
+  try {
+    // In a real implementation, this would call the API to fetch models
+    // For now, we'll simulate it with a delay and mock data
+    console.log(`Fetching models for provider: ${providerSlug}`);
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Generate mock models based on provider
+    const mockModels: AIModel[] = [];
+    const timestamp = Date.now();
+
+    switch (providerSlug.toLowerCase()) {
+      case 'openai':
+        mockModels.push(
+          createMockModel(`openai-model-${timestamp}-1`, "GPT-4o", "OpenAI", "Latest GPT-4o model with vision capabilities"),
+          createMockModel(`openai-model-${timestamp}-2`, "GPT-4 Turbo", "OpenAI", "High performance GPT-4 model"),
+          createMockModel(`openai-model-${timestamp}-3`, "GPT-3.5 Turbo", "OpenAI", "Fast and efficient model for most tasks")
+        );
+        break;
+      case 'anthropic':
+        mockModels.push(
+          createMockModel(`anthropic-model-${timestamp}-1`, "Claude 3 Opus", "Anthropic", "Most powerful Claude model"),
+          createMockModel(`anthropic-model-${timestamp}-2`, "Claude 3 Sonnet", "Anthropic", "Balanced performance and efficiency"),
+          createMockModel(`anthropic-model-${timestamp}-3`, "Claude 3 Haiku", "Anthropic", "Fast and efficient model")
+        );
+        break;
+      case 'mistral':
+        mockModels.push(
+          createMockModel(`mistral-model-${timestamp}-1`, "Mistral Large", "Mistral", "Most capable Mistral model"),
+          createMockModel(`mistral-model-${timestamp}-2`, "Mistral Medium", "Mistral", "Balanced performance and efficiency"),
+          createMockModel(`mistral-model-${timestamp}-3`, "Mistral Small", "Mistral", "Fast and efficient model")
+        );
+        break;
+      case 'gemini':
+        mockModels.push(
+          createMockModel(`gemini-model-${timestamp}-1`, "Gemini 1.5 Pro", "Gemini", "Most powerful Gemini model"),
+          createMockModel(`gemini-model-${timestamp}-2`, "Gemini 1.5 Flash", "Gemini", "Fast and efficient model")
+        );
+        break;
+      default:
+        mockModels.push(
+          createMockModel(`${providerSlug}-model-${timestamp}-1`, `${providerSlug} Large`, providerSlug, "Large model"),
+          createMockModel(`${providerSlug}-model-${timestamp}-2`, `${providerSlug} Medium`, providerSlug, "Medium model"),
+          createMockModel(`${providerSlug}-model-${timestamp}-3`, `${providerSlug} Small`, providerSlug, "Small model")
+        );
+    }
+
+    return mockModels;
+  } catch (error) {
+    console.error(`Error fetching models for provider ${providerSlug}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to create a mock model
+ */
+const createMockModel = (
+  id: string,
+  name: string,
+  provider: string,
+  description?: string
+): AIModel => {
+  return {
+    id,
+    name,
+    provider: provider as AIProvider,
+    version: "1.0",
+    description,
+    modelId: name.toLowerCase().replace(/\s+/g, '-'),
+    isActive: true,
+    status: "active",
+    maxTokens: 4096,
+    temperature: 0.7,
+    configuration: {
+      temperature: 0.7,
+      maxTokens: 4096,
+      model: name.toLowerCase().replace(/\s+/g, '-'),
+    }
+  };
 };
 
 /**

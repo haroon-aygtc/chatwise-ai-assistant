@@ -67,13 +67,29 @@ export function EditRoleDialog({
   isSubmitting = false,
 }: EditRoleDialogProps) {
   const [localSubmitting, setLocalSubmitting] = useState(false);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
-    Array.isArray(role.permissions) ?
-      (typeof role.permissions[0] === 'string' ?
-        role.permissions as string[] :
-        (role.permissions as any).map((p: any) => p.id || p.name)
-      ) : []
-  );
+  // Initialize selected permissions with proper format
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(() => {
+    // Handle different permission formats from the API
+    if (!role.permissions) return [];
+
+    if (!Array.isArray(role.permissions)) return [];
+
+    // If permissions is an array of strings, use it directly
+    if (role.permissions.length > 0 && typeof role.permissions[0] === 'string') {
+      return role.permissions as string[];
+    }
+
+    // If permissions is an array of objects, extract the name property
+    return (role.permissions as any[]).map(p => {
+      // Check if permission is an object with name property
+      if (p && typeof p === 'object') {
+        // Prefer name over id for compatibility with backend
+        return p.name || p.id;
+      }
+      // Fallback to string representation
+      return String(p);
+    });
+  });
   const [activeTab, setActiveTab] = useState("details");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSelectAllDialog, setShowSelectAllDialog] = useState(false);
@@ -118,10 +134,11 @@ export function EditRoleDialog({
 
   // Handle selecting all permissions across all categories
   const handleSelectAll = () => {
-    const allPermissionIds = permissionCategories.flatMap((category) =>
-      category.permissions.map((permission) => permission.id)
+    // Use permission names instead of IDs for compatibility with backend
+    const allPermissionNames = permissionCategories.flatMap((category) =>
+      category.permissions.map((permission) => permission.name)
     );
-    setSelectedPermissions(allPermissionIds);
+    setSelectedPermissions(allPermissionNames);
     setShowSelectAllDialog(false);
   };
 

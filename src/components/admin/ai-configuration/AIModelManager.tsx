@@ -30,12 +30,15 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Plus, Save, Settings, RefreshCw, PlusCircle, Check, X } from "lucide-react";
+import { AlertCircle, Plus, Save, Settings, RefreshCw, PlusCircle, Check, X, Search } from "lucide-react";
 import { AIModel, AIProvider, ModelProvider } from "@/types/ai-configuration";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import * as aiModelService from "@/services/ai-configuration/aiModelService";
+import { AddModelDialog } from "./AddModelDialog";
+import { ModelSelect } from "./components/ModelSelect";
+import { ModelFetcher } from "./components/ModelFetcher";
 
 export const AIModelManager = () => {
   const [activeTab, setActiveTab] = useState("models");
@@ -44,6 +47,8 @@ export const AIModelManager = () => {
   const [isLoadingProviders, setIsLoadingProviders] = useState(true);
   const [savingProvider, setSavingProvider] = useState(false);
   const [showAddProvider, setShowAddProvider] = useState(false);
+  const [showAddModel, setShowAddModel] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<ModelProvider | null>(null);
   const [newProvider, setNewProvider] = useState<Partial<ModelProvider>>({
     name: "",
     slug: "",
@@ -218,6 +223,20 @@ export const AIModelManager = () => {
     }
   };
 
+  const handleConfigureProvider = (provider: ModelProvider) => {
+    setSelectedProvider(provider);
+    setShowAddModel(true);
+  };
+
+  const handleAddModel = (model: AIModel) => {
+    // Add the new model to the list
+    refreshData();
+    toast({
+      title: "Model added",
+      description: `${model.name} has been added successfully.`,
+    });
+  };
+
   // Filter models based on search term
   const filteredModels = models.filter(
     (model) =>
@@ -270,29 +289,51 @@ export const AIModelManager = () => {
         </Alert>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="models">AI Models</TabsTrigger>
-          <TabsTrigger value="providers">Model Providers</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="border-b mb-6">
+          <div className="flex justify-between items-center">
+            <TabsList className="h-12 bg-transparent p-0 mb-0">
+              <TabsTrigger
+                value="models"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 h-12"
+              >
+                AI Models
+              </TabsTrigger>
+              <TabsTrigger
+                value="providers"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 h-12"
+              >
+                Model Providers
+              </TabsTrigger>
+            </TabsList>
 
-        <div className="my-4 flex justify-between">
-          <Input
-            placeholder="Search..."
-            className="max-w-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+            <div className="flex items-center gap-3">
+              <div className="relative w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  className="pl-9 h-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
 
-          {activeTab === "providers" && (
-            <Button onClick={() => setShowAddProvider(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Provider
-            </Button>
-          )}
+              {activeTab === "providers" ? (
+                <Button onClick={() => setShowAddProvider(true)} size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Provider
+                </Button>
+              ) : (
+                <Button onClick={() => setShowAddModel(true)} size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Model
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
 
-        <TabsContent value="models" className="space-y-4">
+        <TabsContent value="models" className="space-y-6">
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
@@ -309,6 +350,13 @@ export const AIModelManager = () => {
             </div>
           ) : (
             <>
+              {/* Model Fetcher Component */}
+              <ModelFetcher
+                providers={providers}
+                onModelSave={handleAddModel}
+                existingModels={models}
+              />
+
               {filteredModels.length === 0 ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center p-6">
@@ -319,7 +367,7 @@ export const AIModelManager = () => {
                         ? "No models match your search criteria. Try adjusting your search."
                         : "You haven't added any AI models yet. Add a model to get started."}
                     </p>
-                    <Button>
+                    <Button onClick={() => setShowAddModel(true)}>
                       <Plus className="mr-2 h-4 w-4" />
                       Add Model
                     </Button>
@@ -328,13 +376,13 @@ export const AIModelManager = () => {
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle>Available Models</CardTitle>
+                    <CardHeader className="pb-2 border-b">
+                      <CardTitle>Saved Models</CardTitle>
                       <CardDescription>
-                        AI models available in the system
+                        AI models saved in your database
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-4">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -349,10 +397,17 @@ export const AIModelManager = () => {
                           {filteredModels.map((model) => (
                             <TableRow key={model.id}>
                               <TableCell className="font-medium">
-                                {model.name}
+                                <div className="flex flex-col">
+                                  <span>{model.name}</span>
+                                  {model.description && (
+                                    <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                      {model.description}
+                                    </span>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline">
+                                <Badge variant="outline" className="font-normal">
                                   {model.provider}
                                 </Badge>
                               </TableCell>
@@ -370,7 +425,26 @@ export const AIModelManager = () => {
                                 />
                               </TableCell>
                               <TableCell>
-                                <Button variant="outline" size="sm">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Find the provider for this model
+                                    const provider = providers.find(p =>
+                                      p.slug.toLowerCase() === model.provider.toLowerCase() ||
+                                      p.name.toLowerCase() === model.provider.toLowerCase()
+                                    );
+                                    if (provider) {
+                                      handleConfigureProvider(provider);
+                                    } else {
+                                      toast({
+                                        title: "Provider not found",
+                                        description: `Could not find provider for ${model.provider}`,
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
                                   <Settings className="mr-2 h-4 w-4" />
                                   Configure
                                 </Button>
@@ -380,6 +454,19 @@ export const AIModelManager = () => {
                         </TableBody>
                       </Table>
                     </CardContent>
+                    <CardFooter className="border-t py-3 flex justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        {filteredModels.length} of {models.length} model(s)
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh
+                      </Button>
+                    </CardFooter>
                   </Card>
                 </div>
               )}
@@ -597,7 +684,12 @@ export const AIModelManager = () => {
                         </div>
                       </CardContent>
                       <CardFooter>
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleConfigureProvider(provider)}
+                        >
                           <Settings className="mr-2 h-4 w-4" />
                           Configure Models
                         </Button>
@@ -610,6 +702,15 @@ export const AIModelManager = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Add Model Dialog */}
+      {showAddModel && (
+        <AddModelDialog
+          open={showAddModel}
+          onOpenChange={setShowAddModel}
+          onSuccess={handleAddModel}
+        />
+      )}
     </div>
   );
 };
