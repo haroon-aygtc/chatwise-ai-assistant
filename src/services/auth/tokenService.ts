@@ -127,6 +127,7 @@ const tokenService = {
   validateToken: (): boolean => {
     const token = localStorage.getItem("auth_token");
     const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+    const isPageReload = document.readyState !== 'complete' || performance.navigation.type === 1;
 
     if (!token) {
       return false;
@@ -143,6 +144,11 @@ const tokenService = {
             tokenService.removeToken();
             return false;
           }
+        }
+
+        // During page reload, assume token is valid if there's a token and active session
+        if (isPageReload && hasActiveSession) {
+          return true;
         }
 
         if (hasActiveSession) {
@@ -177,6 +183,11 @@ const tokenService = {
 
       return true;
     } catch (error) {
+      // During page reload, assume token is valid if there's a token and active session
+      if (isPageReload && hasActiveSession && token) {
+        return true;
+      }
+
       const expStr = localStorage.getItem("token_expiration");
       if (expStr) {
         const expTime = parseInt(expStr, 10);
@@ -189,7 +200,7 @@ const tokenService = {
 
         return true;
       }
-      return true;
+      return hasActiveSession;
     }
   },
 

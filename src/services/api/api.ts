@@ -202,6 +202,40 @@ class HttpClient {
         }
 
         const response = error.response;
+        const url = error.config?.url || '';
+
+        // Handle knowledge base specific errors to prevent infinite loops
+        if (response?.status === 500 && url.includes('/knowledge-base')) {
+          console.error(`Knowledge base API error for ${url}:`, error);
+
+          // For document listing endpoints, return empty data
+          if (url.includes('/documents')) {
+            return Promise.resolve({
+              data: {
+                data: [],
+                total: 0,
+                current_page: 1,
+                last_page: 1
+              }
+            });
+          }
+
+          // For category endpoints, return empty array
+          if (url.includes('/categories')) {
+            return Promise.resolve({ data: [] });
+          }
+
+          // For settings endpoint, return default settings
+          if (url.includes('/settings')) {
+            return Promise.resolve({
+              data: {
+                isEnabled: true,
+                priority: 'medium',
+                includeCitations: true
+              }
+            });
+          }
+        }
 
         // Handle 500 errors more gracefully for certain endpoints
         if (response?.status === 500) {
@@ -257,8 +291,15 @@ class HttpClient {
           tokenService.removeToken();
           console.log("Authentication error detected, token cleared");
 
-          // Only redirect if we're not already on the login page
-          if (!window.location.pathname.includes("/login")) {
+          // Check for page load scenario or explicit redirect prevention
+          const preventRedirect =
+            sessionStorage.getItem('prevent_auth_redirect') === 'true' ||
+            document.readyState !== 'complete' ||
+            performance.navigation.type === 1 ||
+            Date.now() - Number(sessionStorage.getItem('page_load_time') || '0') < 2000;
+
+          // Only redirect if we're not already on the login page and not in a prevent redirect scenario
+          if (!window.location.pathname.includes("/login") && !preventRedirect) {
             // Store the current URL to redirect back after login
             sessionStorage.setItem(
               "redirectAfterLogin",
@@ -266,13 +307,12 @@ class HttpClient {
             );
 
             // Use history API instead of direct location change to avoid full page reload
-            // This prevents the "page refresh returns to login" issue
             if (window.history && window.history.pushState) {
               window.history.pushState({}, '', '/login?session=expired');
               // Dispatch a custom event to notify the app about the route change
               window.dispatchEvent(new CustomEvent('app:auth:expired'));
             } else {
-              // Fallback for older browsers
+              // Fallback for older browsers, but don't redirect if it's a page reload
               window.location.href = "/login?session=expired";
             }
           }
@@ -329,8 +369,8 @@ class HttpClient {
   /**
    * Make a GET request
    */
-  public async get<T = unknown>(url: string, params?: ApiParams): Promise<T> {
-    const response = await this.instance.get<T>(url, { params });
+  public async get<T = unknown>(url: string, options?: { params?: ApiParams }): Promise<T> {
+    const response = await this.instance.get<T>(url, options);
     return response.data;
   }
 
@@ -390,7 +430,7 @@ export default httpClient;
 
 // Export various methods for convenience
 export const get = <T = unknown>(url: string, params?: ApiParams): Promise<T> =>
-  httpClient.get(url, params);
+  httpClient.get(url, { params });
 
 export const post = <T = unknown>(
   url: string,

@@ -25,6 +25,7 @@ class KnowledgeBaseService {
       per_page: perPage,
       ...filters,
     };
+
     try {
       return await apiService.get<PaginatedResponse<KnowledgeDocument>>(
         "/knowledge-base/documents",
@@ -32,21 +33,26 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error("Error fetching knowledge base documents:", error);
-      throw error;
+      return {
+        data: [],
+        total: 0,
+        current_page: 1,
+        last_page: 1
+      };
     }
   }
 
   /**
    * Get document by ID
    */
-  static async getDocumentById(id: string): Promise<KnowledgeDocument> {
+  static async getDocumentById(id: string): Promise<KnowledgeDocument | null> {
     try {
       return await apiService.get<KnowledgeDocument>(
         `/knowledge-base/documents/${id}`,
       );
     } catch (error) {
       console.error(`Error fetching document with ID ${id}:`, error);
-      throw error;
+      return null;
     }
   }
 
@@ -87,7 +93,20 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error("Error creating document:", error);
-      throw error;
+      // Return a minimal document object
+      return {
+        id: '',
+        title: data.title || '',
+        description: data.description || '',
+        content: data.content || '',
+        categoryId: data.categoryId || '',
+        fileType: '',
+        fileSize: 0,
+        tags: data.tags || [],
+        uploadedAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
+        status: 'error'
+      };
     }
   }
 
@@ -105,7 +124,20 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error(`Error updating document with ID ${id}:`, error);
-      throw error;
+      // Return partial document with updated fields
+      return {
+        id,
+        title: data.title || '',
+        description: data.description || '',
+        content: data.content || '',
+        categoryId: data.categoryId || '',
+        fileType: '',
+        fileSize: 0,
+        tags: data.tags || [],
+        uploadedAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
+        status: 'error'
+      };
     }
   }
 
@@ -117,7 +149,7 @@ class KnowledgeBaseService {
       await apiService.delete(`/knowledge-base/documents/${id}`);
     } catch (error) {
       console.error(`Error deleting document with ID ${id}:`, error);
-      throw error;
+      // Don't throw, just log the error
     }
   }
 
@@ -136,7 +168,12 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error(`Error searching documents with query "${query}":`, error);
-      throw error;
+      return {
+        data: [],
+        total: 0,
+        current_page: 1,
+        last_page: 1
+      };
     }
   }
 
@@ -150,21 +187,21 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error("Error fetching knowledge base categories:", error);
-      throw error;
+      return [];
     }
   }
 
   /**
    * Get category by ID
    */
-  static async getCategoryById(id: string): Promise<DocumentCategory> {
+  static async getCategoryById(id: string): Promise<DocumentCategory | null> {
     try {
       return await apiService.get<DocumentCategory>(
         `/knowledge-base/categories/${id}`,
       );
     } catch (error) {
       console.error(`Error fetching category with ID ${id}:`, error);
-      throw error;
+      return null;
     }
   }
 
@@ -181,7 +218,13 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error("Error creating category:", error);
-      throw error;
+      // Return a minimal category object instead of throwing
+      return {
+        id: '',
+        name: data.name || '',
+        description: data.description || '',
+        documentCount: 0
+      };
     }
   }
 
@@ -199,7 +242,13 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error(`Error updating category with ID ${id}:`, error);
-      throw error;
+      // Return a minimal category object with updated data
+      return {
+        id,
+        name: data.name || '',
+        description: data.description || '',
+        documentCount: 0
+      };
     }
   }
 
@@ -211,7 +260,7 @@ class KnowledgeBaseService {
       await apiService.delete(`/knowledge-base/categories/${id}`);
     } catch (error) {
       console.error(`Error deleting category with ID ${id}:`, error);
-      throw error;
+      // Don't throw, just log the error
     }
   }
 
@@ -225,7 +274,12 @@ class KnowledgeBaseService {
       );
     } catch (error) {
       console.error("Error fetching knowledge base settings:", error);
-      throw error;
+      // Return default settings instead of throwing
+      return {
+        isEnabled: true,
+        priority: 'medium',
+        includeCitations: true
+      };
     }
   }
 

@@ -56,7 +56,9 @@ export function CategoryPermissionsGroup({
       <div className="space-y-3 border rounded-lg p-4">
         <div className="flex items-center justify-between pb-2 border-b">
           <div className="flex items-center space-x-2">
+            {/* Each child in a flex container needs a key */}
             <Checkbox
+              key={`checkbox-${category}`}
               id={`category-${category}`}
               checked={allSelected}
               indeterminate={someSelected}
@@ -65,13 +67,15 @@ export function CategoryPermissionsGroup({
               className="h-5 w-5"
             />
             <label
+              key={`label-${category}`}
               htmlFor={`category-${category}`}
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none cursor-pointer"
             >
               {category}
             </label>
 
-            <Tooltip>
+            {/* Tooltip also needs a key as it's a child in the flex container */}
+            <Tooltip key={`tooltip-${category}`}>
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
@@ -82,10 +86,15 @@ export function CategoryPermissionsGroup({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Badge variant={allSelected ? "success" : someSelected ? "secondary" : "outline"}>
+            {/* Each child in this flex container also needs a key */}
+            <Badge
+              key={`badge-${category}`}
+              variant={allSelected ? "success" : someSelected ? "secondary" : "outline"}
+            >
               {selectedCount}/{permissions.length}
             </Badge>
             <Button
+              key={`btn-all-${category}`}
               variant="ghost"
               size="sm"
               onClick={() => handleToggleAll(true)}
@@ -95,6 +104,7 @@ export function CategoryPermissionsGroup({
               <CheckCircle2 className="h-3 w-3 mr-1" /> All
             </Button>
             <Button
+              key={`btn-none-${category}`}
               variant="ghost"
               size="sm"
               onClick={() => handleToggleAll(false)}
@@ -111,16 +121,19 @@ export function CategoryPermissionsGroup({
             const permId = permission.id || permission.name;
             const isSelected = selectedPermissions.includes(permId);
             return (
-              <Tooltip key={permId}>
+              <Tooltip key={`tooltip-${permId}`}>
                 <TooltipTrigger asChild>
                   <div className={`flex items-center space-x-2 p-1.5 ${isSelected ? 'bg-secondary/20 rounded-md' : ''}`}>
+                    {/* Each child in the flex container needs a key */}
                     <Checkbox
+                      key={`checkbox-${permId}`}
                       id={`perm-${permId}`}
                       checked={isSelected}
                       onCheckedChange={(checked) => onTogglePermission(permId, !!checked)}
                       disabled={disabled}
                     />
                     <label
+                      key={`label-${permId}`}
                       htmlFor={`perm-${permId}`}
                       className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none cursor-pointer"
                     >
@@ -128,8 +141,8 @@ export function CategoryPermissionsGroup({
                     </label>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="right" align="start">
-                  <p>{permission.description || "No description available"}</p>
+                <TooltipContent side="right" align="start" key={`tooltip-content-${permId}`}>
+                  <p key={`tooltip-text-${permId}`}>{permission.description || "No description available"}</p>
                 </TooltipContent>
               </Tooltip>
             );

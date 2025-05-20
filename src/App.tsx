@@ -106,6 +106,30 @@ function App() {
   const { user } = useAuth();
 
   useEffect(() => {
+    // Track page load state to prevent immediate redirects
+    const isFirstLoad = !sessionStorage.getItem('app_initialized');
+
+    if (isFirstLoad) {
+      // Mark that app is initialized to track first page load
+      sessionStorage.setItem('app_initialized', 'true');
+
+      // Set page load time for redirect prevention
+      sessionStorage.setItem('page_load_time', Date.now().toString());
+
+      // Add a flag to prevent immediate auth redirects
+      sessionStorage.setItem('prevent_auth_redirect', 'true');
+
+      // Remove the prevention after 3 seconds
+      setTimeout(() => {
+        sessionStorage.removeItem('prevent_auth_redirect');
+      }, 3000);
+    } else {
+      // Not first load, but still update page load time
+      sessionStorage.setItem('page_load_time', Date.now().toString());
+    }
+  }, []);
+
+  useEffect(() => {
     // Prefetch CSRF token only when needed and avoid excessive API calls
     const initializeApp = async () => {
       try {

@@ -294,7 +294,8 @@ export function CreateRoleDialog({
               <Button type="submit" disabled={isCreating}>
                 {isCreating ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" key="creating-loader" />
+                    <span key="creating-text">Creating...</span>
                   </>
                 ) : (
                   "Create Role"

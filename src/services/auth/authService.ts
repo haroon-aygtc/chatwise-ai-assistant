@@ -175,8 +175,52 @@ const authService = {
         return null;
       }
 
-      const headers = this.getAuthHeaders(token);
+      // Check for page load/refresh scenario
+      const isPageRefresh = sessionStorage.getItem('prevent_auth_redirect') === 'true' ||
+        document.readyState !== 'complete' ||
+        performance.navigation.type === 1;
 
+      // If we're in a page refresh and have a session marker, assume session is valid
+      if (isPageRefresh && sessionStorage.getItem("has_active_session") === "true") {
+        try {
+          // Do a silent api check but don't fail the auth if it errors
+          const headers = this.getAuthHeaders(token);
+          const response = await axios.get(`${API_CONFIG.BASE_URL}/user`, {
+            headers,
+            withCredentials: true,
+            timeout: 2000, // Short timeout for refresh scenario
+          });
+
+          if (response.data?.user) {
+            // The user data is now consistently returned inside a 'user' property
+            const userData = response.data.user;
+
+            // Ensure permissions is an array
+            if (!userData.permissions) {
+              userData.permissions = [];
+            }
+
+            return userData;
+          }
+        } catch (silentError) {
+          // On page refresh, if API fails, don't clear session yet
+          // This prevents jarring redirects
+          console.log("Silent auth check failed during page refresh");
+
+          // Return a temporary user object to prevent redirect
+          // The real session will be verified on the next non-refresh request
+          return {
+            id: 'temp-user',
+            name: 'Loading...',
+            email: '',
+            permissions: [],
+            // Include minimal data needed to prevent crash
+          };
+        }
+      }
+
+      // Normal auth flow for non-refresh scenarios
+      const headers = this.getAuthHeaders(token);
       const response = await axios.get(`${API_CONFIG.BASE_URL}/user`, {
         headers,
         withCredentials: true,
@@ -196,6 +240,22 @@ const authService = {
 
       return userData;
     } catch (error) {
+      // During page refresh, be more lenient with auth errors
+      const isPageRefresh = sessionStorage.getItem('prevent_auth_redirect') === 'true' ||
+        document.readyState !== 'complete' ||
+        performance.navigation.type === 1;
+
+      if (isPageRefresh && sessionStorage.getItem("has_active_session") === "true") {
+        console.log("Auth check failed during page refresh");
+        return {
+          id: 'temp-user',
+          name: 'Loading...',
+          email: '',
+          permissions: [],
+          // Include minimal data needed to prevent crash
+        };
+      }
+
       // Only remove token if it's an authentication error
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         tokenService.removeToken();

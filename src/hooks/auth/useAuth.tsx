@@ -187,15 +187,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check if the user is authenticated on component mount
   useEffect(() => {
+    // Set page load time in sessionStorage
+    sessionStorage.setItem('page_load_time', Date.now().toString());
+
     const initializeAuth = async () => {
       setIsLoading(true);
 
       try {
+        // Check for page reload context
+        const isPageLoad = sessionStorage.getItem('prevent_auth_redirect') === 'true';
+
         // Check for session storage marker first (helps with page refreshes)
         const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
 
         // Try to get token and check validity
         const token = tokenService.getToken();
+
+        // During page load with active session, be more lenient
+        // This prevents brief flashes of login page during refresh
+        if (isPageLoad && hasActiveSession && token) {
+          try {
+            const userData = await authService.getCurrentUser();
+
+            if (userData) {
+              // Ensure permissions is always an array
+              const permissions = Array.isArray(userData.permissions)
+                ? userData.permissions
+                : [];
+
+              // Convert the authService User to our domain User
+              setUser({
+                ...userData,
+                id: String(userData.id), // Convert number id to string
+                permissions: permissions, // Ensure permissions is set
+              } as User);
+
+              setIsLoading(false);
+              return;
+            }
+          } catch (loadError) {
+            // If we fail here during page load, don't clear session yet
+            // We'll retry with full error handling below
+            console.log("Initial auth check failed during page load");
+          }
+        }
+
+        // Proceed with normal auth flow
         const isValid = token ? tokenService.validateToken() : false;
 
         // Only initialize CSRF and fetch user data if we have a valid token
