@@ -1,11 +1,21 @@
 import { jwtDecode } from "jwt-decode";
 import API_CONFIG from "../api/config";
 
+/**
+ * Token service for handling authentication tokens
+ * Enhanced with better persistence and validation
+ */
 const tokenService = {
+  /**
+   * Get token from storage
+   */
   getToken: (): string | null => {
     return localStorage.getItem("auth_token");
   },
 
+  /**
+   * Save token to storage
+   */
   setToken: (token: string): void => {
     if (!token) {
       console.error("Attempted to set empty token");
@@ -15,24 +25,39 @@ const tokenService = {
     console.log("Setting auth token:", token.substring(0, 10) + "...");
     localStorage.setItem("auth_token", token);
 
-    // Decode and log token data (debugging only)
+    // Store the token expiration time as a timestamp for easier validation later
     try {
       const decoded = jwtDecode(token);
-      console.log("Token decoded successfully, expires:", new Date((decoded as any).exp * 1000).toLocaleString());
+      if ((decoded as any).exp) {
+        localStorage.setItem("token_expiration", String((decoded as any).exp * 1000));
+      }
     } catch (error) {
       console.warn("Could not decode token:", error);
+      // For non-JWT tokens, set a default expiration (24 hours)
+      const expiration = Date.now() + 24 * 60 * 60 * 1000;
+      localStorage.setItem("token_expiration", String(expiration));
     }
   },
 
+  /**
+   * Remove token from storage
+   */
   removeToken: (): void => {
     localStorage.removeItem("auth_token");
+    localStorage.removeItem("token_expiration");
   },
 
-  // Alias for removeToken for backward compatibility
+  /**
+   * Alias for removeToken for backward compatibility
+   */
   clearToken: (): void => {
     localStorage.removeItem("auth_token");
+    localStorage.removeItem("token_expiration");
   },
 
+  /**
+   * Get CSRF token from meta tag
+   */
   getCsrfToken: (): string | null => {
     return (
       document
@@ -41,7 +66,9 @@ const tokenService = {
     );
   },
 
-  // Initialize CSRF token by fetching from the server
+  /**
+   * Initialize CSRF token by fetching from the server
+   */
   initCsrfToken: async (): Promise<void> => {
     const isDevMode = process.env.NODE_ENV === 'development';
 
@@ -61,6 +88,7 @@ const tokenService = {
       // This endpoint is typically used in Laravel Sanctum to set the CSRF cookie
       if (isDevMode) console.log(`Making fetch request to ${API_CONFIG.BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`);
 
+      // Use fetch with credentials to ensure cookies are sent and stored
       const response = await fetch(`${API_CONFIG.BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
@@ -78,9 +106,7 @@ const tokenService = {
         if (isDevMode) {
           try {
             const errorData = await response.text();
-            console.error("Error response:", errorData);
           } catch (readError) {
-            console.error("Failed to read error response:", readError);
           }
         }
 
@@ -101,27 +127,24 @@ const tokenService = {
 
         // Check if we can find the cookie directly (only in dev mode)
         if (isDevMode) {
-          console.log("Checking for XSRF-TOKEN cookie...");
           const cookies = document.cookie.split('; ');
           const xsrfCookie = cookies.find(cookie => cookie.startsWith('XSRF-TOKEN='));
-          console.log("XSRF cookie found?", !!xsrfCookie);
         }
       } else if (isDevMode) {
-        console.log("CSRF token found in meta tag:", token.substring(0, 5) + "...");
       }
     } catch (error) {
-      console.error("Failed to fetch CSRF token:", error);
       throw error; // Re-throw to allow handling by the caller
     }
   },
 
-  // Decode JWT token
+  /**
+   * Decode JWT token with better error handling
+   */
   decodeToken: (token: string): any => {
     try {
       // First check if token is a valid format before attempting to decode
       if (!token || typeof token !== 'string' || !token.includes('.')) {
         if (process.env.NODE_ENV === 'development') {
-          console.log("Token is not in JWT format, cannot decode");
         }
         // Return a placeholder object with a far-future expiration
         // This prevents errors in components that expect a decoded token
@@ -140,39 +163,58 @@ const tokenService = {
     }
   },
 
-  // Check if token is valid
+  /**
+   * Validate token with improved robustness
+   */
   validateToken: (): boolean => {
     const token = localStorage.getItem("auth_token");
     if (!token) {
       if (process.env.NODE_ENV === 'development') {
-        console.log("validateToken: No token found in storage");
       }
       return false;
     }
 
     try {
-      // Handle non-JWT tokens (Laravel Sanctum sometimes uses non-JWT tokens)
+      // For Laravel Sanctum, we'll accept tokens that are not JWT format
+      // as the server will validate them properly
       if (!token.includes('.')) {
-        // If it's not a JWT, we can still consider it valid if it exists
-        // The server will validate it properly when used
+        // Check for stored expiration time
+        const expStr = localStorage.getItem("token_expiration");
+        if (expStr) {
+          const expTime = parseInt(expStr, 10);
+          const isExpired = expTime < Date.now();
+
+          if (isExpired) {
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("token_expiration");
+            return false;
+          }
+        }
+
         if (process.env.NODE_ENV === 'development') {
-          console.log("Token is not in JWT format, but treating as valid");
         }
         return true;
       }
 
+      // For JWT tokens, decode and check expiration
       const decoded: any = jwtDecode(token);
-
-      // Check if token is expired
       const now = Date.now() / 1000;
-      const isExpired = decoded.exp && decoded.exp < now;
+
+      // If there's no expiration, consider it valid
+      if (!decoded.exp) {
+        if (process.env.NODE_ENV === 'development') {
+        }
+        return true;
+      }
+
+      const isExpired = decoded.exp < now;
 
       if (isExpired) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Token expired at ${new Date(decoded.exp * 1000).toLocaleString()}`);
         }
         // Clean up expired token
         localStorage.removeItem("auth_token");
+        localStorage.removeItem("token_expiration");
         return false;
       }
 
@@ -180,35 +222,65 @@ const tokenService = {
       const expiresInSeconds = decoded.exp - now;
       if (expiresInSeconds < 300) { // 5 minutes in seconds
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Token will expire soon (${Math.floor(expiresInSeconds)}s remaining)`);
         }
         // We'll still return true but this could trigger a refresh in the future
       } else if (process.env.NODE_ENV === 'development') {
-        console.log("Token is valid until:", new Date(decoded.exp * 1000).toLocaleString());
       }
 
       return true;
     } catch (error) {
-      // For non-JWT tokens from Laravel Sanctum, we'll assume they're valid
-      // The server will validate them when they're used
+      // For non-JWT tokens or if there's an error in decoding,
+      // we'll check the stored expiration time as a fallback
+      const expStr = localStorage.getItem("token_expiration");
+      if (expStr) {
+        const expTime = parseInt(expStr, 10);
+        const isExpired = expTime < Date.now();
+
+        if (isExpired) {
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("token_expiration");
+          return false;
+        }
+
+        return true;
+      }
+
       if (process.env.NODE_ENV === 'development') {
-        console.log("Failed to validate token as JWT, but will consider it valid:", error);
       }
       return true;
     }
   },
 
-  // Check if token is expired
+  /**
+   * Check if token is expired with improved handling
+   */
   isTokenExpired: (): boolean => {
     const token = localStorage.getItem("auth_token");
     if (!token) return true;
 
+    // First check the stored expiration time as it works for both JWT and non-JWT tokens
+    const expStr = localStorage.getItem("token_expiration");
+    if (expStr) {
+      const expTime = parseInt(expStr, 10);
+      const isExpired = expTime < Date.now();
+
+      if (isExpired) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("token_expiration");
+        return true;
+      }
+
+      // If we have a stored expiration time that's not expired, trust that
+      return false;
+    }
+
     try {
-      // If it's not a JWT, assume it's not expired
+      // If it's not a JWT, and we don't have a stored expiration, assume it's not expired
       if (!token.includes('.')) {
         return false;
       }
 
+      // For JWT tokens, decode and check expiration
       const decoded: any = jwtDecode(token);
       const now = Date.now() / 1000;
       const isExpired = decoded.exp && decoded.exp < now;
@@ -216,20 +288,32 @@ const tokenService = {
       // Clean up if expired
       if (isExpired) {
         localStorage.removeItem("auth_token");
+        localStorage.removeItem("token_expiration");
       }
 
       return isExpired;
     } catch (error) {
-      // For non-JWT tokens, assume they're not expired
+      // If we can't decode the token, err on the side of caution and assume not expired
       return false;
     }
   },
 
-  // Check if token needs refresh (less than 5 minutes remaining)
+  /**
+   * Check if token needs refresh (less than 5 minutes remaining)
+   */
   needsRefresh: (): boolean => {
     const token = localStorage.getItem("auth_token");
     if (!token) return false; // No token to refresh
 
+    // Check stored expiration first
+    const expStr = localStorage.getItem("token_expiration");
+    if (expStr) {
+      const expTime = parseInt(expStr, 10);
+      // Return true if less than 5 minutes remaining
+      return (expTime - Date.now()) < 5 * 60 * 1000;
+    }
+
+    // Fall back to JWT decoding
     try {
       const decoded: any = jwtDecode(token);
       const now = Date.now() / 1000;

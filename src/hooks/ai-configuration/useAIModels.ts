@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AIModel, RoutingRule } from "@/types/ai-configuration";
 import * as aiModelService from "@/services/ai-configuration/aiModelService";
 
@@ -9,9 +9,15 @@ export function useAIModels() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const isMounted = useRef(false);
+  const fetchInProgress = useRef(false);
 
   // Fetch models and routing rules
-  const fetchData = async () => {
+  const fetchData = async (force = false) => {
+    // Prevent multiple simultaneous fetches
+    if (fetchInProgress.current && !force) return;
+
+    fetchInProgress.current = true;
     setIsLoading(true);
     setError(null);
     try {
@@ -19,20 +25,34 @@ export function useAIModels() {
         aiModelService.getAllModels(),
         aiModelService.getRoutingRules()
       ]);
-      setModels(fetchedModels);
-      setRoutingRules(fetchedRules);
-      setHasChanges(false);
+
+      // Only update state if component is still mounted
+      if (isMounted.current) {
+        setModels(fetchedModels);
+        setRoutingRules(fetchedRules);
+        setHasChanges(false);
+      }
     } catch (err) {
       console.error("Error fetching AI models and routing rules:", err);
-      setError(err instanceof Error ? err : new Error("Failed to load AI models and routing rules"));
+      if (isMounted.current) {
+        setError(err instanceof Error ? err : new Error("Failed to load AI models and routing rules"));
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+      fetchInProgress.current = false;
     }
   };
 
   // Initial fetch
   useEffect(() => {
+    isMounted.current = true;
     fetchData();
+
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // Update model
@@ -139,7 +159,7 @@ export function useAIModels() {
     addRoutingRule,
     deleteRoutingRule,
     saveAllChanges,
-    refreshData: fetchData,
+    refreshData: (force = true) => fetchData(force),
     hasChanges,
     clearError,
   };

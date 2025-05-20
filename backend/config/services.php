@@ -35,4 +35,6 @@ return [
         ],
     ],
 
+    // AI Provider Services are now configured in config/ai.php
+
 ];

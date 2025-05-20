@@ -19,8 +19,7 @@ class AIModelController extends Controller
     public function __construct(AIModelService $aiModelService)
     {
         $this->aiModelService = $aiModelService;
-        $this->middleware('auth:api')->except(['getPublicModels']);
-        $this->middleware('permission:manage models')->except(['getPublicModels', 'index', 'show']);
+        // Remove middleware calls from constructor - they'll be defined in routes
     }
 
     /**
@@ -30,8 +29,12 @@ class AIModelController extends Controller
      */
     public function index()
     {
-        $models = $this->aiModelService->getAllModels();
-        return response()->json(['data' => $models]);
+        try {
+            $models = $this->aiModelService->getAllModels();
+            return response()->json(['data' => $models]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch models: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -41,8 +44,12 @@ class AIModelController extends Controller
      */
     public function getPublicModels()
     {
-        $models = $this->aiModelService->getPublicModels();
-        return response()->json(['data' => $models]);
+        try {
+            $models = $this->aiModelService->getPublicModels();
+            return response()->json(['data' => $models]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch public models: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -53,8 +60,12 @@ class AIModelController extends Controller
      */
     public function show($id)
     {
-        $model = $this->aiModelService->getModelById($id);
-        return response()->json(['data' => $model]);
+        try {
+            $model = $this->aiModelService->getModelById($id);
+            return response()->json(['data' => $model]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch model: ' . $e->getMessage()], 404);
+        }
     }
 
     /**
@@ -82,8 +93,12 @@ class AIModelController extends Controller
             'contextSize' => 'required|integer',
         ]);
 
-        $model = $this->aiModelService->createModel($validated);
-        return response()->json(['data' => $model, 'message' => 'AI model created successfully'], 201);
+        try {
+            $model = $this->aiModelService->createModel($validated);
+            return response()->json(['data' => $model, 'message' => 'AI model created successfully'], 201);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to create model: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -112,8 +127,12 @@ class AIModelController extends Controller
             'contextSize' => 'sometimes|integer',
         ]);
 
-        $model = $this->aiModelService->updateModel($id, $validated);
-        return response()->json(['data' => $model, 'message' => 'AI model updated successfully']);
+        try {
+            $model = $this->aiModelService->updateModel($id, $validated);
+            return response()->json(['data' => $model, 'message' => 'AI model updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to update model: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -124,8 +143,12 @@ class AIModelController extends Controller
      */
     public function destroy($id)
     {
-        $this->aiModelService->deleteModel($id);
-        return response()->json(['message' => 'AI model deleted successfully']);
+        try {
+            $this->aiModelService->deleteModel($id);
+            return response()->json(['message' => 'AI model deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to delete model: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -136,8 +159,12 @@ class AIModelController extends Controller
      */
     public function setDefault($id)
     {
-        $model = $this->aiModelService->setDefaultModel($id);
-        return response()->json(['data' => $model, 'message' => 'Default model updated successfully']);
+        try {
+            $model = $this->aiModelService->setDefaultModel($id);
+            return response()->json(['data' => $model, 'message' => 'Default model updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to set default model: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -154,7 +181,11 @@ class AIModelController extends Controller
             'options' => 'sometimes|array',
         ]);
 
-        $response = $this->aiModelService->testModel($id, $validated['prompt'], $validated['options'] ?? []);
-        return response()->json(['data' => ['response' => $response]]);
+        try {
+            $response = $this->aiModelService->testModel($id, $validated['prompt'], $validated['options'] ?? []);
+            return response()->json(['data' => ['response' => $response]]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to test model: ' . $e->getMessage()], 500);
+        }
     }
 }

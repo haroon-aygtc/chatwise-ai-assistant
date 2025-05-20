@@ -111,6 +111,7 @@ export const ModelForm = ({
             <SelectContent>
               <SelectItem value="OpenAI">OpenAI</SelectItem>
               <SelectItem value="Google">Google (Gemini)</SelectItem>
+              <SelectItem value="Gemini">Gemini AI</SelectItem>
               <SelectItem value="Anthropic">Anthropic (Claude)</SelectItem>
               <SelectItem value="HuggingFace">Hugging Face</SelectItem>
               <SelectItem value="OpenRouter">OpenRouter</SelectItem>

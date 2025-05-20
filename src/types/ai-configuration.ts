@@ -7,6 +7,7 @@ export type AIProvider =
   | "Groq"
   | "Mistral"
   | "TogetherAI"
+  | "Gemini"
   | "Custom";
 
 export interface BaseModelConfiguration {
@@ -57,6 +58,12 @@ export interface TogetherAIConfiguration extends BaseModelConfiguration {
   repetitionPenalty?: number;
 }
 
+export interface GeminiConfiguration extends BaseModelConfiguration {
+  model: string;
+  topK?: number;
+  safetySettings?: Record<string, unknown>;
+}
+
 export interface CustomConfiguration extends BaseModelConfiguration {
   model?: string;
   [key: string]: unknown;
@@ -71,6 +78,7 @@ export type ModelConfiguration =
   | GroqConfiguration
   | MistralConfiguration
   | TogetherAIConfiguration
+  | GeminiConfiguration
   | CustomConfiguration;
 
 export interface AIModel {

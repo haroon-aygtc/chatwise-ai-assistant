@@ -16,7 +16,14 @@ class AIModelService
      */
     public function getAllModels()
     {
-        return AIModel::all();
+        try {
+            Log::info('Fetching all AI models');
+            return AIModel::all();
+        } catch (Exception $e) {
+            Log::error('Error fetching AI models: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            throw $e;
+        }
     }
 
     /**
@@ -26,7 +33,14 @@ class AIModelService
      */
     public function getPublicModels()
     {
-        return AIModel::where('isActive', true)->get();
+        try {
+            Log::info('Fetching public AI models');
+            return AIModel::where('isActive', true)->get();
+        } catch (Exception $e) {
+            Log::error('Error fetching public AI models: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            throw $e;
+        }
     }
 
     /**
@@ -106,7 +120,7 @@ class AIModelService
         // Set the new default
         $model = AIModel::findOrFail($id);
         $model->update(['isDefault' => true]);
-        
+
         return $model;
     }
 
@@ -131,11 +145,11 @@ class AIModelService
     {
         try {
             $model = AIModel::findOrFail($id);
-            
+
             // This would normally connect to the appropriate AI provider API
             // For now, we're just returning a mock response
             return "This is a test response from the {$model->name} model. Your prompt was: '{$prompt}'";
-            
+
             // In a real implementation, we would use the model's configuration to send a request to the appropriate API
             /*
             $response = Http::withHeaders([
@@ -147,11 +161,11 @@ class AIModelService
                 'max_tokens' => $options['max_tokens'] ?? 100,
                 'temperature' => $options['temperature'] ?? 0.7,
             ]);
-            
+
             if ($response->successful()) {
                 return $response->json()['choices'][0]['text'];
             }
-            
+
             throw new Exception('API request failed: ' . $response->body());
             */
         } catch (Exception $e) {

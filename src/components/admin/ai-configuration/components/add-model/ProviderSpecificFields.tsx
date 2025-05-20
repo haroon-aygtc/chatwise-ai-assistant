@@ -146,6 +146,30 @@ export const ProviderSpecificFields = ({
             )}
           />
         );
+      case "Gemini":
+        return (
+          <FormField
+            id="model-id"
+            label="Model ID"
+            render={() => (
+              <Select value={modelId} onValueChange={setModelId} required>
+                <SelectTrigger className="col-span-3" id="model-id">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                  <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest</SelectItem>
+                  <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
+                  <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</SelectItem>
+                  <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                  <SelectItem value="gemini-pro-vision">Gemini Pro Vision</SelectItem>
+                  <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
+                  <SelectItem value="gemini-ultra-vision">Gemini Ultra Vision</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+        );
       case "Anthropic":
         return (
           <FormField
@@ -273,6 +297,39 @@ export const ProviderSpecificFields = ({
         return (
           <>
             {renderModelSuggestions()}
+            <FormField
+              id="base-url"
+              label="Base URL (Optional)"
+              render={() => (
+                <Input
+                  id="base-url"
+                  placeholder="Custom API endpoint URL"
+                  value={baseUrl || ""}
+                  onChange={(e) => setBaseUrl && setBaseUrl(e.target.value)}
+                />
+              )}
+            />
+          </>
+        );
+      case "Gemini":
+        return (
+          <>
+            {renderModelSuggestions()}
+            <FormField
+              id="top-k"
+              label="Top K"
+              render={() => (
+                <Input
+                  id="top-k"
+                  type="number"
+                  placeholder="Top K sampling parameter"
+                  value={topK || 40}
+                  onChange={(e) => setTopK && setTopK(parseInt(e.target.value))}
+                  min={1}
+                  max={100}
+                />
+              )}
+            />
             <FormField
               id="base-url"
               label="Base URL (Optional)"

@@ -31,7 +31,7 @@ import {
   Zap,
 } from "lucide-react";
 
-const LandingPage = () => {
+const LandingPage: React.FC = () => {
   const [activeView, setActiveView] = useState("dashboard"); // Default to "dashboard" view
   const navigate = useNavigate();
 
@@ -90,21 +90,21 @@ const LandingPage = () => {
 
               {/*Temporary API Tester and CSRF Debugger */}
               <Button
-                  variant={activeView === "api-tester" ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => navigate("/api-tester")}
-                >
-                  <Code className="mr-2 h-4 w-4" />
-                  API Tester
-                </Button>
+                variant={activeView === "api-tester" ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => navigate("/api-tester")}
+              >
+                <Code className="mr-2 h-4 w-4" />
+                API Tester
+              </Button>
               <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => navigate("/csrf-debug")}
-                >
-                  <ServerCog className="mr-2 h-4 w-4" />
-                  CSRF Debugger
-                </Button>
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => navigate("/csrf-debug")}
+              >
+                <ServerCog className="mr-2 h-4 w-4" />
+                CSRF Debugger
+              </Button>
               {/* End of Temporary API Tester and CSRF Debugger */}
 
             </div>

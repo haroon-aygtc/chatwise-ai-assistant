@@ -38,7 +38,7 @@ class GroqService extends BaseProviderService
             }
 
             // Determine base URL
-            $baseUrl = $baseUrl ?? 'https://api.groq.com/v1';
+            $baseUrl = $baseUrl ?? 'https://api.groq.com/openai/v1';
 
             // Prepare request data
             $data = [
@@ -89,7 +89,7 @@ class GroqService extends BaseProviderService
     public function validateApiKey(string $apiKey, ?string $baseUrl = null): bool
     {
         try {
-            $baseUrl = $baseUrl ?? 'https://api.groq.com/v1';
+            $baseUrl = $baseUrl ?? 'https://api.groq.com/openai/v1';
 
             $response = Http::withHeaders([
                 'Authorization' => "Bearer $apiKey",
@@ -113,7 +113,8 @@ class GroqService extends BaseProviderService
         return [
             'temperature' => 0.7,
             'maxTokens' => 4096,
-            'model' => 'llama3-70b-8192'
+            'model' => 'llama-3-70b-8192',
+            'topP' => 0.9
         ];
     }
 }

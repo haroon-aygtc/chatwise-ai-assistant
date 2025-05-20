@@ -33,6 +33,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Track ongoing refresh to prevent multiple simultaneous attempts
+  const refreshInProgress = React.useRef<boolean>(false);
+
+  // Define login function with proper error handling
+  const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      // First ensure CSRF token is initialized
+      await tokenService.initCsrfToken();
+
+      const { user: userData } = await authService.login({ email, password, remember: !!rememberMe });
+
+      if (!userData) {
+        throw new Error('Login successful but no user data returned');
+      }
+
+      // Ensure permissions is always an array
+      const permissions = Array.isArray(userData.permissions)
+        ? userData.permissions
+        : [];
+
+      // Convert the authService User to our domain User
+      setUser({
+        ...userData,
+        id: String(userData.id), // Convert number id to string
+        permissions: permissions, // Ensure permissions is set
+      } as User);
+
+      // Successfully logged in
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Define logout function with useCallback to avoid dependency issues
   const logout = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -48,10 +86,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  // Define signup function with proper error handling
+  const signup = useCallback(async (data: SignupData): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      // First ensure CSRF token is initialized
+      await tokenService.initCsrfToken();
+
+      const { user: userData } = await authService.signup(data);
+
+      if (!userData) {
+        throw new Error('Signup successful but no user data returned');
+      }
+
+      // Ensure permissions is always an array
+      const permissions = Array.isArray(userData.permissions)
+        ? userData.permissions
+        : [];
+
+      // Convert the authService User to our domain User
+      setUser({
+        ...userData,
+        id: String(userData.id), // Convert number id to string
+        permissions: permissions, // Ensure permissions is set
+      } as User);
+
+      // Successfully signed up
+      return true;
+    } catch (error) {
+      console.error('Signup error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Function to refresh authentication status
   const refreshAuth = useCallback(async (): Promise<void> => {
-    if (isLoading) return; // Prevent multiple simultaneous refresh attempts
+    // Prevent multiple simultaneous refresh attempts
+    if (refreshInProgress.current) {
+      console.log('Auth refresh already in progress, skipping');
+      return;
+    }
 
+    refreshInProgress.current = true;
     setIsLoading(true);
     console.log('Starting auth refresh');
 
@@ -64,6 +142,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (isValid) {
         console.log('Token is valid, fetching user data...');
+
+        // Initialize CSRF token first (for Sanctum protection)
+        try {
+          await tokenService.initCsrfToken();
+          console.log('CSRF token initialized during refresh');
+        } catch (csrfError) {
+          console.warn('CSRF token initialization failed during refresh:', csrfError);
+          // Continue anyway - this shouldn't prevent authentication check
+        }
+
         const userData = await authService.getCurrentUser();
 
         if (userData) {
@@ -98,8 +186,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       tokenService.clearToken();
     } finally {
       setIsLoading(false);
+      refreshInProgress.current = false;
     }
-  }, [isLoading]);
+  }, []);
 
   // Check if the user is authenticated on component mount
   useEffect(() => {
@@ -174,7 +263,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initializeAuth();
-  }, []); // This effect should only run once on mount
+  }, []);
+
+  // Add listener for storage events to detect token changes in other tabs
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'auth_token') {
+        console.log('Auth token changed in another tab, refreshing auth state');
+        refreshAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [refreshAuth]);
 
   // Set up token expiry check in a separate effect
   useEffect(() => {
@@ -191,127 +293,93 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
         });
       }
+
+      // If token needs refresh, attempt to refresh it proactively
+      if (user && tokenService.needsRefresh()) {
+        console.log('Token approaching expiration, attempting refresh...');
+        refreshAuth();
+      }
     }, 60000); // Check every minute
 
+    // Listen for custom auth expiry event from API client
+    const handleAuthExpired = () => {
+      console.log('Auth expired event received');
+      if (user) {
+        logout();
+        toast({
+          title: "Session expired",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    };
+
+    // Add event listener for custom auth expiry event
+    window.addEventListener('auth:expired', handleAuthExpired as EventListener);
+
+    // Also refresh auth on visibility change (when user returns to the tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        // Only refresh if we were away for more than 5 minutes
+        const lastActiveTime = Number(localStorage.getItem('last_active_time') || '0');
+        const now = Date.now();
+        const awayTime = now - lastActiveTime;
+
+        if (awayTime > 5 * 60 * 1000) { // 5 minutes in milliseconds
+          console.log('Returning to tab after inactivity, refreshing auth');
+          refreshAuth();
+        }
+
+        // Update last active time
+        localStorage.setItem('last_active_time', now.toString());
+      }
+    };
+
+    // Set initial last active time
+    localStorage.setItem('last_active_time', Date.now().toString());
+
+    // Add event listener for visibility change
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Clean up intervals and event listeners
     return () => {
       clearInterval(tokenCheckInterval);
+      window.removeEventListener('auth:expired', handleAuthExpired as EventListener);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user, logout, toast]); // Add dependencies to avoid stale closures
-
-  // Login function
-  const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<boolean> => {
-    setIsLoading(true);
-    console.log("Login process started");
-    try {
-      // Make sure CSRF token is initialized first
-      await tokenService.initCsrfToken();
-
-      const response = await authService.login({
-        email,
-        password,
-        remember: rememberMe
-      });
-
-      // Ensure we have user data and token
-      if (response && response.user && response.token) {
-        console.log("Login response successful:", {
-          hasToken: !!response.token,
-          hasUser: !!response.user,
-          userId: response.user.id,
-          roles: response.user.roles?.map(r => typeof r === 'object' ? r.name : r).join(', ') || 'none'
-        });
-
-        // Make sure token is stored before updating user state
-        tokenService.setToken(response.token);
-
-        // Ensure permissions is always an array
-        const permissions = Array.isArray(response.user.permissions)
-          ? response.user.permissions
-          : [];
-
-        console.log("User permissions after login:", permissions);
-
-        // Convert the response to our domain User type
-        setUser({
-          ...response.user,
-          id: String(response.user.id),
-          permissions: permissions,
-        } as User);
-
-        // Return success
-        return true;
-      } else {
-        console.error('Invalid login response structure:', response);
-        return false;
-      }
-    } catch (error) {
-      console.error('Login failed:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Signup function
-  const signup = useCallback(async (data: SignupData): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Make sure CSRF token is initialized first
-      await tokenService.initCsrfToken();
-
-      const response = await authService.register({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        password_confirmation: data.password_confirmation
-      });
-
-      // Convert the response to our domain User type
-      setUser({
-        ...response.user,
-        id: String(response.user.id), // Convert number id to string
-      } as User);
-
-      return true;
-    } catch (error) {
-      console.error('Signup failed:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  }, [user, logout, toast, refreshAuth]);
 
   // Check if user has a specific role
   const hasRole = useCallback((role: string | string[]): boolean => {
     if (!user || !user.roles) return false;
 
-    // Special case: 'super-admin' role users always pass role checks
-    const userRoles = Array.isArray(user.roles)
-      ? user.roles.map(r => typeof r === 'object' && r.name ? r.name : r)
-      : [];
+    // Convert role parameter to array if it's a single string
+    const rolesToCheck = Array.isArray(role) ? role : [role];
 
-    if (userRoles.includes('super-admin')) return true;
-
-    // Check against single or multiple roles
-    const requiredRoles = Array.isArray(role) ? role : [role];
-    return requiredRoles.some(r => userRoles.includes(r));
+    // Check if user has any of the specified roles
+    return rolesToCheck.some(r => {
+      // Handle the case where user.roles could be an array or an object
+      if (Array.isArray(user.roles)) {
+        return user.roles.some(ur =>
+          // If the user role is a string, direct comparison
+          (typeof ur === 'string' && ur === r) ||
+          // If the user role is an object, check the name property
+          (typeof ur === 'object' && ur && 'name' in ur && ur.name === r)
+        );
+      } else if (typeof user.roles === 'object' && user.roles !== null) {
+        // If roles is an object with role names as keys
+        return r in user.roles;
+      }
+      return false;
+    });
   }, [user]);
 
   // Check if user has a specific permission
   const hasPermission = useCallback((permission: string | string[]): boolean => {
     if (!user || !user.permissions) return false;
 
-    // Special case: 'super-admin' role users always have all permissions
-    if (user.roles && Array.isArray(user.roles)) {
-      const isAdmin = user.roles.some(role => {
-        const roleName = typeof role === 'object' && role.name ? role.name : role;
-        return roleName === 'super-admin' || roleName === 'admin';
-      });
-
-      if (isAdmin) return true;
-    }
-
-    // Permission aliases - map common permission names to their equivalent in the system
+    // Permission aliases for more intuitive frontend permission checks
     // This allows frontend code to use more intuitive permission names
     const permissionAliases: Record<string, string[]> = {
       'access admin panel': ['view_users', 'manage_users', 'view_roles'],
@@ -378,11 +446,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook to use the auth context
-export function useAuth(): AuthContextType {
+// Custom hook to use the auth context
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
+
+export default useAuth;

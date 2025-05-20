@@ -462,6 +462,14 @@ export const getProviderDefaultConfiguration = (
         model: "meta-llama/Llama-3-70b-chat",
         repetitionPenalty: 1.1,
       };
+    case "Gemini":
+      return {
+        temperature: 0.7,
+        maxTokens: 4096,
+        model: "gemini-1.5-pro",
+        topP: 0.95,
+        topK: 40,
+      };
     default:
       return {
         temperature: 0.7,

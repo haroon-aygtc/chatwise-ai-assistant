@@ -118,6 +118,7 @@ class MistralService extends BaseProviderService
             'temperature' => 0.7,
             'maxTokens' => 4096,
             'model' => 'mistral-large-latest',
+            'topP' => 0.9,
             'safePrompt' => false
         ];
     }
