@@ -256,4 +256,38 @@ class UserController extends Controller
         $users = User::all();
         return response()->json($users);
     }
+
+    /**
+     * Admin-initiated password reset
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \App\Models\User $user
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'password' => ['required', Rules\Password::defaults()],
+        ]);
+
+        // Prevent resetting your own password through this endpoint
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'message' => 'Please use the profile page to change your own password'
+            ], 403);
+        }
+
+        // Update the password
+        $user->update([
+            'password' => Hash::make($validated['password']),
+            'remember_token' => \Illuminate\Support\Str::random(60),
+        ]);
+
+        // Log activity
+        ActivityLogService::log('Password Reset', "Admin reset password for user: {$user->email}");
+
+        return response()->json([
+            'message' => 'User password has been reset successfully',
+        ]);
+    }
 }

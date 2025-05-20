@@ -1,82 +1,116 @@
-
 import apiService from '../api/api';
+import { FollowUpSuggestion } from "@/types/ai-configuration";
 
-export interface FollowUpSetting {
+// Interface for follow-up settings from the backend
+export interface FollowUpSettings {
   id?: number;
   enabled: boolean;
-  max_suggestions: number;
-  created_at?: string;
-  updated_at?: string;
+  maxSuggestions: number;
+  displayMode?: string;
+  autoGenerate?: boolean;
+  branchingEnabled?: boolean;
 }
 
-export interface FollowUpSuggestion {
-  id: string;
-  text: string;
-  category: string;
-  description?: string;
-  order: number;
-  is_active: boolean;
-  trigger_conditions?: Record<string, unknown>;
-  created_at?: string;
-  updated_at?: string;
+/**
+ * Get all follow-up suggestions
+ */
+export async function getAllSuggestions(): Promise<FollowUpSuggestion[]> {
+  try {
+    const response = await apiService.get<{ data: FollowUpSuggestion[] }>("/ai/follow-up/suggestions");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching follow-up suggestions:", error);
+    throw error;
+  }
 }
 
-const followUpService = {
-  /**
-   * Get follow-up settings
-   */
-  getSettings: async (): Promise<FollowUpSetting> => {
-    return await apiService.get<FollowUpSetting>('/follow-up/settings');
-  },
-  
-  /**
-   * Update follow-up settings
-   */
-  updateSettings: async (settings: Partial<FollowUpSetting>): Promise<FollowUpSetting> => {
-    return await apiService.put<FollowUpSetting>('/follow-up/settings', settings);
-  },
-  
-  /**
-   * Get all follow-up suggestions
-   */
-  getSuggestions: async (): Promise<FollowUpSuggestion[]> => {
-    return await apiService.get<FollowUpSuggestion[]>('/follow-up/suggestions');
-  },
-  
-  /**
-   * Create a new follow-up suggestion
-   */
-  createSuggestion: async (suggestion: Omit<FollowUpSuggestion, 'id'>): Promise<FollowUpSuggestion> => {
-    return await apiService.post<FollowUpSuggestion>('/follow-up/suggestions', suggestion);
-  },
-  
-  /**
-   * Update an existing follow-up suggestion
-   */
-  updateSuggestion: async (id: string, suggestion: Partial<FollowUpSuggestion>): Promise<FollowUpSuggestion> => {
-    return await apiService.put<FollowUpSuggestion>(`/follow-up/suggestions/${id}`, suggestion);
-  },
-  
-  /**
-   * Delete a follow-up suggestion
-   */
-  deleteSuggestion: async (id: string): Promise<void> => {
-    await apiService.delete<void>(`/follow-up/suggestions/${id}`);
-  },
-  
-  /**
-   * Reorder follow-up suggestions
-   */
-  reorderSuggestions: async (ids: string[]): Promise<FollowUpSuggestion[]> => {
-    return await apiService.put<FollowUpSuggestion[]>('/follow-up/suggestions/reorder', { ordered_ids: ids });
-  },
-  
-  /**
-   * Get suggestion categories
-   */
-  getCategories: async (): Promise<string[]> => {
-    return await apiService.get<string[]>('/follow-up/categories');
-  },
-};
+/**
+ * Get follow-up suggestion by ID
+ */
+export async function getSuggestionById(id: string): Promise<FollowUpSuggestion> {
+  try {
+    const response = await apiService.get<{ data: FollowUpSuggestion }>(`/ai/follow-up/suggestions/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching follow-up suggestion ${id}:`, error);
+    throw error;
+  }
+}
 
-export default followUpService;
+/**
+ * Create a new follow-up suggestion
+ */
+export async function createSuggestion(suggestion: Omit<FollowUpSuggestion, "id">): Promise<FollowUpSuggestion> {
+  try {
+    const response = await apiService.post<{ data: FollowUpSuggestion }>("/ai/follow-up/suggestions", suggestion);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating follow-up suggestion:", error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing follow-up suggestion
+ */
+export async function updateSuggestion(id: string, suggestion: FollowUpSuggestion): Promise<FollowUpSuggestion> {
+  try {
+    const response = await apiService.put<{ data: FollowUpSuggestion }>(`/ai/follow-up/suggestions/${id}`, suggestion);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating follow-up suggestion ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a follow-up suggestion
+ */
+export async function deleteSuggestion(id: string): Promise<void> {
+  try {
+    await apiService.delete(`/ai/follow-up/suggestions/${id}`);
+  } catch (error) {
+    console.error(`Error deleting follow-up suggestion ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get follow-up settings
+ */
+export async function getSettings(): Promise<FollowUpSettings> {
+  try {
+    const response = await apiService.get<{ data: FollowUpSettings }>("/ai/follow-up/settings");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching follow-up settings:", error);
+    throw error;
+  }
+}
+
+/**
+ * Update follow-up settings
+ */
+export async function updateSettings(settings: FollowUpSettings): Promise<FollowUpSettings> {
+  try {
+    const response = await apiService.put<{ data: FollowUpSettings }>("/ai/follow-up/settings", settings);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating follow-up settings:", error);
+    throw error;
+  }
+}
+
+/**
+ * Reorder follow-up suggestions
+ */
+export async function reorderSuggestions(ids: string[]): Promise<FollowUpSuggestion[]> {
+  return await apiService.put<FollowUpSuggestion[]>('/follow-up/suggestions/reorder', { ordered_ids: ids });
+}
+
+/**
+ * Get suggestion categories
+ */
+export async function getCategories(): Promise<string[]> {
+  return await apiService.get<string[]>('/follow-up/categories');
+}

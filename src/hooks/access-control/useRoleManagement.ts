@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Role, PermissionCategory } from "@/types/domain";
 import { RoleService } from "@/services/role";
 import { useToast } from "@/components/ui/use-toast";
@@ -10,8 +9,8 @@ export function useRoleManagement() {
   const [rolesError, setRolesError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  // Fetch roles
-  const fetchRoles = async () => {
+  // Fetch roles - memoized with useCallback to prevent infinite loops
+  const fetchRoles = useCallback(async () => {
     setIsLoadingRoles(true);
     setRolesError(null);
 
@@ -28,10 +27,10 @@ export function useRoleManagement() {
     } finally {
       setIsLoadingRoles(false);
     }
-  };
+  }, []);
 
   // Create a new role
-  const createRole = async (
+  const createRole = useCallback(async (
     name: string,
     description: string,
     permissions: string[]
@@ -59,10 +58,10 @@ export function useRoleManagement() {
       });
       throw error;
     }
-  };
+  }, [fetchRoles, toast]);
 
   // Update a role
-  const updateRole = async (
+  const updateRole = useCallback(async (
     id: string,
     name: string,
     description: string,
@@ -87,10 +86,10 @@ export function useRoleManagement() {
       });
       throw error;
     }
-  };
+  }, [fetchRoles, toast]);
 
   // Delete a role
-  const deleteRole = async (id: string) => {
+  const deleteRole = useCallback(async (id: string) => {
     try {
       await RoleService.deleteRole(id);
 
@@ -109,10 +108,10 @@ export function useRoleManagement() {
       });
       throw error;
     }
-  };
+  }, [fetchRoles, toast]);
 
   // Update role permissions
-  const updateRolePermissions = async (
+  const updateRolePermissions = useCallback(async (
     roleId: string,
     permissions: string[]
   ) => {
@@ -141,7 +140,7 @@ export function useRoleManagement() {
       });
       return false;
     }
-  };
+  }, [toast]);
 
   return {
     roles,

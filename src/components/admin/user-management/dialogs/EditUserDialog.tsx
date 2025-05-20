@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +17,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useRoles } from "@/hooks/access-control/useRoles";
+import { useQueryClient } from "@tanstack/react-query";
+import UserService from "@/services/user/userService";
 
-import { User, EditedUser } from "../../../../types";
+import { User, EditedUser, Role } from "@/types/domain";
+
+// Helper function to get the user's primary role name
+const getUserRoleName = (user: User): string => {
+  // First check if there's a direct role property
+  if (user.role) return user.role;
+
+  // Otherwise check the roles array
+  if (user.roles && user.roles.length > 0) {
+    const primaryRole = user.roles[0];
+    // Handle both string roles and role objects
+    return typeof primaryRole === 'string'
+      ? primaryRole
+      : (primaryRole.name || 'Unknown Role');
+  }
+
+  // Default if no role information is available
+  return 'No Role';
+};
 
 interface EditUserDialogProps {
   open: boolean;
@@ -32,22 +55,62 @@ export function EditUserDialog({
   user,
 }: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { roles, isLoading: isLoadingRoles, fetchRoles } = useRoles();
+
+  // Initialize editedUser with the correct role from the user
   const [editedUser, setEditedUser] = useState<EditedUser>({
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role,
-    status: user.status,
+    role: getUserRoleName(user),
+    status: user.status || 'active',
   });
 
-  const handleEditUser = () => {
+  // Fetch roles when the dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchRoles();
+    }
+  }, [open, fetchRoles]);
+
+  const handleEditUser = async () => {
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      // In a real implementation, this would update the user in the database
+    try {
+      // Call the API to update the user
+      await UserService.updateUser(user.id, {
+        name: editedUser.name,
+        email: editedUser.email,
+        status: editedUser.status,
+      });
+
+      // If the role has changed, update it separately
+      if (editedUser.role !== getUserRoleName(user)) {
+        await UserService.assignRoles(user.id, [editedUser.role]);
+      }
+
+      // Show success message
+      toast({
+        title: "User updated",
+        description: `User ${editedUser.name} has been updated successfully.`,
+      });
+
+      // Invalidate the users query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+
+      // Close the dialog
       onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to update user:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update user. Please try again.",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -90,14 +153,33 @@ export function EditUserDialog({
               onValueChange={(value) =>
                 setEditedUser({ ...editedUser, role: value })
               }
+              disabled={isLoadingRoles}
             >
               <SelectTrigger id="edit-role">
-                <SelectValue placeholder="Select role" />
+                {isLoadingRoles ? (
+                  <div className="flex items-center">
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <span>Loading roles...</span>
+                  </div>
+                ) : (
+                  <SelectValue placeholder="Select role" />
+                )}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="moderator">Moderator</SelectItem>
-                <SelectItem value="user">User</SelectItem>
+                {roles && roles.length > 0 ? (
+                  roles.map((role) => (
+                    <SelectItem
+                      key={role.id}
+                      value={typeof role === 'string' ? role : role.name}
+                    >
+                      {typeof role === 'string' ? role : role.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="user" disabled>
+                    No roles available
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -116,6 +198,7 @@ export function EditUserDialog({
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -130,11 +213,11 @@ export function EditUserDialog({
           </Button>
           <Button
             onClick={handleEditUser}
-            disabled={isSubmitting || !editedUser.name || !editedUser.email}
+            disabled={isSubmitting || !editedUser.name || !editedUser.email || isLoadingRoles}
           >
             {isSubmitting ? (
               <>
-                <div className="h-4 w-4 mr-2 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Saving...
               </>
             ) : (

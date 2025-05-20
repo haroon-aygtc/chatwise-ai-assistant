@@ -1,35 +1,33 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { ShieldX } from "lucide-react";
+import PublicLayout from "@/components/layouts/PublicLayout";
 
 export default function UnauthorizedPage() {
+  const { isAuthenticated } = useAuth();
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="text-center space-y-6 max-w-md">
-        <div className="mx-auto h-24 w-24 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-          <ShieldX className="h-12 w-12 text-red-600 dark:text-red-400" />
+    <PublicLayout>
+      <div className="flex flex-col items-center justify-center max-w-md mx-auto text-center">
+        <div className="p-4 rounded-full bg-destructive/10 mb-4">
+          <ShieldX className="h-12 w-12 text-destructive" />
         </div>
-        
-        <h1 className="text-3xl font-bold">Access Denied</h1>
-        
-        <p className="text-muted-foreground">
-          You don't have permission to access this page. Please contact your administrator for access.
+        <h1 className="text-3xl font-bold mb-2">Access Denied</h1>
+        <p className="text-muted-foreground mb-6">
+          You don't have permission to access this page. Please contact your administrator if you believe this is an error.
         </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-          <Link to="/dashboard">
-            <Button variant="default">
-              Back to Dashboard
-            </Button>
-          </Link>
-          <Link to="/">
-            <Button variant="outline">
-              Go to Home
-            </Button>
-          </Link>
+        <div className="flex gap-4">
+          <Button asChild variant="default">
+            <Link to={isAuthenticated ? "/dashboard" : "/"}>
+              {isAuthenticated ? "Back to Dashboard" : "Go to Home"}
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/">Contact Support</Link>
+          </Button>
         </div>
       </div>
-    </div>
+    </PublicLayout>
   );
 }

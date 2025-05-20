@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Loader2 } from "lucide-react";
@@ -15,6 +14,7 @@ const RolesPermissions = () => {
   const [showEditRoleDialog, setShowEditRoleDialog] = useState(false);
   const [showDeleteRoleDialog, setShowDeleteRoleDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const rolesLoaded = useRef(false);
 
   // Get roles data
   const {
@@ -26,9 +26,9 @@ const RolesPermissions = () => {
     updateRole,
     deleteRole
   } = useRoleManagement();
-  
+
   // Get permission categories
-  const { 
+  const {
     permissionCategories,
     isLoadingPermissions
   } = usePermissionManagement();
@@ -38,9 +38,12 @@ const RolesPermissions = () => {
   // Handle error state
   const error = rolesError;
 
-  // Load roles on component mount
+  // Load roles on component mount - only once
   useEffect(() => {
-    fetchRoles();
+    if (!rolesLoaded.current) {
+      fetchRoles();
+      rolesLoaded.current = true;
+    }
   }, [fetchRoles]);
 
   const handleEditRole = (role: Role) => {
@@ -54,8 +57,8 @@ const RolesPermissions = () => {
   };
 
   const handleCreateRole = async (
-    name: string, 
-    description: string, 
+    name: string,
+    description: string,
     permissions: string[]
   ) => {
     try {
@@ -89,6 +92,11 @@ const RolesPermissions = () => {
     }
   };
 
+  const handleTabChange = (newTab: string) => {
+    // Only change the tab, but don't fetch roles again
+    setActiveTab(newTab);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -104,7 +112,7 @@ const RolesPermissions = () => {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="mb-4">
           <TabsTrigger value="roles">Roles</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>

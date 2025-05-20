@@ -305,11 +305,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (user.roles && Array.isArray(user.roles)) {
       const isAdmin = user.roles.some(role => {
         const roleName = typeof role === 'object' && role.name ? role.name : role;
-        return roleName === 'super-admin';
+        return roleName === 'super-admin' || roleName === 'admin';
       });
 
       if (isAdmin) return true;
     }
+
+    // Permission aliases - map common permission names to their equivalent in the system
+    // This allows frontend code to use more intuitive permission names
+    const permissionAliases: Record<string, string[]> = {
+      'access admin panel': ['view_users', 'manage_users', 'view_roles'],
+      'manage users': ['view_users', 'create_users', 'edit_users', 'delete_users', 'manage_users'],
+      'manage roles': ['view_roles', 'create_roles', 'edit_roles', 'delete_roles', 'manage_roles'],
+      'manage widgets': ['create_widgets', 'edit_widgets', 'publish_widgets', 'delete_widgets'],
+      'manage kb': ['create_kb_articles', 'edit_kb_articles', 'delete_kb_articles', 'manage_kb_categories'],
+      'manage ai': ['manage_models', 'edit_prompts', 'test_ai', 'view_ai_logs']
+    };
 
     // Regular permission check using the permissions array from the backend
     const userPermissions = Array.isArray(user.permissions)
@@ -318,7 +329,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Check against single or multiple permissions
     const requiredPermissions = Array.isArray(permission) ? permission : [permission];
-    return requiredPermissions.some(p => userPermissions.includes(p));
+
+    // For each required permission, check if user has it directly or via an alias
+    return requiredPermissions.some(p => {
+      // Direct permission check
+      if (userPermissions.includes(p)) return true;
+
+      // Check via aliases (if this permission has aliases defined)
+      const aliases = permissionAliases[p];
+      if (aliases && aliases.some(alias => userPermissions.includes(alias))) {
+        return true;
+      }
+
+      // Check for permission with different format (with/without underscores)
+      // This handles both "view users" and "view_users" format variations
+      const normalizedPermission = p.replace(/[ _]/g, '_');
+      const spacedPermission = p.replace(/[ _]/g, ' ');
+
+      return userPermissions.includes(normalizedPermission) ||
+        userPermissions.includes(spacedPermission);
+    });
   }, [user]);
 
   // Update user data
