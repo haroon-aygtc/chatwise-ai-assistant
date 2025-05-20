@@ -34,21 +34,21 @@ type ActionType = typeof actionTypes
 
 type Action =
   | {
-      type: ActionType["ADD_TOAST"]
-      toast: ToasterToast
-    }
+    type: ActionType["ADD_TOAST"]
+    toast: ToasterToast
+  }
   | {
-      type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
-    }
+    type: ActionType["UPDATE_TOAST"]
+    toast: Partial<ToasterToast>
+  }
   | {
-      type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
+    type: ActionType["DISMISS_TOAST"]
+    toastId?: ToasterToast["id"]
+  }
   | {
-      type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
+    type: ActionType["REMOVE_TOAST"]
+    toastId?: ToasterToast["id"]
+  }
 
 interface State {
   toasts: ToasterToast[]
@@ -106,9 +106,9 @@ export const reducer = (state: State, action: Action): State => {
         toasts: state.toasts.map((t) =>
           t.id === toastId || toastId === undefined
             ? {
-                ...t,
-                open: false,
-              }
+              ...t,
+              open: false,
+            }
             : t
         ),
       }
@@ -171,6 +171,28 @@ function toast({ ...props }: Toast) {
   }
 }
 
+// Helper functions for common toast types
+toast.success = (props: Omit<Toast, "variant">) => {
+  return toast({
+    ...props,
+    variant: "success",
+  })
+}
+
+toast.error = (props: Omit<Toast, "variant">) => {
+  return toast({
+    ...props,
+    variant: "destructive",
+  })
+}
+
+toast.warning = (props: Omit<Toast, "variant">) => {
+  return toast({
+    ...props,
+    variant: "warning",
+  })
+}
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -187,6 +209,9 @@ function useToast() {
   return {
     ...state,
     toast,
+    success: toast.success,
+    error: toast.error,
+    warning: toast.warning,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }
