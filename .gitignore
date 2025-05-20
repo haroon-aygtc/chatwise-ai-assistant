@@ -23,11 +23,52 @@ dist-ssr
 *.sln
 *.sw?
 .history
+.api-tester
+.cursorrules
+.cursor
+/cursor
+/api-tester
 
 # Tempo files
 **/tempobook/dynamic/
 **/tempobook/storyboards/
 
-# Tempo files
-**/tempobook/dynamic/
-**/tempobook/storyboards/
+# API Tester Files - Make sure these are never committed again
+api-tester/
+**/api-tester/
+**/components/api-tester/
+**/services/api-tester/
+src/components/api-tester/
+src/services/api-tester/
+**/tests/api/
+**/*.api.test.js
+**/*.api.test.ts
+**/*.api.spec.js
+**/*.api.spec.ts
+**/api-tests/
+**/api-test-results/
+**/postman_collection.json
+**/insomnia.json
+**/thunder-collection.json
+**/api-docs/
+
+# Modules and dependencies
+/vendor/
+/node_modules/
+/public/build/
+/public/hot/
+/public/storage/
+/storage/*.key
+/.phpunit.cache/
+/.fleet/
+/.idea/
+/.vscode/
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+.env
+.env.backup
+.env.production
+.phpunit.result.cache

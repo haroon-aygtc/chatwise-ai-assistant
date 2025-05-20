@@ -15,7 +15,6 @@ import UserManagementPage from "@/pages/admin/UserManagementPage";
 import WidgetBuilderPage from "@/pages/admin/WidgetBuilderPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import KnowledgeBasePage from "@/pages/admin/KnowledgeBasePage";
-import ApiTester from "./components/api-tester/ApiTester";
 import { ConfigurationManager } from "@/components/admin/ai-configuration/ConfigurationManager";
 import { AIModelManager } from "@/components/admin/ai-configuration/AIModelManager";
 import { ResponseFormatterManager } from "@/components/admin/ai-configuration/response-formats";
@@ -173,7 +172,6 @@ function App() {
                 <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<LandingPage />} />
-                  <Route path="/api-tester" element={<ApiTester />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<SignupPage />} />
 
