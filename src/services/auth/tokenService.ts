@@ -1,5 +1,4 @@
 import { jwtDecode } from "jwt-decode";
-import API_CONFIG from "../api/config";
 
 /**
  * Token service for handling authentication tokens
@@ -85,23 +84,48 @@ const tokenService = {
         return;
       }
 
-      const response = await fetch(`/sanctum/csrf-cookie`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-          "Cache-Control": "no-cache, no-store",
-        },
-      });
+      // Check if we're in development mode
+      const isDevelopment =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch CSRF token: ${response.status} ${response.statusText}`,
-        );
+      // Use a different endpoint based on environment
+      const csrfEndpoint = isDevelopment
+        ? `${window.location.protocol}//${window.location.hostname}:8000/sanctum/csrf-cookie`
+        : `/sanctum/csrf-cookie`;
+
+      try {
+        const response = await fetch(csrfEndpoint, {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "Cache-Control": "no-cache, no-store",
+          },
+          // Add a timeout to prevent long-hanging requests
+          signal: AbortSignal.timeout(5000), // 5 second timeout
+        });
+
+        if (!response.ok) {
+          console.warn(`CSRF token fetch failed: ${response.status} ${response.statusText}`);
+          // Create a fallback token for development purposes
+          if (isDevelopment) {
+            const meta = document.createElement('meta');
+            meta.name = 'csrf-token';
+            meta.content = 'development-csrf-token-fallback';
+            document.head.appendChild(meta);
+            console.info('Using fallback CSRF token for development');
+          }
+        }
+      } catch (fetchError) {
+        console.warn('Error fetching CSRF token:', fetchError);
+        // Don't throw error, just log it and continue
+        // This prevents authentication from breaking if CSRF endpoint is down
       }
     } catch (error) {
-      throw error;
+      console.error('CSRF initialization error:', error);
+      // Don't throw the error to prevent breaking the app
     }
   },
 
@@ -154,6 +178,9 @@ const tokenService = {
 
     // Consider it a page reload if we're within 3 seconds of page load time
     isPageReload = isPageReload || timeSinceLoad < 3000;
+
+    // Define isRefreshScenario for use throughout the function
+    const isRefreshScenario = isPageReload || timeSinceLoad < 3000;
 
     // Set a flag to prevent redirect during page reload
     if (isPageReload) {
