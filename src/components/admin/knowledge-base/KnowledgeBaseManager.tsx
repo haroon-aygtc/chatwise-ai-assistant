@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KnowledgeBaseHeader } from "./KnowledgeBaseHeader";
 import { DocumentsSection } from "./DocumentsSection";
@@ -9,6 +8,7 @@ import { UploadDocumentDialog } from "./UploadDocumentDialog";
 import { useKnowledgeBase } from "@/hooks/knowledge-base/useKnowledgeBase";
 import { DocumentCategory } from "@/types/knowledge-base";
 import { DocumentCategory as AIDocumentCategory } from "@/types/ai-configuration";
+import { toast } from "@/components/ui/use-toast";
 
 export const KnowledgeBaseManager = () => {
   const {
@@ -26,8 +26,22 @@ export const KnowledgeBaseManager = () => {
     addDocumentMutation,
     handleRefresh,
     handleUploadDocument,
-    handleDeleteDocument
+    handleDeleteDocument,
   } = useKnowledgeBase();
+
+  const [activeTab, setActiveTab] = useState("documents");
+
+  // Initial data load error handling
+  useEffect(() => {
+    if (isDocumentsError) {
+      toast({
+        title: "Error loading knowledge base",
+        description:
+          "There was a problem loading the knowledge base. Please try refreshing.",
+        variant: "destructive",
+      });
+    }
+  }, [isDocumentsError]);
 
   return (
     <div className="space-y-6">
@@ -37,7 +51,11 @@ export const KnowledgeBaseManager = () => {
         isLoading={isLoadingDocuments}
       />
 
-      <Tabs defaultValue="documents">
+      <Tabs
+        defaultValue="documents"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
@@ -60,7 +78,10 @@ export const KnowledgeBaseManager = () => {
         </TabsContent>
 
         <TabsContent value="categories" className="space-y-4 pt-4">
-          <CategoryList categories={categories} isLoading={isLoadingCategories} />
+          <CategoryList
+            categories={categories}
+            isLoading={isLoadingCategories}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4 pt-4">
@@ -68,8 +89,8 @@ export const KnowledgeBaseManager = () => {
         </TabsContent>
       </Tabs>
 
-      <UploadDocumentDialog 
-        open={isUploadDialogOpen} 
+      <UploadDocumentDialog
+        open={isUploadDialogOpen}
         onOpenChange={setIsUploadDialogOpen}
         onUpload={handleUploadDocument}
         categories={categories as DocumentCategory[]}
