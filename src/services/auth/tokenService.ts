@@ -33,7 +33,10 @@ const tokenService = {
     try {
       const decoded = jwtDecode(token);
       if ((decoded as any).exp) {
-        localStorage.setItem("token_expiration", String((decoded as any).exp * 1000));
+        localStorage.setItem(
+          "token_expiration",
+          String((decoded as any).exp * 1000),
+        );
       }
     } catch (error) {
       const expiration = Date.now() + 24 * 60 * 60 * 1000;
@@ -82,7 +85,7 @@ const tokenService = {
         return;
       }
 
-      const response = await fetch(`${API_CONFIG.BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
+      const response = await fetch(`/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -107,16 +110,16 @@ const tokenService = {
    */
   decodeToken: (token: string): any => {
     try {
-      if (!token || typeof token !== 'string' || !token.includes('.')) {
+      if (!token || typeof token !== "string" || !token.includes(".")) {
         return {
-          exp: Math.floor(Date.now() / 1000) + 86400
+          exp: Math.floor(Date.now() / 1000) + 86400,
         };
       }
 
       return jwtDecode(token);
     } catch (error) {
       return {
-        exp: Math.floor(Date.now() / 1000) + 86400
+        exp: Math.floor(Date.now() / 1000) + 86400,
       };
     }
   },
@@ -126,33 +129,38 @@ const tokenService = {
    */
   validateToken: (): boolean => {
     const token = localStorage.getItem("auth_token");
-    const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+    const hasActiveSession =
+      sessionStorage.getItem("has_active_session") === "true";
 
     // Improved page reload detection using modern and legacy methods
-    let isPageReload = document.readyState !== 'complete';
+    let isPageReload = document.readyState !== "complete";
 
     // Modern method using Navigation API
-    if (typeof performance !== 'undefined' &&
-      typeof performance.getEntriesByType === 'function') {
-      const navEntries = performance.getEntriesByType('navigation');
+    if (
+      typeof performance !== "undefined" &&
+      typeof performance.getEntriesByType === "function"
+    ) {
+      const navEntries = performance.getEntriesByType("navigation");
       if (navEntries.length > 0) {
-        isPageReload = isPageReload || (navEntries[0] as any).type === 'reload';
+        isPageReload = isPageReload || (navEntries[0] as any).type === "reload";
       }
     }
 
     // Check session storage for a page load marker
-    const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+    const pageLoadTime = Number(
+      sessionStorage.getItem("page_load_time") || "0",
+    );
     const timeSinceLoad = Date.now() - pageLoadTime;
 
     // Consider it a page reload if we're within 3 seconds of page load time
-    isPageReload = isPageReload || (timeSinceLoad < 3000);
+    isPageReload = isPageReload || timeSinceLoad < 3000;
 
     // Set a flag to prevent redirect during page reload
     if (isPageReload) {
-      sessionStorage.setItem('prevent_auth_redirect', 'true');
+      sessionStorage.setItem("prevent_auth_redirect", "true");
       // Clear this flag after a short delay
       setTimeout(() => {
-        sessionStorage.removeItem('prevent_auth_redirect');
+        sessionStorage.removeItem("prevent_auth_redirect");
       }, 3000);
     }
 
@@ -163,7 +171,7 @@ const tokenService = {
 
     try {
       // For non-JWT tokens
-      if (!token.includes('.')) {
+      if (!token.includes(".")) {
         const expStr = localStorage.getItem("token_expiration");
         if (expStr) {
           const expTime = parseInt(expStr, 10);
@@ -258,12 +266,15 @@ const tokenService = {
    */
   isTokenExpired: (): boolean => {
     const token = localStorage.getItem("auth_token");
-    const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+    const hasActiveSession =
+      sessionStorage.getItem("has_active_session") === "true";
 
     // Check if we're in a page reload scenario
-    const isPageReload = document.readyState !== 'complete';
-    const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
-    const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
+    const isPageReload = document.readyState !== "complete";
+    const pageLoadTime = Number(
+      sessionStorage.getItem("page_load_time") || "0",
+    );
+    const isRecentPageLoad = Date.now() - pageLoadTime < 3000;
     const isRefreshScenario = isPageReload || isRecentPageLoad;
 
     // No token means it's expired
@@ -285,7 +296,8 @@ const tokenService = {
       if (isExpired && isRefreshScenario) {
         // Only consider it not expired if it's within 5 seconds of expiry during refresh
         const expiredBy = Date.now() - expTime;
-        if (expiredBy < 5000) { // 5 second grace period
+        if (expiredBy < 5000) {
+          // 5 second grace period
           return false;
         }
         return true;
@@ -301,7 +313,7 @@ const tokenService = {
 
     try {
       // For non-JWT tokens
-      if (!token.includes('.')) {
+      if (!token.includes(".")) {
         const lastAccessedStr = localStorage.getItem("token_last_accessed");
         if (lastAccessedStr) {
           const lastAccessed = parseInt(lastAccessedStr, 10);
@@ -364,14 +376,14 @@ const tokenService = {
     const expStr = localStorage.getItem("token_expiration");
     if (expStr) {
       const expTime = parseInt(expStr, 10);
-      return (expTime - Date.now()) < 5 * 60 * 1000;
+      return expTime - Date.now() < 5 * 60 * 1000;
     }
 
     try {
       const decoded: any = jwtDecode(token);
       const now = Date.now() / 1000;
 
-      return decoded.exp && (decoded.exp - now < 300);
+      return decoded.exp && decoded.exp - now < 300;
     } catch (error) {
       return false;
     }

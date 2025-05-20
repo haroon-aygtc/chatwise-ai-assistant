@@ -26,41 +26,16 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: process.env.TEMPO === "true" ? true : true,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "https://boring-chaum3-cdgun.view-3.tempo-dev.app",
         changeOrigin: true,
         secure: false,
-        bypass: (req) => {
-          // Return false to continue proxy, true to bypass
-          if (
-            req.url?.startsWith("/api") &&
-            !req.headers.host?.includes("localhost:8000")
-          ) {
-            console.log("Bypassing API proxy for development");
-            return req.url;
-          }
-          return false;
-        },
-      },
-      "/sanctum/csrf-cookie": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, "/api"),
       },
       "/sanctum": {
-        target: "http://localhost:8000",
+        target: "https://boring-chaum3-cdgun.view-3.tempo-dev.app",
         changeOrigin: true,
         secure: false,
-        bypass: (req) => {
-          // Return false to continue proxy, true to bypass
-          if (
-            req.url?.startsWith("/sanctum") &&
-            !req.headers.host?.includes("localhost:8000")
-          ) {
-            console.log("Bypassing Sanctum proxy for development");
-            return req.url;
-          }
-          return false;
-        },
+        rewrite: (path) => path,
       },
     },
   },
