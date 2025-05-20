@@ -116,22 +116,17 @@ class HttpClient {
 
             // Check if an identical request is already in flight
             if (pendingRequests.has(requestKey)) {
-              // Return the existing promise to avoid duplicate requests
-              return Promise.reject({
-                config,
-                response: { status: 429 }, // Use 429 to indicate client-side rate limiting
-                message: 'Request already in progress',
-                duplicateRequest: true
-              });
+              // Instead of rejecting, return the existing promise to reuse the result
+              console.log(`Reusing in-flight request for: ${config.url}`);
+              return pendingRequests.get(requestKey);
             }
 
             // Store this request in the pending map
-            const requestPromise = new Promise((resolve) => {
-              // We'll resolve this later in the response interceptor
-              config._requestKey = requestKey;
-              resolve(true);
-            });
+            config._requestKey = requestKey;
 
+            // Create a promise that will be resolved with the actual response
+            // This is important - we're storing the actual request promise
+            const requestPromise = this.instance(config);
             pendingRequests.set(requestKey, requestPromise);
           }
         }
@@ -171,12 +166,6 @@ class HttpClient {
         return config;
       },
       (error) => {
-        // Handle client-side rate limiting
-        if (error.duplicateRequest) {
-          console.log('Request skipped (duplicate in progress):', error.config?.url);
-          return Promise.reject(error);
-        }
-
         console.error("Request error:", error);
         return Promise.reject(error);
       },
@@ -186,8 +175,11 @@ class HttpClient {
     this.instance.interceptors.response.use(
       (response) => {
         // Remove from pending requests map if this was a tracked request
+        // We do this after a short delay to allow other in-flight requests to use the cached result
         if (response.config._requestKey) {
-          pendingRequests.delete(response.config._requestKey);
+          setTimeout(() => {
+            pendingRequests.delete(response.config._requestKey);
+          }, 100); // Short delay to allow other components to reuse the response
         }
 
         // Log response in debug mode
@@ -207,12 +199,6 @@ class HttpClient {
         // Remove from pending requests map if this was a tracked request
         if (error.config?._requestKey) {
           pendingRequests.delete(error.config._requestKey);
-        }
-
-        // Handle client-side rate limiting
-        if (error.duplicateRequest) {
-          // Silently reject duplicate requests without showing errors
-          return Promise.reject(error);
         }
 
         const response = error.response;

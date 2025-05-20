@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AIModel, RoutingRule } from "@/types/ai-configuration";
 import * as aiModelService from "@/services/ai-configuration/aiModelService";
 
@@ -11,39 +11,63 @@ export function useAIModels() {
   const [hasChanges, setHasChanges] = useState(false);
   const isMounted = useRef(false);
   const fetchInProgress = useRef(false);
+  const fetchPromise = useRef<Promise<void> | null>(null);
 
   // Fetch models and routing rules
-  const fetchData = async (force = false) => {
-    // Prevent multiple simultaneous fetches
-    if (fetchInProgress.current && !force) return;
+  const fetchData = useCallback(async (force = false) => {
+    // If a fetch is already in progress and we're not forcing, return the existing promise
+    if (fetchInProgress.current && !force && fetchPromise.current) {
+      return fetchPromise.current;
+    }
 
+    // Create a new fetch promise
     fetchInProgress.current = true;
     setIsLoading(true);
     setError(null);
-    try {
-      const [fetchedModels, fetchedRules] = await Promise.all([
-        aiModelService.getAllModels(),
-        aiModelService.getRoutingRules()
-      ]);
 
-      // Only update state if component is still mounted
-      if (isMounted.current) {
-        setModels(fetchedModels);
-        setRoutingRules(fetchedRules);
-        setHasChanges(false);
+    const fetchPromiseInternal = (async () => {
+      try {
+        // Use individual try/catch for each request to handle them separately
+        let fetchedModels: AIModel[] = [];
+        let fetchedRules: RoutingRule[] = [];
+
+        try {
+          fetchedModels = await aiModelService.getAllModels();
+        } catch (modelErr) {
+          console.warn("Error fetching AI models:", modelErr);
+          // Continue with empty models rather than failing completely
+        }
+
+        try {
+          fetchedRules = await aiModelService.getRoutingRules();
+        } catch (rulesErr) {
+          console.warn("Error fetching routing rules:", rulesErr);
+          // Continue with empty rules rather than failing completely
+        }
+
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          if (fetchedModels.length > 0) setModels(fetchedModels);
+          if (fetchedRules.length > 0) setRoutingRules(fetchedRules);
+          setHasChanges(false);
+        }
+      } catch (err) {
+        console.error("Error in fetchData:", err);
+        if (isMounted.current) {
+          setError(err instanceof Error ? err : new Error("Failed to load AI models and routing rules"));
+        }
+      } finally {
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
+        fetchInProgress.current = false;
+        fetchPromise.current = null;
       }
-    } catch (err) {
-      console.error("Error fetching AI models and routing rules:", err);
-      if (isMounted.current) {
-        setError(err instanceof Error ? err : new Error("Failed to load AI models and routing rules"));
-      }
-    } finally {
-      if (isMounted.current) {
-        setIsLoading(false);
-      }
-      fetchInProgress.current = false;
-    }
-  };
+    })();
+
+    fetchPromise.current = fetchPromiseInternal;
+    return fetchPromiseInternal;
+  }, []);
 
   // Initial fetch
   useEffect(() => {
@@ -53,7 +77,7 @@ export function useAIModels() {
     return () => {
       isMounted.current = false;
     };
-  }, []);
+  }, [fetchData]);
 
   // Update model
   const updateModel = async (updatedModel: Partial<AIModel>) => {
@@ -159,7 +183,7 @@ export function useAIModels() {
     addRoutingRule,
     deleteRoutingRule,
     saveAllChanges,
-    refreshData: (force = true) => fetchData(force),
+    refreshData: fetchData,
     hasChanges,
     clearError,
   };
