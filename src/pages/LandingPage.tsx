@@ -32,6 +32,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import { setPublicApiMode } from "@/services/api/config";
 
 const LandingPage = () => {
   const [activeView, setActiveView] = useState("dashboard"); // Default to "dashboard" view
@@ -40,8 +41,8 @@ const LandingPage = () => {
 
   const togglePublicMode = () => {
     setIsPublicMode(!isPublicMode);
-    // Here you would typically update some API configuration
-    // or trigger an API call to change the backend mode
+    // Update the API mode configuration
+    setPublicApiMode(!isPublicMode);
   };
 
   return (

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +18,9 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 
+// Debug flag for development
+const DEBUG = true;
+
 const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
@@ -33,7 +35,25 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+
+  // Add try-catch block to debug AuthProvider issues
+  let auth;
+  try {
+    if (DEBUG) console.log("Attempting to use useAuth hook");
+    auth = useAuth();
+    if (DEBUG) console.log("Successfully accessed useAuth", auth);
+  } catch (error) {
+    console.error("Failed to access useAuth:", error);
+    // Provide a fallback empty object with necessary properties
+    auth = {
+      login: async () => {
+        console.error("Login called with mock auth object");
+        return false;
+      }
+    };
+  }
+
+  const { login } = auth;
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,24 +66,28 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (DEBUG) console.log("Login form submitted with values:", values);
     setIsLoading(true);
     try {
       // Call login function from auth hook
+      if (DEBUG) console.log("Calling login function");
       const success = await login(values.email, values.password, values.remember);
+      if (DEBUG) console.log("Login result:", success);
 
       if (success) {
         // Check if there's a redirect URL in session storage
         const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
-        
+        if (DEBUG) console.log("Redirect URL:", redirectUrl);
+
         // Display success toast
         toast({
           title: "Login successful",
           description: "You have been successfully logged in",
         });
-        
+
         // Clear the redirect URL from session storage
         sessionStorage.removeItem('redirectAfterLogin');
-        
+
         // Navigate to the redirect URL
         navigate(redirectUrl);
       }

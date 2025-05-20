@@ -52,9 +52,12 @@ class AuthController extends Controller
         // Log user login activity
         ActivityLogService::logLogin($user);
 
+        // Generate token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'user' => $user->load('roles', 'permissions'),
-            'token' => $user->createToken('auth_token')->plainTextToken,
+            'user' => $this->formatUserResponse($user),
+            'token' => $token,
         ]);
     }
 
@@ -88,10 +91,13 @@ class AuthController extends Controller
 
         Auth::login($user);
 
+        // Generate token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
             'message' => 'User registered successfully',
-            'user' => $user->load('roles', 'permissions'),
-            'token' => $user->createToken('auth_token')->plainTextToken,
+            'user' => $this->formatUserResponse($user),
+            'token' => $token,
         ], 201);
     }
 
@@ -128,14 +134,37 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
         $user->update(['last_active' => now()]);
 
-        // Load roles and permissions
-        $user->load('roles');
-        $userData = $user->toArray();
-        $userData['permissions'] = $user->getAllPermissions()->pluck('name');
+        return response()->json([
+            'user' => $this->formatUserResponse($user)
+        ]);
+    }
 
-        return response()->json($userData);
+    /**
+     * Format user data for response
+     *
+     * @param \App\Models\User $user
+     * @return array
+     */
+    protected function formatUserResponse($user)
+    {
+        // Make sure relations are loaded
+        if (!$user->relationLoaded('roles')) {
+            $user->load('roles');
+        }
+
+        // Build user data
+        $userData = $user->toArray();
+
+        // Add direct permissions and permissions from roles
+        $userData['permissions'] = $user->getAllPermissions()->pluck('name')->toArray();
+
+        return $userData;
     }
 
     /**

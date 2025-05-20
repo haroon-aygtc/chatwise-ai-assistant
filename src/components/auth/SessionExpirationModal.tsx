@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   AlertDialog,
@@ -13,15 +12,44 @@ import {
 import { useAuth } from "@/hooks/auth/useAuth";
 import { tokenService } from "@/services/auth";
 
+// Debug flag
+const DEBUG = process.env.NODE_ENV === 'development';
+
 // How many seconds before expiration to show the warning
 const WARNING_THRESHOLD = 5 * 60; // 5 minutes
 
 const SessionExpirationModal = () => {
   const [open, setOpen] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const { refreshAuth, logout } = useAuth();
+
+  // Add error handling for useAuth hook
+  let auth;
+  try {
+    if (DEBUG) console.log("SessionExpirationModal: Attempting to use useAuth hook");
+    auth = useAuth();
+    if (DEBUG) console.log("SessionExpirationModal: Successfully accessed useAuth");
+  } catch (error) {
+    console.error("SessionExpirationModal: Failed to access useAuth", error);
+    // Create dummy functions
+    auth = {
+      refreshAuth: async () => {
+        console.error("SessionExpirationModal: Mock refreshAuth called");
+      },
+      logout: async () => {
+        console.error("SessionExpirationModal: Mock logout called");
+      }
+    };
+  }
+
+  const { refreshAuth, logout } = auth;
 
   useEffect(() => {
+    // Skip token checks if auth isn't properly initialized
+    if (!auth || !refreshAuth || !logout) {
+      if (DEBUG) console.log("SessionExpirationModal: Skipping token check - auth not initialized");
+      return;
+    }
+
     let intervalId: NodeJS.Timeout;
 
     const checkTokenExpiration = () => {
@@ -29,21 +57,32 @@ const SessionExpirationModal = () => {
       const token = tokenService.getToken();
       if (!token) return;
 
-      // Decode the token to get expiration
-      const decoded = tokenService.decodeToken(token);
-      if (!decoded || !decoded.exp) return;
+      // Skip non-JWT tokens (they could be Laravel Sanctum tokens)
+      if (!token.includes('.')) {
+        if (DEBUG) console.log("SessionExpirationModal: Non-JWT token detected, skipping expiration check");
+        return;
+      }
 
-      // Calculate time until expiration in seconds
-      const currentTime = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = decoded.exp - currentTime;
+      try {
+        // Decode the token to get expiration
+        const decoded = tokenService.decodeToken(token);
+        if (!decoded || !decoded.exp) return;
 
-      // If within warning threshold, show dialog
-      if (timeUntilExpiry > 0 && timeUntilExpiry <= WARNING_THRESHOLD) {
-        setSecondsLeft(timeUntilExpiry);
-        setOpen(true);
-      } else if (timeUntilExpiry <= 0) {
-        // Token already expired
-        logout();
+        // Calculate time until expiration in seconds
+        const currentTime = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = decoded.exp - currentTime;
+
+        // If within warning threshold, show dialog
+        if (timeUntilExpiry > 0 && timeUntilExpiry <= WARNING_THRESHOLD) {
+          setSecondsLeft(timeUntilExpiry);
+          setOpen(true);
+        } else if (timeUntilExpiry <= 0) {
+          // Token already expired
+          logout();
+        }
+      } catch (error) {
+        if (DEBUG) console.log("SessionExpirationModal: Error checking token expiration", error);
+        // Don't do anything on error - the token may be valid but not JWT format
       }
     };
 
@@ -63,7 +102,7 @@ const SessionExpirationModal = () => {
     return () => {
       clearInterval(intervalId);
     };
-  }, [logout, open]);
+  }, [logout, refreshAuth, open, auth]);
 
   const handleExtend = async () => {
     // Refresh authentication
