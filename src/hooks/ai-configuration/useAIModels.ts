@@ -27,23 +27,20 @@ export function useAIModels() {
 
     const fetchPromiseInternal = (async () => {
       try {
-        // Use individual try/catch for each request to handle them separately
-        let fetchedModels: AIModel[] = [];
-        let fetchedRules: RoutingRule[] = [];
+        // Fetch models and rules in parallel for better performance
+        const [modelsPromise, rulesPromise] = [
+          aiModelService.getAllModels().catch(err => {
+            console.warn("Error fetching AI models:", err);
+            return [] as AIModel[]; // Return empty array on error
+          }),
+          aiModelService.getRoutingRules().catch(err => {
+            console.warn("Error fetching routing rules:", err);
+            return [] as RoutingRule[]; // Return empty array on error
+          })
+        ];
 
-        try {
-          fetchedModels = await aiModelService.getAllModels();
-        } catch (modelErr) {
-          console.warn("Error fetching AI models:", modelErr);
-          // Continue with empty models rather than failing completely
-        }
-
-        try {
-          fetchedRules = await aiModelService.getRoutingRules();
-        } catch (rulesErr) {
-          console.warn("Error fetching routing rules:", rulesErr);
-          // Continue with empty rules rather than failing completely
-        }
+        // Wait for both promises to resolve
+        const [fetchedModels, fetchedRules] = await Promise.all([modelsPromise, rulesPromise]);
 
         // Only update state if component is still mounted
         if (isMounted.current) {

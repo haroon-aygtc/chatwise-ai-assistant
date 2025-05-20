@@ -29,13 +29,6 @@ export const ConfigurationManager = () => {
 
     const navigationItems = [
         {
-            icon: Cpu,
-            name: "AI Models",
-            description: "Configure AI models and providers",
-            path: "/admin/ai-configuration/models",
-            key: "models"
-        },
-        {
             icon: FileText,
             name: "Response Formats",
             description: "Configure response structures and templates",
@@ -84,7 +77,7 @@ export const ConfigurationManager = () => {
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">AI Configuration</h1>
                 <p className="text-muted-foreground mt-2">
-                    Configure AI models, response formats, and follow-up suggestions
+                    Configure response formats, follow-up suggestions, and other AI settings
                 </p>
             </div>
 
@@ -124,4 +117,4 @@ export const ConfigurationManager = () => {
     );
 };
 
-export default ConfigurationManager; 
+export default ConfigurationManager;

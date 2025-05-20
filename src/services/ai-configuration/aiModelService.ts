@@ -304,8 +304,7 @@ export const fetchProviderModels = async (
     // For now, we'll simulate it with a delay and mock data
     console.log(`Fetching models for provider: ${providerSlug}`);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // No artificial delay needed
 
     // Generate mock models based on provider
     const mockModels: AIModel[] = [];

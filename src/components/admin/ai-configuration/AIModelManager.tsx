@@ -79,8 +79,20 @@ export const AIModelManager = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchProviders();
-  }, []);
+    // Load providers and models in parallel
+    const loadInitialData = async () => {
+      try {
+        await Promise.all([
+          fetchProviders(),
+          refreshData()
+        ]);
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+      }
+    };
+
+    loadInitialData();
+  }, [refreshData]);
 
   const fetchProviders = async () => {
     try {
@@ -207,8 +219,12 @@ export const AIModelManager = () => {
 
   const handleRefresh = async () => {
     try {
-      await refreshData();
-      await fetchProviders();
+      // Refresh data in parallel
+      await Promise.all([
+        refreshData(),
+        fetchProviders()
+      ]);
+
       toast({
         title: "Success",
         description: "Data refreshed successfully",

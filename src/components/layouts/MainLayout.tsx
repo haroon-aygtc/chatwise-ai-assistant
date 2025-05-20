@@ -8,7 +8,6 @@ import {
     PanelLeftClose,
     LogOut,
     FileBarChart2,
-    Workflow,
     Bot,
     PanelTop,
     Database,
@@ -18,8 +17,7 @@ import {
     Cpu,
     FileText,
     MessageSquarePlus,
-    GitBranch,
-    LineChart
+    GitBranch
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -61,15 +59,16 @@ const MainLayout = () => {
     const navigate = useNavigate();
     const { logout, user, hasRole, hasPermission } = useAuth();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     useEffect(() => {
         const handleResize = () => {
-            setIsMobile(window.innerWidth < 768);
             if (window.innerWidth < 768) {
                 setIsSidebarCollapsed(true);
             }
         };
+
+        // Initial check
+        handleResize();
 
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
@@ -122,18 +121,19 @@ const MainLayout = () => {
             requiredPermission: "manage users",
         },
         {
+            icon: <Cpu size={18} />,
+            label: "AI Models",
+            path: "/admin/ai-configuration/models",
+            active: location.pathname === "/admin/ai-configuration/models",
+            requiredRole: "admin",
+        },
+        {
             icon: <Bot size={18} />,
             label: "AI Configuration",
             path: "/admin/ai-configuration",
-            active: location.pathname.startsWith("/admin/ai-configuration"),
+            active: location.pathname.startsWith("/admin/ai-configuration") && location.pathname !== "/admin/ai-configuration/models",
             requiredRole: "admin",
             children: [
-                {
-                    icon: <Cpu size={16} />,
-                    label: "AI Models",
-                    path: "/admin/ai-configuration/models",
-                    active: location.pathname === "/admin/ai-configuration/models",
-                },
                 {
                     icon: <FileText size={16} />,
                     label: "Response Formats",
@@ -401,4 +401,4 @@ const MainLayout = () => {
     );
 };
 
-export default MainLayout; 
+export default MainLayout;
