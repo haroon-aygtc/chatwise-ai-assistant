@@ -18,9 +18,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 
-// Debug flag for development
-const DEBUG = true;
-
 const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
@@ -38,8 +35,6 @@ export function LoginForm() {
   const { login } = useAuth();
   const { toast } = useToast();
 
-  if (DEBUG) console.log("LoginForm rendered, auth hook loaded properly");
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -50,21 +45,17 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (DEBUG) console.log("Login form submitted with values:", values);
     setIsLoading(true);
     try {
       // Call login function from auth hook
-      if (DEBUG) console.log("Calling login function");
       const success = await login(values.email, values.password, values.remember);
-      if (DEBUG) console.log("Login result:", success);
 
       if (success) {
         // Check if there's a redirect URL in session storage
         const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
-        if (DEBUG) console.log("Redirect URL:", redirectUrl);
 
         // Display success toast
-        toast({
+        toast.success({
           title: "Login successful",
           description: "You have been successfully logged in",
         });
@@ -76,8 +67,7 @@ export function LoginForm() {
         navigate(redirectUrl);
       }
     } catch (error) {
-      console.error("Login error:", error);
-      // Error toast is handled in authService
+      // Error handling is now centralized in authService
     } finally {
       setIsLoading(false);
     }

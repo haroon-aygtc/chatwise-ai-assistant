@@ -76,7 +76,6 @@ export function SignupForm() {
         }, 1000);
       }
     } catch (error) {
-      console.error("Signup error:", error);
       // Error handling is now centralized in authService
     } finally {
       setIsLoading(false);
