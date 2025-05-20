@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class PromptTemplate extends Model
 {
@@ -23,6 +24,7 @@ class PromptTemplate extends Model
         'is_default',
         'is_active',
         'usage_count',
+        'content',
     ];
 
     /**
@@ -36,4 +38,58 @@ class PromptTemplate extends Model
         'is_active' => 'boolean',
         'usage_count' => 'integer',
     ];
+
+    /**
+     * Get the variables attribute
+     *
+     * @return Attribute
+     */
+    protected function variables(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (empty($value)) {
+                    return [];
+                }
+
+                if (is_string($value)) {
+                    $decoded = json_decode($value, true);
+                    return is_array($decoded) ? $decoded : [];
+                }
+
+                return $value;
+            },
+            set: function ($value) {
+                if (is_array($value)) {
+                    return json_encode($value);
+                }
+
+                return $value;
+            }
+        );
+    }
+
+    /**
+     * Initialize default values for new models
+     *
+     * @return void
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (!isset($model->usage_count)) {
+                $model->usage_count = 0;
+            }
+
+            if (!isset($model->is_active)) {
+                $model->is_active = true;
+            }
+
+            if (!isset($model->is_default)) {
+                $model->is_default = false;
+            }
+        });
+    }
 }

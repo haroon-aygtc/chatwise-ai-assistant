@@ -1,0 +1,257 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+**AI Modules Overview**
+
+---
+
+### \*\*1. \*\***AI Model Module**
+
+**Objective:** To manage different AI providers and configurations, enabling flexible model selection and testing.
+
+**Key Features:**
+
+* Add multiple AI providers (e.g., OpenAI, Gemini, Falcon, GeroQ)
+* Assign model name, base URL, temperature, secret key
+* Set default model for system use
+* Toggle models active/inactive
+* Select from active models when sending queries
+
+**Admin Operations:**
+
+* Add, edit, or delete AI models
+* Activate/deactivate models
+* Set a model as default
+* Test integration via a mini chat box UI
+* Ensure only one default model is set at a time
+* Card-based UI for models with status indicators
+
+**AI Integration:**
+
+* Models called dynamically based on priority or default setting
+* Admin can test models live before deployment
+* Models integrated with prompt templates and context module
+
+---
+
+###
+
+---
+
+### \*\*2. \*\***Knowledge Base Module**
+
+**Objective:** To provide structured, accurate, and up-to-date information for the AI model to retrieve responses from diverse sources such as databases, documents, and websites.
+
+**Key Features:**
+
+* **Data Sources:**
+
+  * Database (structured)
+  * Internal storage (project files)
+  * Knowledge base articles & FAQs
+  * File uploads (PDF, DOCX, XLSX)
+  * Website links (for web scraping)
+
+* **AI Model Integration:**
+
+  * Queries multiple data sources based on context
+  * Prioritizes internal knowledge and falls back to AI-generated responses
+
+* **Dynamic Query Handling:**
+
+  * Selects best source per query context
+  * Supports combining multiple data sources for completeness
+
+* **Admin Operations:**
+
+  * Manage source types and priorities
+  * Upload and categorize content
+  * Create/edit articles or FAQ entries
+  * Link scraping sources
+
+* **Update Process:**
+
+  * Manual uploads
+  * Auto-fetch from external sources
+
+**Integration Summary:** Structured knowledge base provides factual data, ensuring AI gives consistent and accurate responses.
+
+
+
+
+\***\*3. \*\*Context Module**
+
+**Objective:** To ensure the AI understands queries based on session history, user behavior, and business-specific context.
+
+**Key Features:**
+
+* **User & Session Context:**
+
+  * Tracks preferences, previous queries, and behavior
+  * Maintains ongoing context throughout sessions
+
+* **Business Context:**
+
+  * Rules for hours, policies, and business logic
+
+* **Fallbacks:**
+
+  * Predefined answers for unclear context
+
+**Admin Operations:**
+
+* Define rules for ambiguous queries
+* Configure how long session memory is retained
+* Control what data is stored (e.g., preferences, past interactions)
+
+**AI Integration:**
+
+* Session-aware responses
+* Dynamically adjusts based on conversation flow
+* Falls back to generic answers if context fails
+
+**Integration with Knowledge Base:**
+
+* Context filters which knowledge source to prioritize
+* AI selects relevant parts of the knowledge base based on session context
+
+---
+
+###
+
+**4**: **Prompt Template Module**
+
+**Objective:** To define reusable, dynamic templates that control the structure, tone, and logic of AI responses.
+
+**Key Features:**
+
+* Dynamic placeholders (e.g., `{{user_query}}`, `{{business_name}}`)
+* Contextual instructions (e.g., "Cite sources")
+* AI modifiers (tone, format, etc.)
+* Priority and fallback management
+* Tags for organizing templates
+
+**Admin Operations:**
+
+* Create/edit prompt templates
+* Set activation, priority, preview, and publishing controls
+
+**AI Integration:**
+
+* Templates attached to user queries before sending to AI
+* Fallback templates used when primary fails
+* Ensures consistency and branding in responses
+
+
+5\*\*. AI Model Module\*\*
+
+**Objective:**
+To manage different AI providers and configurations, enabling flexible model selection and testing.
+
+**Key Features:**
+
+* Add multiple AI providers (e.g., OpenAI, Gemini, Falcon, GeroQ)
+* Assign model name, base URL, temperature, secret key
+* Set default model for system use
+* Toggle models active/inactive
+* Select from active models when sending queries
+
+**Admin Operations:**
+
+* Add, edit, or delete AI models
+* Activate/deactivate models
+* Set a model as default
+* Test integration via a mini chat box UI
+* Ensure only one default model is set at a time
+* Card-based UI for models with status indicators
+
+**AI Integration:**
+
+* Models called dynamically based on priority or default setting
+* Admin can test models live before deployment
+* Models integrated with prompt templates and context module
+
+---
+
+### **5. Follow-up Module**
+
+**Objective:**
+To enrich user engagement by offering dynamic follow-up questions after an initial response.
+
+**Key Features:**
+
+* Create conditional follow-up questions
+* Define multi-option answers
+* Control placement in response (start, middle, end)
+* Trigger follow-ups automatically or manually
+
+**Admin Operations:**
+
+* Configure relevance and logic for follow-up chains
+* Manage follow-up conditions
+
+**AI Integration:**
+
+* Follow-ups sent based on previous query/response
+* Supports interactive, guided conversations
+
+---
+
+### **Module Interaction Summary**
+
+* **Knowledge Base + Context:** Ensures relevant data is pulled based on query history and user behavior
+* **Context + Prompt Templates:** Adjusts tone, content, and specificity using history and user profile
+* **Prompt Templates + AI:** Defines structured, consistent, branded replies
+* **Follow-up + Context:** Enables dynamic question trees tailored to conversation flow
+* **AI Model Module:** Powers the response engine with flexibility, fallback, and testing capabilities
+
+This modular approach enables intelligent, flexible, and scalable AI-powered interactions.
+
+AI Module Management – Admin Control Panel
+
+
+**Branding**:
+
+Branding refers to incorporating your organization's **specific identity** into the responses provided by the AI. For example, when a user gets a response, the tone, style, and certain details should reflect your business's personality, messaging, and identity.
+
+* **Example**: If your brand is **"Al Yalayis"**, all AI responses should include the brand name, professional tone, and consistent language style that matches the **Al Yalayis** image.
+* **What this means for AI responses**: If the AI says something like "Thank you for contacting us!" it should say "Thank you for reaching out to Al Yalayis." The response should feel like it's coming from your brand, ensuring consistency across interactions.
+
+### **2. Response Format**:
+
+Response format defines how the AI’s answer should be **organized and structured**. This helps ensure that the responses are clear, professional, and user-friendly.
+
+* **Examples**:
+
+  * **Bullet Points**: If you want the response to be simple and quick to read, it might be formatted as a list (e.g., steps to complete a process, service requirements).
+  * **Paragraphs**: If the response is more detailed, it could be structured in paragraph form.
+  * **Headers**: You might use headings to clearly separate different sections of a response, like **"Service Fees"**, **"Required Documents"**, or **"Processing Time"**.
+
+### **How Branding and Response Format Work Together**:
+
+Branding sets the **tone and personality** of the message (e.g., professional, friendly), while the **response format** ensures that the information is structured clearly for the user. Both should work together to create a polished, cohesive response.
+
+---
+
+**In short**:
+
+* **Branding** is about maintaining your organization's voice and identity in responses.
+* **Response Format** is how you structure and present the information in a clear and user-friendly way.
+
+
+
+**Core Features**
+
+| FeatureDescription              |                                                                               |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| **Add AI Module**               | Add a new AI module (e.g. Gemini, GPT-4, Falcon).                             |
+| **Edit AI Module**              | Edit name, temperature, secret key, and model ID.                             |
+| **Delete AI Module**            | Remove unused modules from system.                                            |
+| **Set as Default**              | Mark one module as the default to be used.                                    |
+| **Activate/Deactivate**         | Toggle module usage without deleting it.                                      |
+| **Selectively Use in Prompts**  | Choose specific modules for different tasks (intent, scraping fallback, etc). |
+| **Test Integration (Chat Box)** | Embedded test window to verify if the model works (via API).                  |
+
+

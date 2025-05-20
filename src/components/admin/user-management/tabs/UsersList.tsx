@@ -10,6 +10,7 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  Shield,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,16 +46,48 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { getRoleBadgeVariant } from "@/utils/helpers";
+import { getRoleBadgeVariant, formatDate } from "@/utils/helpers";
 import StatusIcon from "@/components/admin/user-management/components/StatusIcon";
 import { EditUserDialog } from "@/components/admin/user-management/dialogs/EditUserDialog";
 import { DeleteUserDialog } from "@/components/admin/user-management/dialogs/DeleteUserDialog";
-import { User } from "@/types/domain";
+import { ResetPasswordDialog } from "@/components/admin/user-management/dialogs/ResetPasswordDialog";
+import { User, Role } from "@/types/domain";
 
 import { useRoles } from "@/hooks/access-control/useRoles";
 import { useUsers } from "@/hooks/user-management/useUsers";
 import { SEARCH_DEBOUNCE_TIME, USER_STATUSES_ARRAY } from "@/constants";
+
+// Helper function to get the user's primary role name
+const getUserRoleName = (user: User): string => {
+  // First check if there's a direct role property
+  if (user.role) return user.role;
+
+  // Otherwise check the roles array
+  if (user.roles && user.roles.length > 0) {
+    const primaryRole = user.roles[0];
+    // Handle both string roles and role objects
+    return typeof primaryRole === 'string'
+      ? primaryRole
+      : (primaryRole.name || 'Unknown Role');
+  }
+
+  // Default if no role information is available
+  return 'No Role';
+};
+
+// Helper to get all roles from a user as a formatted string
+const getAllUserRoles = (user: User): string => {
+  if (!user.roles || user.roles.length === 0) {
+    return user.role || 'No Roles';
+  }
+
+  return user.roles.map(role => {
+    if (typeof role === 'string') return role;
+    return role.name || 'Unknown';
+  }).join(', ');
+};
 
 // UsersList component with proper role and status filtering
 const UsersList = () => {
@@ -63,6 +96,7 @@ const UsersList = () => {
   const [selectedStatus, setSelectedStatus] = useState("all"); // Default status filter
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
   const [showDeleteUserDialog, setShowDeleteUserDialog] = useState(false);
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
     null,
@@ -125,13 +159,32 @@ const UsersList = () => {
     setShowDeleteUserDialog(true);
   };
 
+  const openResetPasswordDialog = (user: User) => {
+    setSelectedUser(user);
+    setShowResetPasswordDialog(true);
+  };
+
   // Handle manual refresh
   const handleRefresh = () => {
     fetchUsers();
   };
 
+  // Generate avatar fallback text from user name
+  const getAvatarFallback = (name?: string): string => {
+    if (!name) return "?";
+
+    // Get first letter of first and last name
+    const nameParts = name.split(' ');
+    if (nameParts.length > 1) {
+      return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+    }
+
+    // If only one name, return first letter
+    return name.charAt(0).toUpperCase();
+  };
+
   return (
-    <>
+    <TooltipProvider>
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -233,27 +286,58 @@ const UsersList = () => {
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar>
-                          <AvatarImage src={user.avatar} />
-                          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarFallback>{getAvatarFallback(user.name)}</AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium">{user.name}</div>
                           <div className="text-sm text-muted-foreground">
                             {user.email}
                           </div>
+                          {user.organization && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {user.organization}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center">
+                            <Badge
+                              variant={getRoleBadgeVariant(getUserRoleName(user))}
+                              className="flex items-center space-x-1"
+                            >
+                              <Shield className="h-3 w-3 mr-1" />
+                              <span>{getUserRoleName(user)}</span>
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        {user.roles && user.roles.length > 1 && (
+                          <TooltipContent side="right">
+                            <div className="font-semibold">All Roles:</div>
+                            <div>{getAllUserRoles(user)}</div>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <StatusIcon status={user.status} />
+                      <StatusIcon status={user.status} showText={true} />
                     </TableCell>
                     <TableCell>
-                      {new Date(user.lastActive).toLocaleDateString()}
+                      <Tooltip>
+                        <TooltipTrigger>
+                          {formatDate(user.lastActive, 'relative')}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {user.lastActive ?
+                            new Date(user.lastActive).toLocaleString() :
+                            'Never logged in'
+                          }
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -267,6 +351,9 @@ const UsersList = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>
+                            Manage User
+                          </DropdownMenuLabel>
                           <DropdownMenuItem
                             onClick={() => openEditUserDialog(user)}
                           >
@@ -277,7 +364,9 @@ const UsersList = () => {
                             <Mail className="mr-2 h-4 w-4" />
                             Send Email
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openResetPasswordDialog(user)}
+                          >
                             <Key className="mr-2 h-4 w-4" />
                             Reset Password
                           </DropdownMenuItem>
@@ -297,7 +386,10 @@ const UsersList = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8">
-                    No users found
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <Users className="h-8 w-8 mb-2" />
+                      <p>No users found</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
@@ -307,7 +399,7 @@ const UsersList = () => {
         <CardFooter>
           <div className="flex items-center justify-between w-full">
             <p className="text-sm text-muted-foreground">
-              Showing {users?.length || 0} of {totalUsers || 0} users (Page {currentPage} of {lastPage})
+              Showing {users?.length || 0} of {totalUsers || 0} users (Page {currentPage || 1} of {lastPage || 1})
             </p>
             <div className="flex items-center space-x-2">
               <Button
@@ -325,6 +417,7 @@ const UsersList = () => {
                 size="sm"
                 disabled={
                   isLoading ||
+                  !lastPage ||
                   currentPage >= lastPage
                 }
                 onClick={() => updateQueryParams({ page: currentPage + 1 })}
@@ -350,7 +443,14 @@ const UsersList = () => {
           onOpenChange={setShowDeleteUserDialog}
         />
       )}
-    </>
+      {showResetPasswordDialog && selectedUser && (
+        <ResetPasswordDialog
+          user={selectedUser}
+          open={showResetPasswordDialog}
+          onOpenChange={setShowResetPasswordDialog}
+        />
+      )}
+    </TooltipProvider>
   );
 };
 

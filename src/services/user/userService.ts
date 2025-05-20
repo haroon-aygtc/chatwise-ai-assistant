@@ -81,6 +81,19 @@ class UserService {
       { roles }
     );
   }
+
+  /**
+   * Reset a user's password (admin only)
+   */
+  static async resetPassword(
+    id: string,
+    password: string
+  ): Promise<{ message: string }> {
+    return await apiService.post<{ message: string }>(
+      `/users/${id}/reset-password`,
+      { password }
+    );
+  }
 }
 
 export default UserService;

@@ -1,43 +1,30 @@
 import { useState, useEffect } from "react";
 import React from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/hooks/auth/useAuth";
-import SessionExpirationModal from "@/components/auth/SessionExpirationModal";
-
-// Layout components
-import ProtectedRoute from "@/modules/auth/components/ProtectedRoute";
-import AuthLayout from "@/modules/auth/components/AuthLayout";
-import AdminLayout from "@/components/admin/AdminLayout";
-
-// Auth pages
-import LoginPage from "@/pages/auth/LoginPage";
-import SignupPage from "@/pages/auth/SignupPage";
-import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
-
-// Main pages
-import HomePage from "@/pages/HomePage";
+import { Toaster } from "@/components/ui/toaster";
+import MainLayout from "@/components/layouts/MainLayout";
+import DashboardContent from "@/pages/DashboardContent";
 import LandingPage from "@/pages/LandingPage";
-import DashboardPage from "@/pages/DashboardPage";
-import NotFound from "@/pages/NotFound";
 import UnauthorizedPage from "@/pages/UnauthorizedPage";
-import ComponentShowcasePage from "@/pages/ComponentShowcasePage";
-
-// Admin pages
-import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
-import UserManagementPage from "@/pages/admin/UserManagementPage";
-import AIConfigurationPage from "@/pages/admin/AIConfigurationPage";
+import ChatSessionsPage from "@/pages/ChatSessionsPage";
+import AdminDashboardContent from "@/pages/admin/AdminDashboardContent";
 import AnalyticsPage from "@/pages/admin/AnalyticsPage";
+import UserManagementPage from "@/pages/admin/UserManagementPage";
 import WidgetBuilderPage from "@/pages/admin/WidgetBuilderPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
-import ChatSessionsPage from "@/pages/admin/ChatSessionsPage";
 import KnowledgeBasePage from "@/pages/admin/KnowledgeBasePage";
 import ApiTester from "./components/api-tester/ApiTester";
+import { ConfigurationManager } from "@/components/admin/ai-configuration/ConfigurationManager";
+import { AIModelManager } from "@/components/admin/ai-configuration/AIModelManager";
+import { ResponseFormatterManager } from "@/components/admin/ai-configuration/response-formats";
+import { FollowUpManager } from "@/components/admin/ai-configuration/FollowUpManager";
+import { RedirectComponent } from "@/components/admin/ai-configuration/RedirectComponent";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 // Debug flag
-const DEBUG = true;
+const DEBUG = import.meta.env.DEV;
 
 // Error boundary component to catch React errors
 class ErrorBoundary extends React.Component<
@@ -95,8 +82,27 @@ const queryClient = new QueryClient({
   },
 });
 
+// Create placeholders using RedirectComponent for unimplemented features
+const AISettingsManager = () => <RedirectComponent componentName="AI Settings" />;
+const BranchingFlowsManager = () => <RedirectComponent componentName="Branching Flows" />;
+
+// Simple component for Not Found pages
+const NotFound = () => (
+  <div className="flex flex-col items-center justify-center h-screen">
+    <h1 className="text-3xl font-bold mb-4">404 - Page Not Found</h1>
+    <p className="mb-6">The page you are looking for does not exist.</p>
+    <button
+      className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/80"
+      onClick={() => window.history.back()}
+    >
+      Go Back
+    </button>
+  </div>
+);
+
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     // Prefetch CSRF token only when needed and avoid excessive API calls
@@ -114,6 +120,29 @@ function App() {
 
     initializeApp();
   }, []);
+
+  // Helper component to protect routes
+  const ProtectedRoute = ({ children, requiredRole, requiredPermission }: {
+    children: React.ReactNode;
+    requiredRole?: string;
+    requiredPermission?: string | string[];
+  }) => {
+    const { user, hasRole, hasPermission } = useAuth();
+
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    }
+
+    if (requiredRole && !hasRole(requiredRole)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+
+    return <>{children}</>;
+  };
 
   return (
     <ErrorBoundary>
@@ -137,77 +166,86 @@ function App() {
               </div>
             }
           >
-            <AuthProvider>
-              {isInitialized ? (
-                <>
-                  <Routes>
-                    {/* Public routes */}
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/components" element={<ComponentShowcasePage />} />
+            {isInitialized ? (
+              <>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/api-tester" element={<ApiTester />} />
 
-                    {/* Auth routes - Use the page components directly which internally use AuthLayout */}
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="api-tester" element={<ApiTester />} />
-
-                    {/* Protected routes */}
-                    <Route
-                      path="/home"
-                      element={
-                        <ProtectedRoute>
-                          <HomePage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/dashboard"
-                      element={
-                        <ProtectedRoute>
-                          <DashboardPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                  {/* Protected routes using MainLayout */}
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    {/* Regular user routes */}
+                    <Route path="/home" element={<DashboardContent />} />
+                    <Route path="/dashboard" element={<DashboardContent />} />
+                    <Route path="/chat-sessions" element={<ChatSessionsPage />} />
 
                     {/* Admin routes */}
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute
-                          requiredRole="admin"
-                          requiredPermission="access admin panel"
-                        >
-                          <AdminLayout />
-                        </ProtectedRoute>
-                      }
-                    >
-                      <Route index element={<Navigate to="/admin/dashboard" />} />
-                      <Route path="dashboard" element={<AdminDashboardPage />} />
-                      <Route path="analytics" element={<AnalyticsPage />} />
-                      <Route path="users" element={<UserManagementPage />} />
-                      <Route path="ai-config" element={<AIConfigurationPage />} />
-                      <Route path="knowledge-base" element={<KnowledgeBasePage />} />
-                      <Route path="widget-builder" element={<WidgetBuilderPage />} />
-                      <Route path="chat-sessions" element={<ChatSessionsPage />} />
-                      <Route path="settings" element={<SettingsPage />} />
+                    <Route path="/admin/dashboard" element={
+                      <ProtectedRoute requiredRole="admin">
+                        <AdminDashboardContent />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/analytics" element={
+                      <ProtectedRoute requiredRole="admin">
+                        <AnalyticsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/users" element={
+                      <ProtectedRoute
+                        requiredRole="admin"
+                        requiredPermission={["view_users", "view_roles", "manage_users"]}
+                      >
+                        <UserManagementPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/ai-configuration" element={
+                      <ProtectedRoute requiredRole="admin">
+                        <ConfigurationManager />
+                      </ProtectedRoute>
+                    }>
+                      <Route path="models" element={<AIModelManager />} />
+                      <Route path="response-formats" element={<ResponseFormatterManager />} />
+                      <Route path="follow-up" element={<FollowUpManager />} />
+                      <Route path="branching-flows" element={<BranchingFlowsManager />} />
+                      <Route path="settings" element={<AISettingsManager />} />
+                      <Route path="*" element={<RedirectComponent componentName="Requested AI Component" />} />
                     </Route>
+                    <Route path="/admin/knowledge-base" element={
+                      <ProtectedRoute requiredRole="admin">
+                        <KnowledgeBasePage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/widget-builder" element={
+                      <ProtectedRoute requiredRole="admin">
+                        <WidgetBuilderPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/admin/settings" element={
+                      <ProtectedRoute>
+                        <SettingsPage />
+                      </ProtectedRoute>
+                    } />
+                  </Route>
 
-                    {/* Error pages */}
-                    <Route path="/unauthorized" element={<UnauthorizedPage />} />
-                    {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  <Toaster position="top-right" />
-                  <ErrorBoundary>
-                    <SessionExpirationModal />
-                  </ErrorBoundary>
-                </>
-              ) : (
-                <div className="flex items-center justify-center h-screen">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                </div>
-              )}
-            </AuthProvider>
+                  {/* Error pages */}
+                  <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                  {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <Toaster />
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            )}
           </ErrorBoundary>
         </ThemeProvider>
       </QueryClientProvider>

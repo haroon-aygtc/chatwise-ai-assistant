@@ -1,178 +1,210 @@
-
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import * as promptTemplateService from "@/services/ai-configuration/promptTemplateService";
-import type { PromptTemplate, PromptTemplateCategory } from "@/types/ai-configuration";
+import type { PromptTemplate, PromptTemplateCategory } from "../../../types/ai-configuration";
+import { useState } from "react";
 
-// Define request types
+// Type definitions for request payloads
 export interface CreatePromptTemplateRequest {
   name: string;
-  description?: string;
+  description: string;
   template: string;
-  category: string;
-  variables: string[];
+  variables: Array<{
+    name: string;
+    description?: string;
+    type?: string;
+    defaultValue?: string;
+    required?: boolean;
+  }>;
+  content?: string;
+  category?: string;
   isActive?: boolean;
-  isDefault?: boolean;
 }
 
 export interface UpdatePromptTemplateRequest {
   name?: string;
   description?: string;
   template?: string;
+  variables?: Array<{
+    name: string;
+    description?: string;
+    type?: string;
+    defaultValue?: string;
+    required?: boolean;
+  }>;
+  content?: string;
   category?: string;
-  variables?: string[];
   isActive?: boolean;
   isDefault?: boolean;
 }
 
 export function usePromptTemplates() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [currentTemplate, setCurrentTemplate] = useState<PromptTemplate | null>(null);
   const queryClient = useQueryClient();
 
-  // Filters for templates query
-  const filters = {
-    search: searchQuery || undefined,
-    category: selectedCategory !== "all" ? selectedCategory : undefined,
-  };
+  // Filters state for template queries
+  const [filters, setFilters] = useState({
+    search: undefined as string | undefined,
+    category: undefined as string | undefined,
+  });
 
-  // Fetch templates
+  // Current template being edited
+  const [currentTemplate, setCurrentTemplate] = useState<PromptTemplate | null>(null);
+
+  // System prompt state (separate from regular templates)
+  const [systemPrompt, setSystemPrompt] = useState({
+    content: "",
+    version: 1,
+    isActive: true,
+  });
+
+  // Query for fetching templates with filters
   const {
     data: templates = [],
-    isLoading,
-    isError,
-    refetch
+    isLoading: isLoadingTemplates,
+    error: templatesError,
+    refetch: refetchTemplates,
   } = useQuery({
     queryKey: ['promptTemplates', filters],
     queryFn: () => promptTemplateService.getAllTemplates(filters),
   });
 
-  // Fetch categories
+  // Query for fetching template categories
   const {
     data: categories = [],
+    isLoading: isLoadingCategories,
+    error: categoriesError,
   } = useQuery({
     queryKey: ['promptTemplateCategories'],
     queryFn: promptTemplateService.getCategories,
   });
 
-  // Create template mutation
+  // Mutation for creating a new template
   const createTemplateMutation = useMutation({
     mutationFn: (templateData: CreatePromptTemplateRequest) =>
       promptTemplateService.createTemplate(templateData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
-      setShowAddDialog(false);
-      toast.success("Template created successfully");
     },
-    onError: (error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to create template: ${errorMessage}`);
-    }
+    onError: (error) => {
+      console.error("Error creating template:", error);
+      throw error;
+    },
   });
 
-  // Update template mutation
+  // Mutation for updating an existing template
   const updateTemplateMutation = useMutation({
     mutationFn: (params: { id: string, data: UpdatePromptTemplateRequest }) =>
       promptTemplateService.updateTemplate(params.id, params.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
-      setShowEditDialog(false);
-      toast.success("Template updated successfully");
     },
-    onError: (error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to update template: ${errorMessage}`);
-    }
+    onError: (error) => {
+      console.error("Error updating template:", error);
+      throw error;
+    },
   });
 
-  // Delete template mutation
+  // Mutation for deleting a template
   const deleteTemplateMutation = useMutation({
     mutationFn: promptTemplateService.deleteTemplate,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
-      toast.success("Template deleted successfully");
     },
-    onError: (error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to delete template: ${errorMessage}`);
-    }
+    onError: (error) => {
+      console.error("Error deleting template:", error);
+      throw error;
+    },
   });
 
-  // Handlers
-  const handleRefresh = () => {
-    refetch();
+  // Mutation for tracking template usage
+  const incrementUsageMutation = useMutation({
+    mutationFn: promptTemplateService.incrementUsage,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
+    },
+  });
+
+  // Update the system prompt
+  const updateSystemPrompt = async (content: string) => {
+    setSystemPrompt({
+      ...systemPrompt,
+      content,
+      version: systemPrompt.version + 1,
+    });
+
+    // TODO: Replace with actual API call when endpoint is available
+    return true;
   };
 
-  const handleAddTemplate = () => {
-    setShowAddDialog(true);
-  };
-
+  // Handler functions for template operations
   const handleEditTemplate = (template: PromptTemplate) => {
     setCurrentTemplate(template);
-    setShowEditDialog(true);
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this template?")) {
-      deleteTemplateMutation.mutate(id);
-    }
+  const createTemplate = async (templateData: CreatePromptTemplateRequest) => {
+    return createTemplateMutation.mutateAsync(templateData);
   };
 
-  const handleSaveNewTemplate = (templateData: CreatePromptTemplateRequest) => {
-    createTemplateMutation.mutate(templateData);
+  const updateTemplate = async (id: string, templateData: UpdatePromptTemplateRequest) => {
+    return updateTemplateMutation.mutateAsync({ id, data: templateData });
   };
 
-  const handleSaveEditedTemplate = (templateData: UpdatePromptTemplateRequest) => {
-    if (!currentTemplate) return;
-    updateTemplateMutation.mutate({
-      id: currentTemplate.id,
-      data: templateData
-    });
+  const deleteTemplate = async (id: string) => {
+    return deleteTemplateMutation.mutateAsync(id);
   };
 
   const handleCloneTemplate = (template: PromptTemplate) => {
-    // Extract variable names from PromptVariable objects
-    const variableNames = template.variables ? template.variables.map(v => v.name) : [];
+    // Remove ID to create a new template
+    const { id, createdAt, updatedAt, usageCount, ...rest } = template;
 
+    // Create clone with slightly modified name
     const clonedTemplate: CreatePromptTemplateRequest = {
+      ...rest,
       name: `${template.name} (Copy)`,
-      description: template.description,
-      template: template.template,
-      variables: variableNames, // Use the extracted variable names
-      category: template.category || "General", // Provide a default category if undefined
-      isActive: template.isActive,
-      isDefault: false, // Clone should never be default
     };
-    createTemplateMutation.mutate(clonedTemplate);
+
+    return createTemplate(clonedTemplate);
+  };
+
+  // Update filters for searching and filtering templates
+  const updateFilters = (newFilters: Partial<typeof filters>) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters
+    }));
+  };
+
+  // Track template usage
+  const trackTemplateUsage = async (id: string) => {
+    return incrementUsageMutation.mutateAsync(id);
   };
 
   return {
+    // Data
     templates,
     categories,
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
-    showAddDialog,
-    setShowAddDialog,
-    showEditDialog,
-    setShowEditDialog,
+    systemPrompt,
     currentTemplate,
-    isLoading,
-    isError,
-    handleRefresh,
-    handleAddTemplate,
+    filters,
+
+    // Loading states
+    isLoading: isLoadingTemplates || isLoadingCategories,
+    isCreating: createTemplateMutation.isPending,
+    isUpdating: updateTemplateMutation.isPending,
+    isDeleting: deleteTemplateMutation.isPending,
+
+    // Error states
+    error: templatesError || categoriesError,
+
+    // Actions
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
+    updateSystemPrompt,
     handleEditTemplate,
-    handleDeleteTemplate,
-    handleSaveNewTemplate,
-    handleSaveEditedTemplate,
     handleCloneTemplate,
-    createTemplateMutation,
-    updateTemplateMutation,
-    deleteTemplateMutation
+    updateFilters,
+    trackTemplateUsage,
+    setCurrentTemplate,
+    refetchTemplates,
   };
 }

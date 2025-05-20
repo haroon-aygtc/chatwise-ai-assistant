@@ -37,14 +37,14 @@ class PromptTemplateController extends Controller
     {
         $filters = [
             'search' => $request->input('search'),
-            'category' => $request->input('category', 'all'),
+            'category' => $request->input('category'),
             'is_active' => $request->has('is_active') ? $request->boolean('is_active') : null,
         ];
 
         $perPage = $request->input('per_page', 15);
         $templates = $this->promptTemplateService->getAllTemplates($filters, $perPage);
 
-        return ResponseService::success($templates);
+        return ResponseService::success(['templates' => $templates]);
     }
 
     /**
@@ -61,7 +61,7 @@ class PromptTemplateController extends Controller
             return ResponseService::error('Prompt template not found', null, 404);
         }
 
-        return ResponseService::success($template);
+        return ResponseService::success(['template' => $template]);
     }
 
     /**
@@ -75,7 +75,7 @@ class PromptTemplateController extends Controller
         $data = $request->validated();
         $template = $this->promptTemplateService->createTemplate($data);
 
-        return ResponseService::success($template, 'Prompt template created successfully', 201);
+        return ResponseService::success(['template' => $template], 'Prompt template created successfully', 201);
     }
 
     /**
@@ -94,7 +94,7 @@ class PromptTemplateController extends Controller
             return ResponseService::error('Prompt template not found', null, 404);
         }
 
-        return ResponseService::success($template, 'Prompt template updated successfully');
+        return ResponseService::success(['template' => $template], 'Prompt template updated successfully');
     }
 
     /**
@@ -111,7 +111,7 @@ class PromptTemplateController extends Controller
             return ResponseService::error('Prompt template not found or cannot be deleted', null, 404);
         }
 
-        return ResponseService::success(null, 'Prompt template deleted successfully');
+        return ResponseService::success(['success' => true], 'Prompt template deleted successfully');
     }
 
     /**
@@ -122,7 +122,7 @@ class PromptTemplateController extends Controller
     public function getCategories(): JsonResponse
     {
         $categories = $this->promptTemplateService->getCategories();
-        return ResponseService::success($categories);
+        return ResponseService::success(['categories' => $categories]);
     }
 
     /**
@@ -139,6 +139,72 @@ class PromptTemplateController extends Controller
             return ResponseService::error('Prompt template not found', null, 404);
         }
 
-        return ResponseService::success(null, 'Usage count incremented successfully');
+        return ResponseService::success(['success' => true], 'Usage count incremented successfully');
+    }
+
+    /**
+     * Get pre-defined templates from the library
+     *
+     * @return JsonResponse
+     */
+    public function getLibrary(): JsonResponse
+    {
+        $templates = $this->promptTemplateService->getTemplateLibrary();
+        return ResponseService::success(['templates' => $templates]);
+    }
+
+    /**
+     * Test a template with variables and optionally with an AI model
+     *
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function testTemplate(Request $request, int $id): JsonResponse
+    {
+        $variables = $request->input('variables', []);
+        $modelId = $request->input('modelId');
+
+        $result = $this->promptTemplateService->testTemplate($id, $variables, $modelId);
+
+        if (!$result) {
+            return ResponseService::error('Failed to test template', null, 400);
+        }
+
+        return ResponseService::success($result);
+    }
+
+    /**
+     * Get the system prompt
+     *
+     * @return JsonResponse
+     */
+    public function getSystemPrompt(): JsonResponse
+    {
+        $systemPrompt = $this->promptTemplateService->getSystemPrompt();
+        return ResponseService::success(['systemPrompt' => $systemPrompt]);
+    }
+
+    /**
+     * Update the system prompt
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updateSystemPrompt(Request $request): JsonResponse
+    {
+        $content = $request->input('content');
+
+        if (empty($content)) {
+            return ResponseService::error('System prompt content is required', null, 400);
+        }
+
+        $result = $this->promptTemplateService->updateSystemPrompt($content);
+
+        if (!$result) {
+            return ResponseService::error('Failed to update system prompt', null, 500);
+        }
+
+        return ResponseService::success(['success' => true], 'System prompt updated successfully');
     }
 }

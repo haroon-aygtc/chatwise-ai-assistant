@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { PermissionCategory } from "@/types";
 import { PermissionService } from "@/services/permission";
 import { PERMISSION_CATEGORIES } from "@/constants/permissions";
@@ -16,6 +15,7 @@ export function usePermissionManagement() {
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [permissionsError, setPermissionsError] = useState<Error | null>(null);
   const { toast } = useToast();
+  const permissionsLoaded = useRef(false);
 
   // Fetch permissions from the API
   const fetchPermissions = useCallback(async () => {
@@ -46,9 +46,12 @@ export function usePermissionManagement() {
     }
   }, [toast]);
 
-  // Load permissions on initial mount
+  // Load permissions on initial mount only once
   useEffect(() => {
-    fetchPermissions();
+    if (!permissionsLoaded.current) {
+      fetchPermissions();
+      permissionsLoaded.current = true;
+    }
   }, [fetchPermissions]);
 
   // Get all permissions as a flat array
@@ -90,11 +93,17 @@ export function usePermissionManagement() {
     [fetchPermissions, toast]
   );
 
+  // Force refresh permissions - can be used after operations that modify permissions
+  const refreshPermissions = useCallback(async () => {
+    return fetchPermissions();
+  }, [fetchPermissions]);
+
   return {
     permissionCategories,
     isLoadingPermissions,
     permissionsError,
     fetchPermissions,
+    refreshPermissions,
     getAllPermissions,
     hasPermission,
     createPermissionCategory,
