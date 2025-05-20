@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import React from "react";
-import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,8 +23,8 @@ import { RedirectComponent } from "@/components/admin/ai-configuration/RedirectC
 import { useAuth } from "@/hooks/auth/useAuth";
 import LoginPage from "@/pages/auth/LoginPage";
 import SignupPage from "@/pages/auth/SignupPage";
-// Import tempo routes conditionally
-const routes = import.meta.env.VITE_TEMPO ? [] : [];
+import ProtectedRoute from "@/modules/auth/components/ProtectedRoute";
+// No need to import tempo routes, they're handled by the plugin
 
 // Debug flag
 const DEBUG = import.meta.env.DEV;
@@ -227,73 +227,6 @@ function App() {
     // Initialize app without additional API calls
     if (DEBUG) console.log("App component initializing...");
   }, []);
-
-  // Helper component to protect routes
-  const ProtectedRoute = ({
-    children,
-    requiredRole,
-    requiredPermission,
-  }: {
-    children: React.ReactNode;
-    requiredRole?: string;
-    requiredPermission?: string | string[];
-  }) => {
-    const { user, hasRole, hasPermission } = useAuth();
-
-    // Check if this is a page refresh scenario
-    const isPageRefresh = () => {
-      const pageLoadTime = Number(
-        sessionStorage.getItem("page_load_time") || "0",
-      );
-      const timeSinceLoad = Date.now() - pageLoadTime;
-      const isRecentPageLoad = timeSinceLoad < 5000; // 5 seconds
-      const hasActiveSession =
-        sessionStorage.getItem("has_active_session") === "true";
-      const preventRedirect =
-        sessionStorage.getItem("prevent_auth_redirect") === "true";
-
-      return (isRecentPageLoad || preventRedirect) && hasActiveSession;
-    };
-
-    // If we're in a page refresh scenario, show loading instead of redirecting
-    if (!user && isPageRefresh()) {
-      return (
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      );
-    }
-
-    if (!user) {
-      return <Navigate to="/login" replace />;
-    }
-
-    if (requiredRole && !hasRole(requiredRole)) {
-      // During page refresh, show loading instead of redirecting
-      if (isPageRefresh()) {
-        return (
-          <div className="flex items-center justify-center h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          </div>
-        );
-      }
-      return <Navigate to="/unauthorized" replace />;
-    }
-
-    if (requiredPermission && !hasPermission(requiredPermission)) {
-      // During page refresh, show loading instead of redirecting
-      if (isPageRefresh()) {
-        return (
-          <div className="flex items-center justify-center h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          </div>
-        );
-      }
-      return <Navigate to="/unauthorized" replace />;
-    }
-
-    return <>{children}</>;
-  };
 
   return (
     <ErrorBoundary>
