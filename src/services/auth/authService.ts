@@ -10,15 +10,18 @@ const authService = {
   async login(credentials: LoginCredentials) {
     // First, ensure we have a CSRF token
     try {
-      await fetch(`${API_CONFIG.BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-          "Cache-Control": "no-cache, no-store",
+      await fetch(
+        `${API_CONFIG.BASE_URL.replace("/api", "")}/sanctum/csrf-cookie`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "Cache-Control": "no-cache, no-store",
+          },
         },
-      });
+      );
     } catch (error) {
       // Failed to fetch CSRF token, proceed anyway
     }
@@ -54,7 +57,7 @@ const authService = {
   async register(data: RegisterData) {
     // First, ensure we have a CSRF token
     try {
-      await fetch(`${API_CONFIG.BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
+      await fetch(`/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -176,14 +179,21 @@ const authService = {
       }
 
       // Improved page reload detection using modern methods
-      const isPageReload = document.readyState !== 'complete';
-      const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
-      const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
-      const hasPreventRedirectFlag = sessionStorage.getItem('prevent_auth_redirect') === 'true';
-      const isPageRefresh = isPageReload || isRecentPageLoad || hasPreventRedirectFlag;
+      const isPageReload = document.readyState !== "complete";
+      const pageLoadTime = Number(
+        sessionStorage.getItem("page_load_time") || "0",
+      );
+      const isRecentPageLoad = Date.now() - pageLoadTime < 3000;
+      const hasPreventRedirectFlag =
+        sessionStorage.getItem("prevent_auth_redirect") === "true";
+      const isPageRefresh =
+        isPageReload || isRecentPageLoad || hasPreventRedirectFlag;
 
       // If we're in a page refresh and have a session marker, assume session is valid
-      if (isPageRefresh && sessionStorage.getItem("has_active_session") === "true") {
+      if (
+        isPageRefresh &&
+        sessionStorage.getItem("has_active_session") === "true"
+      ) {
         try {
           // Do a silent api check but don't fail the auth if it errors
           const headers = this.getAuthHeaders(token);
@@ -212,9 +222,9 @@ const authService = {
           // Return a temporary user object to prevent redirect
           // The real session will be verified on the next non-refresh request
           return {
-            id: 'temp-user',
-            name: 'Loading...',
-            email: '',
+            id: "temp-user",
+            name: "Loading...",
+            email: "",
             permissions: [],
             // Include minimal data needed to prevent crash
           };
@@ -243,18 +253,25 @@ const authService = {
       return userData;
     } catch (error) {
       // During page refresh, be more lenient with auth errors - improved detection
-      const isPageReload = document.readyState !== 'complete';
-      const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
-      const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
-      const hasPreventRedirectFlag = sessionStorage.getItem('prevent_auth_redirect') === 'true';
-      const isPageRefresh = isPageReload || isRecentPageLoad || hasPreventRedirectFlag;
+      const isPageReload = document.readyState !== "complete";
+      const pageLoadTime = Number(
+        sessionStorage.getItem("page_load_time") || "0",
+      );
+      const isRecentPageLoad = Date.now() - pageLoadTime < 3000;
+      const hasPreventRedirectFlag =
+        sessionStorage.getItem("prevent_auth_redirect") === "true";
+      const isPageRefresh =
+        isPageReload || isRecentPageLoad || hasPreventRedirectFlag;
 
-      if (isPageRefresh && sessionStorage.getItem("has_active_session") === "true") {
+      if (
+        isPageRefresh &&
+        sessionStorage.getItem("has_active_session") === "true"
+      ) {
         console.log("Auth check failed during page refresh");
         return {
-          id: 'temp-user',
-          name: 'Loading...',
-          email: '',
+          id: "temp-user",
+          name: "Loading...",
+          email: "",
           permissions: [],
           // Include minimal data needed to prevent crash
         };
