@@ -50,20 +50,6 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Get all permissions for the user including permissions from roles.
-     *
-     * @return array
-     */
-    public function getAllPermissions()
-    {
-        $permissions = $this->permissions->pluck('name')->toArray();
-
-        foreach ($this->roles as $role) {
-            $rolePermissions = $role->permissions->pluck('name')->toArray();
-            $permissions = array_merge($permissions, $rolePermissions);
-        }
-
-        return array_unique($permissions);
-    }
+    // Note: The HasRoles trait already provides getAllPermissions() method
+    // that correctly fetches both direct permissions and permissions from roles
 }

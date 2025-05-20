@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User } from '@/types/user';
 import { Role } from '@/types';
@@ -52,20 +51,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Function to refresh authentication status
   const refreshAuth = useCallback(async (): Promise<void> => {
     if (isLoading) return; // Prevent multiple simultaneous refresh attempts
-    
+
     setIsLoading(true);
+    console.log('Starting auth refresh');
+
     try {
-      if (tokenService.validateToken()) {
-        console.log('Refreshing authentication state...');
+      // Check if token exists and is valid
+      const token = tokenService.getToken();
+      const isValid = tokenService.validateToken();
+
+      console.log(`Token check: exists=${!!token}, valid=${isValid}`);
+
+      if (isValid) {
+        console.log('Token is valid, fetching user data...');
         const userData = await authService.getCurrentUser();
-        // Convert the authService User to our domain User
-        setUser({
-          ...userData,
-          id: String(userData.id), // Convert number id to string
-        } as User);
-        console.log('Authentication refreshed successfully:', userData);
+
+        if (userData) {
+          console.log('User data retrieved successfully during refresh');
+
+          // Ensure permissions is always an array
+          const permissions = Array.isArray(userData.permissions)
+            ? userData.permissions
+            : [];
+
+          console.log("User permissions during refresh:", permissions);
+
+          // Convert the authService User to our domain User
+          setUser({
+            ...userData,
+            id: String(userData.id), // Convert number id to string
+            permissions: permissions, // Ensure permissions is set
+          } as User);
+        } else {
+          console.log('User data not found during refresh');
+          setUser(null);
+          tokenService.clearToken();
+        }
       } else {
-        console.log('No valid token found during refresh');
+        console.log('Token is invalid or missing during refresh');
         setUser(null);
         tokenService.clearToken();
       }
@@ -82,31 +105,67 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
+      console.log('Initializing authentication state');
+
       try {
-        await tokenService.initCsrfToken(); // Make sure CSRF token is initialized first
-        
-        if (tokenService.validateToken()) {
-          console.log('Token is valid, fetching user data...');
+        // Try to get token and check validity first
+        const token = tokenService.getToken();
+        const isValid = token ? tokenService.validateToken() : false;
+
+        console.log(`Initial token check: exists=${!!token}, valid=${isValid}`);
+
+        // Only initialize CSRF and fetch user data if we have a valid token
+        if (isValid) {
+          // Initialize CSRF token first (for Sanctum protection)
+          try {
+            await tokenService.initCsrfToken();
+            console.log('CSRF token initialized successfully');
+          } catch (csrfError) {
+            console.warn('CSRF token initialization failed:', csrfError);
+            // Continue anyway - this shouldn't prevent authentication check
+          }
+
+          console.log('Valid token found, fetching user data...');
           try {
             const userData = await authService.getCurrentUser();
-            console.log('User data fetched successfully:', userData);
-            // Convert the authService User to our domain User
-            setUser({
-              ...userData,
-              id: String(userData.id), // Convert number id to string
-            } as User);
+
+            if (userData) {
+              console.log('User data fetched during initialization:', {
+                id: userData.id,
+                hasRoles: !!userData.roles,
+                roles: userData.roles ? (Array.isArray(userData.roles) ? userData.roles.length : 'object') : 'none'
+              });
+
+              // Ensure permissions is always an array
+              const permissions = Array.isArray(userData.permissions)
+                ? userData.permissions
+                : [];
+
+              console.log("User permissions during init:", permissions);
+
+              // Convert the authService User to our domain User
+              setUser({
+                ...userData,
+                id: String(userData.id), // Convert number id to string
+                permissions: permissions, // Ensure permissions is set
+              } as User);
+            } else {
+              console.log('User data not returned during initialization');
+              setUser(null);
+              tokenService.clearToken();
+            }
           } catch (userError) {
-            console.error('Failed to fetch user data:', userError);
+            console.error('Failed to fetch user data during initialization:', userError);
             // If we can't fetch the user data, clear the token
             tokenService.clearToken();
             setUser(null);
           }
         } else {
-          console.log('No valid token found');
+          console.log('No valid token found during initialization');
           setUser(null);
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('Auth initialization failed:', error);
         tokenService.clearToken();
         setUser(null);
       } finally {
@@ -142,23 +201,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Login function
   const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     setIsLoading(true);
+    console.log("Login process started");
     try {
       // Make sure CSRF token is initialized first
       await tokenService.initCsrfToken();
-      
+
       const response = await authService.login({
         email,
         password,
         remember: rememberMe
       });
 
-      // Convert the response to our domain User type
-      setUser({
-        ...response.user,
-        id: String(response.user.id),
-      } as User);
+      // Ensure we have user data and token
+      if (response && response.user && response.token) {
+        console.log("Login response successful:", {
+          hasToken: !!response.token,
+          hasUser: !!response.user,
+          userId: response.user.id,
+          roles: response.user.roles?.map(r => typeof r === 'object' ? r.name : r).join(', ') || 'none'
+        });
 
-      return true;
+        // Make sure token is stored before updating user state
+        tokenService.setToken(response.token);
+
+        // Ensure permissions is always an array
+        const permissions = Array.isArray(response.user.permissions)
+          ? response.user.permissions
+          : [];
+
+        console.log("User permissions after login:", permissions);
+
+        // Convert the response to our domain User type
+        setUser({
+          ...response.user,
+          id: String(response.user.id),
+          permissions: permissions,
+        } as User);
+
+        // Return success
+        return true;
+      } else {
+        console.error('Invalid login response structure:', response);
+        return false;
+      }
     } catch (error) {
       console.error('Login failed:', error);
       return false;
@@ -173,7 +258,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // Make sure CSRF token is initialized first
       await tokenService.initCsrfToken();
-      
+
       const response = await authService.register({
         name: data.name,
         email: data.email,
@@ -200,44 +285,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const hasRole = useCallback((role: string | string[]): boolean => {
     if (!user || !user.roles) return false;
 
-    if (Array.isArray(role)) {
-      return role.some(r => {
-        const roleNames = Array.isArray(user.roles) 
-          ? user.roles.map(userRole => 
-              typeof userRole === 'object' && userRole.name ? userRole.name : userRole
-            )
-          : [];
-        return roleNames.includes(r);
-      });
-    }
-
-    const roleNames = Array.isArray(user.roles) 
-      ? user.roles.map(userRole => 
-          typeof userRole === 'object' && userRole.name ? userRole.name : userRole
-        )
+    // Special case: 'super-admin' role users always pass role checks
+    const userRoles = Array.isArray(user.roles)
+      ? user.roles.map(r => typeof r === 'object' && r.name ? r.name : r)
       : [];
-    return roleNames.includes(role);
+
+    if (userRoles.includes('super-admin')) return true;
+
+    // Check against single or multiple roles
+    const requiredRoles = Array.isArray(role) ? role : [role];
+    return requiredRoles.some(r => userRoles.includes(r));
   }, [user]);
 
   // Check if user has a specific permission
   const hasPermission = useCallback((permission: string | string[]): boolean => {
-    if (!user) return false;
+    if (!user || !user.permissions) return false;
 
-    // Special case: admin users always have all permissions
+    // Special case: 'super-admin' role users always have all permissions
     if (user.roles && Array.isArray(user.roles)) {
       const isAdmin = user.roles.some(role => {
         const roleName = typeof role === 'object' && role.name ? role.name : role;
-        return roleName === 'admin';
+        return roleName === 'super-admin';
       });
 
       if (isAdmin) return true;
     }
 
-    // Regular permission check
-    if (!user.permissions) return false;
+    // Regular permission check using the permissions array from the backend
+    const userPermissions = Array.isArray(user.permissions)
+      ? user.permissions
+      : [];
 
-    const permissions = Array.isArray(permission) ? permission : [permission];
-    return permissions.some(p => user.permissions?.includes(p));
+    // Check against single or multiple permissions
+    const requiredPermissions = Array.isArray(permission) ? permission : [permission];
+    return requiredPermissions.some(p => userPermissions.includes(p));
   }, [user]);
 
   // Update user data

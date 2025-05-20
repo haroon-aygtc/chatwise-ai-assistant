@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => ({
         bypass: (req) => {
           // Return false to continue proxy, true to bypass
           if (
-            req.url.startsWith("/api") &&
+            req.url?.startsWith("/api") &&
             !req.headers.host?.includes("localhost:8000")
           ) {
             console.log("Bypassing API proxy for development");
@@ -41,6 +41,11 @@ export default defineConfig(({ mode }) => ({
           return false;
         },
       },
+      "/sanctum/csrf-cookie": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        secure: false,
+      },
       "/sanctum": {
         target: "http://localhost:8000",
         changeOrigin: true,
@@ -48,7 +53,7 @@ export default defineConfig(({ mode }) => ({
         bypass: (req) => {
           // Return false to continue proxy, true to bypass
           if (
-            req.url.startsWith("/sanctum") &&
+            req.url?.startsWith("/sanctum") &&
             !req.headers.host?.includes("localhost:8000")
           ) {
             console.log("Bypassing Sanctum proxy for development");

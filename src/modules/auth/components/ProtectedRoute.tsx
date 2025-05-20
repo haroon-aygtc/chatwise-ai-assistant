@@ -1,7 +1,9 @@
-
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/auth/useAuth";
+
+// Debug flag
+const DEBUG = process.env.NODE_ENV === 'development';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -16,16 +18,52 @@ const ProtectedRoute = ({
   requiredPermission,
   redirectTo = "/login",
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, hasRole, hasPermission, refreshAuth } = useAuth();
+  const { isAuthenticated, isLoading, hasRole, hasPermission, refreshAuth, user } = useAuth();
   const location = useLocation();
 
-  // When this component mounts, refresh the auth state to ensure we have the latest data
+  // Only refresh auth if we're authenticated but missing the user data or if token needs refresh
   useEffect(() => {
-    refreshAuth();
-  }, [refreshAuth]);
+    // Only refresh if authenticated but missing crucial data (like permissions)
+    const needsRefresh = isAuthenticated && (
+      !user ||
+      (user.permissions && user.permissions.length === 0 && (requiredPermission || requiredRole))
+    );
 
-  // If still loading auth state, show a loading spinner
+    if (needsRefresh) {
+      if (DEBUG) console.log("ProtectedRoute: Auth data incomplete, refreshing");
+      refreshAuth();
+    } else if (DEBUG) {
+      console.log("ProtectedRoute: No need to refresh auth data");
+    }
+  }, [isAuthenticated, user, requiredRole, requiredPermission, refreshAuth]);
+
+  // Add debug logging to help diagnose issues
+  useEffect(() => {
+    if (DEBUG) {
+      const hasRequiredRole = requiredRole
+        ? hasRole(requiredRole) ? 'Yes' : 'No'
+        : 'Not Required';
+
+      const hasRequiredPermission = requiredPermission
+        ? hasPermission(requiredPermission) ? 'Yes' : 'No'
+        : 'Not Required';
+
+      console.log("ProtectedRoute Debug:", {
+        isAuthenticated,
+        userId: user?.id,
+        permissionsCount: user?.permissions?.length || 0,
+        requiredRole,
+        requiredPermission,
+        hasRequiredRole,
+        hasRequiredPermission,
+        path: location.pathname
+      });
+    }
+  }, [isAuthenticated, user, requiredRole, requiredPermission, hasRole, hasPermission, location.pathname]);
+
   if (isLoading) {
+    if (DEBUG) console.log("ProtectedRoute: Still loading auth state");
+    // Show loading spinner while checking authentication
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -33,34 +71,30 @@ const ProtectedRoute = ({
     );
   }
 
-  // Check if user is authenticated
+  // If not authenticated, redirect to login
   if (!isAuthenticated) {
-    // Store the current location to redirect back after login
-    const currentPath = location.pathname;
-    sessionStorage.setItem('redirectAfterLogin', currentPath);
+    if (DEBUG) console.log(`ProtectedRoute: Not authenticated, redirecting to ${redirectTo}`);
 
-    return <Navigate to={redirectTo} replace />;
+    // Store the current URL to redirect back after login
+    sessionStorage.setItem('redirectAfterLogin', location.pathname);
+
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // Special case for admin users trying to access admin panel
-  if (requiredPermission === 'access admin panel' && hasRole('admin')) {
-    // Always allow admin users to access admin panel, no need to check role
-    return <>{children}</>;
-  }
-  // Otherwise, check role and permission requirements
-  else {
-    // Check role requirement if specified
-    if (requiredRole && !hasRole(requiredRole)) {
-      return <Navigate to="/unauthorized" replace />;
-    }
-
-    // Check permission requirement if specified
-    if (requiredPermission && !hasPermission(requiredPermission)) {
-      return <Navigate to="/unauthorized" replace />;
-    }
+  // Check role requirements
+  if (requiredRole && !hasRole(requiredRole)) {
+    if (DEBUG) console.log(`ProtectedRoute: Missing required role(s): ${JSON.stringify(requiredRole)}`);
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 
-  // If all checks pass, render children
+  // Check permission requirements
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    if (DEBUG) console.log(`ProtectedRoute: Missing required permission(s): ${JSON.stringify(requiredPermission)}`);
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+  }
+
+  // All checks passed, render the protected route
+  if (DEBUG) console.log("ProtectedRoute: Access granted");
   return <>{children}</>;
 };
 
