@@ -49,6 +49,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error('Login successful but no user data returned');
       }
 
+      // Set session marker to help with page refreshes
+      sessionStorage.setItem("has_active_session", "true");
+
+      // Store the current time as last login time
+      localStorage.setItem("last_login_time", Date.now().toString());
+
       // Ensure permissions is always an array
       const permissions = Array.isArray(userData.permissions)
         ? userData.permissions
@@ -78,9 +84,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await authService.logout();
       // Toast is now handled in authService
       setUser(null);
+
+      // Clear session marker
+      sessionStorage.removeItem("has_active_session");
+
+      // Clear other session-related data
+      localStorage.removeItem("last_login_time");
+      localStorage.removeItem("last_active_time");
+
+      console.log('User logged out, session markers cleared');
     } catch (error) {
       console.error('Logout error:', error);
       // Error toast is handled in authService
+
+      // Still clear session markers even if logout API fails
+      sessionStorage.removeItem("has_active_session");
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // First ensure CSRF token is initialized
       await tokenService.initCsrfToken();
 
-      const { user: userData } = await authService.signup(data);
+      const { user: userData } = await authService.register(data);
 
       if (!userData) {
         throw new Error('Signup successful but no user data returned');
@@ -197,11 +215,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('Initializing authentication state');
 
       try {
-        // Try to get token and check validity first
+        // Check for session storage marker first (helps with page refreshes)
+        const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+        if (hasActiveSession) {
+          console.log('Active session marker found in sessionStorage');
+        }
+
+        // Try to get token and check validity
         const token = tokenService.getToken();
         const isValid = token ? tokenService.validateToken() : false;
 
-        console.log(`Initial token check: exists=${!!token}, valid=${isValid}`);
+        console.log(`Initial token check: exists=${!!token}, valid=${isValid}, hasActiveSession=${hasActiveSession}`);
 
         // Only initialize CSRF and fetch user data if we have a valid token
         if (isValid) {
@@ -238,6 +262,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 id: String(userData.id), // Convert number id to string
                 permissions: permissions, // Ensure permissions is set
               } as User);
+
+              // Mark that we have an active session
+              sessionStorage.setItem("has_active_session", "true");
             } else {
               console.log('User data not returned during initialization');
               setUser(null);
@@ -245,9 +272,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           } catch (userError) {
             console.error('Failed to fetch user data during initialization:', userError);
-            // If we can't fetch the user data, clear the token
-            tokenService.clearToken();
-            setUser(null);
+
+            // If we have an active session marker, try one more time after a delay
+            if (hasActiveSession && token) {
+              console.log('Active session marker found, will retry after delay');
+
+              // Wait a bit and try again
+              setTimeout(async () => {
+                try {
+                  const retryUserData = await authService.getCurrentUser();
+                  if (retryUserData) {
+                    console.log('User data fetched on retry');
+
+                    // Ensure permissions is always an array
+                    const permissions = Array.isArray(retryUserData.permissions)
+                      ? retryUserData.permissions
+                      : [];
+
+                    // Convert the authService User to our domain User
+                    setUser({
+                      ...retryUserData,
+                      id: String(retryUserData.id), // Convert number id to string
+                      permissions: permissions, // Ensure permissions is set
+                    } as User);
+
+                    setIsLoading(false);
+                    return;
+                  }
+                } catch (retryError) {
+                  console.error('Retry also failed:', retryError);
+                }
+
+                // If retry fails, clear token and set user to null
+                tokenService.clearToken();
+                setUser(null);
+                setIsLoading(false);
+              }, 1000);
+
+              // Don't set isLoading to false yet, we'll do it in the timeout
+              return;
+            } else {
+              // If we can't fetch the user data and don't have an active session marker, clear the token
+              tokenService.clearToken();
+              setUser(null);
+            }
           }
         } else {
           console.log('No valid token found during initialization');

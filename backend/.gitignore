@@ -20,3 +20,25 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+.api-tester
+/api-tests
+
+# API Test Files
+/tests/Api/
+/tests/Feature/Api/
+/tests/api/
+/tests/api-tests/
+/tests/api-test-results/
+/postman/
+/postman_collection.json
+/insomnia.json
+/thunder-collection.json
+/api-docs/
+/api-test-config.json
+/api-test-results/
+
+# Custom modules
+/Modules/*/node_modules
+/Modules/*/vendor
+/modules/*/node_modules
+/modules/*/vendor

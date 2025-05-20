@@ -16,6 +16,7 @@ const authService = {
         headers: {
           Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest",
+          "Cache-Control": "no-cache, no-store",
         },
       });
     } catch (error) {
@@ -31,11 +32,19 @@ const authService = {
           Accept: "application/json",
           "Content-Type": "application/json",
           "X-Requested-With": "XMLHttpRequest",
+          "Cache-Control": "no-cache, no-store",
         },
       },
     );
+
     const { user, token } = response.data;
+
+    // Store token with enhanced persistence
     tokenService.setToken(token);
+
+    // Set session marker to help with page refreshes
+    sessionStorage.setItem("has_active_session", "true");
+
     return { user, token };
   },
 
@@ -80,12 +89,22 @@ const authService = {
         {
           headers,
           withCredentials: true,
+          headers: {
+            ...headers,
+            "Cache-Control": "no-cache, no-store",
+          },
         },
       );
     } catch (error) {
       console.error("Logout error:", error);
     }
+
+    // Clean up all token-related storage
     tokenService.removeToken();
+
+    // Clear session marker
+    sessionStorage.removeItem("has_active_session");
+
     return { success: true };
   },
 

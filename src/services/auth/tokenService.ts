@@ -10,7 +10,15 @@ const tokenService = {
    * Get token from storage
    */
   getToken: (): string | null => {
-    return localStorage.getItem("auth_token");
+    // Try to get from localStorage first
+    const token = localStorage.getItem("auth_token");
+
+    // If token exists, update the last access time
+    if (token) {
+      localStorage.setItem("token_last_accessed", Date.now().toString());
+    }
+
+    return token;
   },
 
   /**
@@ -23,13 +31,22 @@ const tokenService = {
     }
 
     console.log("Setting auth token:", token.substring(0, 10) + "...");
+
+    // Store the token
     localStorage.setItem("auth_token", token);
+
+    // Store the current time as last accessed time
+    localStorage.setItem("token_last_accessed", Date.now().toString());
+
+    // Store session info to help with page refresh
+    sessionStorage.setItem("has_active_session", "true");
 
     // Store the token expiration time as a timestamp for easier validation later
     try {
       const decoded = jwtDecode(token);
       if ((decoded as any).exp) {
         localStorage.setItem("token_expiration", String((decoded as any).exp * 1000));
+        console.log("Token decoded successfully, expires:", new Date((decoded as any).exp * 1000).toLocaleString());
       }
     } catch (error) {
       console.warn("Could not decode token:", error);
@@ -45,14 +62,16 @@ const tokenService = {
   removeToken: (): void => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("token_expiration");
+    localStorage.removeItem("token_last_accessed");
+    sessionStorage.removeItem("has_active_session");
+    console.log("Auth token and related data removed");
   },
 
   /**
    * Alias for removeToken for backward compatibility
    */
   clearToken: (): void => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("token_expiration");
+    tokenService.removeToken();
   },
 
   /**
@@ -168,10 +187,21 @@ const tokenService = {
    */
   validateToken: (): boolean => {
     const token = localStorage.getItem("auth_token");
+    const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+
     if (!token) {
       if (process.env.NODE_ENV === 'development') {
+        console.log("validateToken: No token found in storage");
       }
       return false;
+    }
+
+    // Check if we have a session marker in sessionStorage
+    // This helps with page refreshes
+    if (hasActiveSession) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Active session marker found in sessionStorage");
+      }
     }
 
     try {
@@ -185,14 +215,34 @@ const tokenService = {
           const isExpired = expTime < Date.now();
 
           if (isExpired) {
-            localStorage.removeItem("auth_token");
-            localStorage.removeItem("token_expiration");
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Token expired at ${new Date(expTime).toLocaleString()}`);
+            }
+            tokenService.removeToken();
             return false;
           }
         }
 
         if (process.env.NODE_ENV === 'development') {
+          console.log("Token is not in JWT format, but treating as valid");
         }
+
+        // If we have an active session marker, consider it valid
+        if (hasActiveSession) {
+          return true;
+        }
+
+        // Check last accessed time - if recent, consider valid
+        const lastAccessedStr = localStorage.getItem("token_last_accessed");
+        if (lastAccessedStr) {
+          const lastAccessed = parseInt(lastAccessedStr, 10);
+          const now = Date.now();
+          // If accessed in the last hour, consider valid
+          if (now - lastAccessed < 60 * 60 * 1000) {
+            return true;
+          }
+        }
+
         return true;
       }
 
@@ -203,6 +253,7 @@ const tokenService = {
       // If there's no expiration, consider it valid
       if (!decoded.exp) {
         if (process.env.NODE_ENV === 'development') {
+          console.log("Token has no expiration, treating as valid");
         }
         return true;
       }
@@ -211,10 +262,10 @@ const tokenService = {
 
       if (isExpired) {
         if (process.env.NODE_ENV === 'development') {
+          console.log(`Token expired at ${new Date(decoded.exp * 1000).toLocaleString()}`);
         }
         // Clean up expired token
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("token_expiration");
+        tokenService.removeToken();
         return false;
       }
 
@@ -222,9 +273,11 @@ const tokenService = {
       const expiresInSeconds = decoded.exp - now;
       if (expiresInSeconds < 300) { // 5 minutes in seconds
         if (process.env.NODE_ENV === 'development') {
+          console.log(`Token will expire soon (${Math.floor(expiresInSeconds)}s remaining)`);
         }
         // We'll still return true but this could trigger a refresh in the future
       } else if (process.env.NODE_ENV === 'development') {
+        console.log("Token is valid until:", new Date(decoded.exp * 1000).toLocaleString());
       }
 
       return true;
@@ -237,15 +290,23 @@ const tokenService = {
         const isExpired = expTime < Date.now();
 
         if (isExpired) {
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("token_expiration");
+          tokenService.removeToken();
           return false;
         }
 
         return true;
       }
 
+      // If we have an active session marker, consider it valid
+      if (hasActiveSession) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Token validation failed but active session marker found");
+        }
+        return true;
+      }
+
       if (process.env.NODE_ENV === 'development') {
+        console.log("Failed to validate token, but will consider it valid");
       }
       return true;
     }
@@ -256,6 +317,8 @@ const tokenService = {
    */
   isTokenExpired: (): boolean => {
     const token = localStorage.getItem("auth_token");
+    const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+
     if (!token) return true;
 
     // First check the stored expiration time as it works for both JWT and non-JWT tokens
@@ -265,8 +328,7 @@ const tokenService = {
       const isExpired = expTime < Date.now();
 
       if (isExpired) {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("token_expiration");
+        tokenService.removeToken();
         return true;
       }
 
@@ -274,9 +336,30 @@ const tokenService = {
       return false;
     }
 
+    // If we have an active session marker and the token exists, consider it not expired
+    // This helps with page refreshes
+    if (hasActiveSession && token) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Active session marker found, considering token not expired");
+      }
+      return false;
+    }
+
     try {
-      // If it's not a JWT, and we don't have a stored expiration, assume it's not expired
+      // If it's not a JWT, and we don't have a stored expiration, check last accessed time
       if (!token.includes('.')) {
+        // Check last accessed time - if recent, consider not expired
+        const lastAccessedStr = localStorage.getItem("token_last_accessed");
+        if (lastAccessedStr) {
+          const lastAccessed = parseInt(lastAccessedStr, 10);
+          const now = Date.now();
+          // If accessed in the last hour, consider not expired
+          if (now - lastAccessed < 60 * 60 * 1000) {
+            return false;
+          }
+        }
+
+        // Default to not expired for non-JWT tokens
         return false;
       }
 
@@ -287,12 +370,16 @@ const tokenService = {
 
       // Clean up if expired
       if (isExpired) {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("token_expiration");
+        tokenService.removeToken();
       }
 
       return isExpired;
     } catch (error) {
+      // If we can't decode the token but have an active session, assume not expired
+      if (hasActiveSession) {
+        return false;
+      }
+
       // If we can't decode the token, err on the side of caution and assume not expired
       return false;
     }
