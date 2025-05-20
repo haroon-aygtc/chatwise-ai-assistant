@@ -20,7 +20,7 @@ const authService = {
         },
       });
     } catch (error) {
-      console.warn("Failed to fetch CSRF token before login:", error);
+      // Failed to fetch CSRF token, proceed anyway
     }
 
     const response = await axios.post(
@@ -63,7 +63,7 @@ const authService = {
         },
       });
     } catch (error) {
-      console.warn("Failed to fetch CSRF token before registration:", error);
+      // Failed to fetch CSRF token, proceed anyway
     }
 
     const response = await axios.post(`${API_CONFIG.BASE_URL}/register`, data, {
@@ -87,7 +87,6 @@ const authService = {
         `${API_CONFIG.BASE_URL}/logout`,
         {},
         {
-          headers,
           withCredentials: true,
           headers: {
             ...headers,
@@ -96,7 +95,7 @@ const authService = {
         },
       );
     } catch (error) {
-      console.error("Logout error:", error);
+      // Logout error, still proceed with cleanup
     }
 
     // Clean up all token-related storage
@@ -173,19 +172,10 @@ const authService = {
     try {
       const token = tokenService.getToken();
       if (!token) {
-        // Reduced log noise - only log in development environment
-        if (process.env.NODE_ENV === 'development') {
-          console.log("getCurrentUser: No token available");
-        }
         return null;
       }
 
       const headers = this.getAuthHeaders(token);
-
-      // Only log in development environment
-      if (process.env.NODE_ENV === 'development') {
-        console.log("Fetching user data from API");
-      }
 
       const response = await axios.get(`${API_CONFIG.BASE_URL}/user`, {
         headers,
@@ -196,7 +186,6 @@ const authService = {
       const userData = response.data.user;
 
       if (!userData) {
-        console.warn("No user data returned from API");
         return null;
       }
 
@@ -205,19 +194,8 @@ const authService = {
         userData.permissions = [];
       }
 
-      // Log permissions count for debugging - only in development
-      if (process.env.NODE_ENV === 'development') {
-        const permissionsCount = Array.isArray(userData.permissions) ? userData.permissions.length : 0;
-        console.log(`User data retrieved: ID=${userData.id}, ${permissionsCount} permissions`);
-      }
-
       return userData;
     } catch (error) {
-      // Only log detailed errors in development
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Error getting current user:", error);
-      }
-
       // Only remove token if it's an authentication error
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         tokenService.removeToken();

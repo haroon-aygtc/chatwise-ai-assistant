@@ -70,7 +70,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Successfully logged in
       return true;
     } catch (error) {
-      console.error('Login error:', error);
       return false;
     } finally {
       setIsLoading(false);
@@ -82,7 +81,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     try {
       await authService.logout();
-      // Toast is now handled in authService
       setUser(null);
 
       // Clear session marker
@@ -91,12 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Clear other session-related data
       localStorage.removeItem("last_login_time");
       localStorage.removeItem("last_active_time");
-
-      console.log('User logged out, session markers cleared');
     } catch (error) {
-      console.error('Logout error:', error);
-      // Error toast is handled in authService
-
       // Still clear session markers even if logout API fails
       sessionStorage.removeItem("has_active_session");
     } finally {
@@ -132,7 +125,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Successfully signed up
       return true;
     } catch (error) {
-      console.error('Signup error:', error);
       return false;
     } finally {
       setIsLoading(false);
@@ -143,44 +135,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshAuth = useCallback(async (): Promise<void> => {
     // Prevent multiple simultaneous refresh attempts
     if (refreshInProgress.current) {
-      console.log('Auth refresh already in progress, skipping');
       return;
     }
 
     refreshInProgress.current = true;
     setIsLoading(true);
-    console.log('Starting auth refresh');
 
     try {
       // Check if token exists and is valid
       const token = tokenService.getToken();
       const isValid = tokenService.validateToken();
 
-      console.log(`Token check: exists=${!!token}, valid=${isValid}`);
-
       if (isValid) {
-        console.log('Token is valid, fetching user data...');
-
         // Initialize CSRF token first (for Sanctum protection)
         try {
           await tokenService.initCsrfToken();
-          console.log('CSRF token initialized during refresh');
         } catch (csrfError) {
-          console.warn('CSRF token initialization failed during refresh:', csrfError);
           // Continue anyway - this shouldn't prevent authentication check
         }
 
         const userData = await authService.getCurrentUser();
 
         if (userData) {
-          console.log('User data retrieved successfully during refresh');
-
           // Ensure permissions is always an array
           const permissions = Array.isArray(userData.permissions)
             ? userData.permissions
             : [];
-
-          console.log("User permissions during refresh:", permissions);
 
           // Convert the authService User to our domain User
           setUser({
@@ -189,17 +169,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
             permissions: permissions, // Ensure permissions is set
           } as User);
         } else {
-          console.log('User data not found during refresh');
           setUser(null);
           tokenService.clearToken();
         }
       } else {
-        console.log('Token is invalid or missing during refresh');
         setUser(null);
         tokenService.clearToken();
       }
     } catch (error) {
-      console.error('Error refreshing auth:', error);
       setUser(null);
       tokenService.clearToken();
     } finally {
@@ -212,49 +189,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
-      console.log('Initializing authentication state');
 
       try {
         // Check for session storage marker first (helps with page refreshes)
         const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
-        if (hasActiveSession) {
-          console.log('Active session marker found in sessionStorage');
-        }
 
         // Try to get token and check validity
         const token = tokenService.getToken();
         const isValid = token ? tokenService.validateToken() : false;
-
-        console.log(`Initial token check: exists=${!!token}, valid=${isValid}, hasActiveSession=${hasActiveSession}`);
 
         // Only initialize CSRF and fetch user data if we have a valid token
         if (isValid) {
           // Initialize CSRF token first (for Sanctum protection)
           try {
             await tokenService.initCsrfToken();
-            console.log('CSRF token initialized successfully');
           } catch (csrfError) {
-            console.warn('CSRF token initialization failed:', csrfError);
             // Continue anyway - this shouldn't prevent authentication check
           }
 
-          console.log('Valid token found, fetching user data...');
           try {
             const userData = await authService.getCurrentUser();
 
             if (userData) {
-              console.log('User data fetched during initialization:', {
-                id: userData.id,
-                hasRoles: !!userData.roles,
-                roles: userData.roles ? (Array.isArray(userData.roles) ? userData.roles.length : 'object') : 'none'
-              });
-
               // Ensure permissions is always an array
               const permissions = Array.isArray(userData.permissions)
                 ? userData.permissions
                 : [];
-
-              console.log("User permissions during init:", permissions);
 
               // Convert the authService User to our domain User
               setUser({
@@ -266,24 +226,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
               // Mark that we have an active session
               sessionStorage.setItem("has_active_session", "true");
             } else {
-              console.log('User data not returned during initialization');
               setUser(null);
               tokenService.clearToken();
             }
           } catch (userError) {
-            console.error('Failed to fetch user data during initialization:', userError);
-
             // If we have an active session marker, try one more time after a delay
             if (hasActiveSession && token) {
-              console.log('Active session marker found, will retry after delay');
-
               // Wait a bit and try again
               setTimeout(async () => {
                 try {
                   const retryUserData = await authService.getCurrentUser();
                   if (retryUserData) {
-                    console.log('User data fetched on retry');
-
                     // Ensure permissions is always an array
                     const permissions = Array.isArray(retryUserData.permissions)
                       ? retryUserData.permissions
@@ -300,7 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     return;
                   }
                 } catch (retryError) {
-                  console.error('Retry also failed:', retryError);
+                  // Retry failed
                 }
 
                 // If retry fails, clear token and set user to null
@@ -318,11 +271,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         } else {
-          console.log('No valid token found during initialization');
           setUser(null);
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error);
         tokenService.clearToken();
         setUser(null);
       } finally {
@@ -337,7 +288,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'auth_token') {
-        console.log('Auth token changed in another tab, refreshing auth state');
         refreshAuth();
       }
     };
@@ -352,7 +302,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const tokenCheckInterval = setInterval(() => {
       // If token is expired, trigger a logout
       if (user && tokenService.isTokenExpired()) {
-        console.log('Token expired during session, logging out...');
         logout();
         toast({
           title: "Session expired",
@@ -364,14 +313,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // If token needs refresh, attempt to refresh it proactively
       if (user && tokenService.needsRefresh()) {
-        console.log('Token approaching expiration, attempting refresh...');
         refreshAuth();
       }
     }, 60000); // Check every minute
 
     // Listen for custom auth expiry event from API client
     const handleAuthExpired = () => {
-      console.log('Auth expired event received');
       if (user) {
         logout();
         toast({
@@ -395,7 +342,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const awayTime = now - lastActiveTime;
 
         if (awayTime > 5 * 60 * 1000) { // 5 minutes in milliseconds
-          console.log('Returning to tab after inactivity, refreshing auth');
           refreshAuth();
         }
 
