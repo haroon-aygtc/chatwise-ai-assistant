@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from "react";
 import RolesPermissions from "../tabs/RolesPermissions";
 
@@ -21,7 +20,7 @@ const RolesTab: React.FC<RolesTabProps> = () => {
     };
   }, []);
 
-  return <RolesPermissions key="roles-permissions-component" />;
+  return <RolesPermissions />;
 };
 
 export default RolesTab;

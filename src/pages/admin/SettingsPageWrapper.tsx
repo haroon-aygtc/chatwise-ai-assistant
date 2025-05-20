@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import WidgetBuilder from "@/components/admin/WidgetBuilder";
+import SettingsPage from "./SettingsPage";
 import ProtectedRoute from "@/modules/auth/components/ProtectedRoute";
 import { useAuth } from "@/hooks/auth/useAuth";
 
-const WidgetBuilderPage = () => {
+const SettingsPageWrapper = () => {
   const { refreshAuth } = useAuth();
-
+  
   // Ensure auth is refreshed when this page loads
   useEffect(() => {
     // Check if this is a page refresh scenario
@@ -13,18 +13,18 @@ const WidgetBuilderPage = () => {
     const timeSinceLoad = Date.now() - pageLoadTime;
     const isRecentPageLoad = timeSinceLoad < 5000; // 5 seconds
     const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
-
+    
     if (isRecentPageLoad && hasActiveSession) {
-      console.log("WidgetBuilderPage: Detected page refresh, refreshing auth");
+      console.log("SettingsPage: Detected page refresh, refreshing auth");
       refreshAuth();
     }
   }, [refreshAuth]);
-
+  
   return (
-    <ProtectedRoute requiredRole="admin">
-      <WidgetBuilder />
+    <ProtectedRoute>
+      <SettingsPage />
     </ProtectedRoute>
   );
 };
 
-export default WidgetBuilderPage;
+export default SettingsPageWrapper;

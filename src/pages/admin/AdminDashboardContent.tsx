@@ -1,9 +1,32 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BarChart, UsersIcon, Settings, Database, Bot, PanelTop } from "lucide-react";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function AdminDashboardContent() {
+    const { refreshAuth, hasRole } = useAuth();
+    const navigate = useNavigate();
+
+    // Ensure auth is refreshed when this page loads
+    useEffect(() => {
+        // Check if this is a page refresh scenario
+        const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+        const timeSinceLoad = Date.now() - pageLoadTime;
+        const isRecentPageLoad = timeSinceLoad < 5000; // 5 seconds
+        const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+
+        if (isRecentPageLoad && hasActiveSession) {
+            console.log("AdminDashboardContent: Detected page refresh, refreshing auth");
+            refreshAuth().then(() => {
+                // Check if user has admin role after refresh
+                if (!hasRole("admin")) {
+                    navigate("/unauthorized");
+                }
+            });
+        }
+    }, [refreshAuth, hasRole, navigate]);
     return (
         <div className="space-y-8">
             <div className="space-y-2">
@@ -135,4 +158,4 @@ export default function AdminDashboardContent() {
             </div>
         </div>
     );
-} 
+}

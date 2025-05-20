@@ -73,7 +73,7 @@ export function CategoryPermissionsGroup({
             </label>
 
             {/* Info tooltip */}
-            <Tooltip>
+            <Tooltip key={`tooltip-${category}`}>
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
@@ -119,19 +119,16 @@ export function CategoryPermissionsGroup({
             const isSelected = selectedPermissions.includes(permName);
 
             return (
-              <Tooltip key={`tooltip-${permId}`}>
+              <Tooltip key={permId}>
                 <TooltipTrigger asChild>
                   <div className={`flex items-center space-x-2 p-1.5 ${isSelected ? 'bg-secondary/20 rounded-md' : ''}`}>
-                    {/* Each child in the flex container needs a key */}
                     <Checkbox
-                      key={`checkbox-${permId}`}
                       id={`perm-${permId}`}
                       checked={isSelected}
                       onCheckedChange={(checked) => onTogglePermission(permName, !!checked)}
                       disabled={disabled}
                     />
                     <label
-                      key={`label-${permId}`}
                       htmlFor={`perm-${permId}`}
                       className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none cursor-pointer"
                     >
@@ -139,8 +136,8 @@ export function CategoryPermissionsGroup({
                     </label>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="right" align="start" key={`tooltip-content-${permId}`}>
-                  <p key={`tooltip-text-${permId}`}>{permission.description || "No description available"}</p>
+                <TooltipContent side="right" align="start">
+                  <p>{permission.description || "No description available"}</p>
                 </TooltipContent>
               </Tooltip>
             );

@@ -10,19 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { MultiSelect } from "@/components/ui/multi-select";
 import {
     ResourceType,
-    DocumentCategory,
-    ResourceCollection,
     CreateResourceRequest,
-    CreateArticleRequest,
-    CreateFAQRequest,
-    CreateFileRequest,
-    CreateDirectoryRequest,
-    FileType,
     KnowledgeResource,
     UpdateResourceRequest
 } from "@/types/knowledge-base";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FileUploader } from "../FileUploader";

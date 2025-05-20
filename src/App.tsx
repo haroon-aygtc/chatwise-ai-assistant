@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,9 +13,9 @@ import AdminDashboardContent from "@/pages/admin/AdminDashboardContent";
 import AnalyticsPage from "@/pages/admin/AnalyticsPage";
 import UserManagementPage from "@/pages/admin/UserManagementPage";
 import WidgetBuilderPage from "@/pages/admin/WidgetBuilderPage";
-import SettingsPage from "@/pages/admin/SettingsPage";
+import SettingsPageWrapper from "@/pages/admin/SettingsPageWrapper";
 import KnowledgeBasePage from "@/pages/admin/KnowledgeBasePage";
-import { ConfigurationManager } from "@/components/admin/ai-configuration/ConfigurationManager";
+import AIConfigurationPage from "@/pages/admin/AIConfigurationPage";
 import { AIModelManager } from "@/components/admin/ai-configuration/AIModelManager";
 import { ResponseFormatterManager } from "@/components/admin/ai-configuration/response-formats";
 import { FollowUpManager } from "@/components/admin/ai-configuration/FollowUpManager";
@@ -102,48 +102,85 @@ const NotFound = () => (
 );
 
 function App() {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Track page load state to prevent immediate redirects
     const isFirstLoad = !sessionStorage.getItem('app_initialized');
 
+    // Always update page load time for refresh detection
+    sessionStorage.setItem('page_load_time', Date.now().toString());
+
+    // Check if we have an active session
+    const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+
+    // If authenticated, ensure the session is marked as active
+    if (isAuthenticated) {
+      sessionStorage.setItem("has_active_session", "true");
+    }
+
+    // If this is a page refresh with an active session, preserve it
+    if (document.readyState !== 'complete' && hasActiveSession) {
+      if (DEBUG) console.log("App: Detected page refresh with active session");
+
+      // Ensure the session is marked as active
+      sessionStorage.setItem("has_active_session", "true");
+
+      // Add a flag to prevent immediate auth redirects with longer timeout
+      sessionStorage.setItem('prevent_auth_redirect', 'true');
+
+      // Remove the prevention after a longer delay
+      setTimeout(() => {
+        sessionStorage.removeItem('prevent_auth_redirect');
+      }, 15000); // Increased to 15 seconds
+    }
+
     if (isFirstLoad) {
       // Mark that app is initialized to track first page load
       sessionStorage.setItem('app_initialized', 'true');
 
-      // Set page load time for redirect prevention
-      sessionStorage.setItem('page_load_time', Date.now().toString());
-
       // Add a flag to prevent immediate auth redirects
       sessionStorage.setItem('prevent_auth_redirect', 'true');
 
-      // Remove the prevention after 3 seconds
+      // Remove the prevention after a delay
       setTimeout(() => {
         sessionStorage.removeItem('prevent_auth_redirect');
-      }, 3000);
-    } else {
-      // Not first load, but still update page load time
-      sessionStorage.setItem('page_load_time', Date.now().toString());
+      }, 10000);
     }
+  }, [isAuthenticated]);
+
+  // Listen for auth expired events
+  const handleAuthExpired = () => {
+    console.log("App: Received auth:expired event");
+    // Use React Router's navigate if available
+    window.location.href = "/login?session=expired";
+  };
+
+  // Listen for custom navigation events
+  const handleAppNavigate = (event: CustomEvent) => {
+    if (event.detail && event.detail.to) {
+      console.log(`App: Navigating to ${event.detail.to}`);
+      window.location.href = event.detail.to;
+      return true; // Mark as handled
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    // Add event listeners
+    window.addEventListener('auth:expired', handleAuthExpired as EventListener);
+    window.addEventListener('app:navigate', handleAppNavigate as EventListener);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired as EventListener);
+      window.removeEventListener('app:navigate', handleAppNavigate as EventListener);
+    };
   }, []);
 
   useEffect(() => {
-    // Prefetch CSRF token only when needed and avoid excessive API calls
-    const initializeApp = async () => {
-      try {
-        // Only initialize app without additional API calls
-        if (DEBUG) console.log("App component initializing...");
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("App initialization error:", error);
-        // Still set as initialized to avoid blocking the UI
-        setIsInitialized(true);
-      }
-    };
-
-    initializeApp();
+    // Initialize app without additional API calls
+    if (DEBUG) console.log("App component initializing...");
   }, []);
 
   // Helper component to protect routes
@@ -191,87 +228,48 @@ function App() {
               </div>
             }
           >
-            {isInitialized ? (
-              <>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<SignupPage />} />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<SignupPage />} />
 
-                  {/* Protected routes using MainLayout */}
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    {/* Regular user routes */}
-                    <Route path="/home" element={<DashboardContent />} />
-                    <Route path="/dashboard" element={<DashboardContent />} />
-                    <Route path="/chat-sessions" element={<ChatSessionsPage />} />
+              {/* Protected routes using MainLayout */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <MainLayout />
+                  </ProtectedRoute>
+                }
+              >
+                {/* Regular user routes */}
+                <Route path="/home" element={<DashboardContent />} />
+                <Route path="/dashboard" element={<DashboardContent />} />
+                <Route path="/chat-sessions" element={<ChatSessionsPage />} />
 
-                    {/* Admin routes */}
-                    <Route path="/admin/dashboard" element={
-                      <ProtectedRoute requiredRole="admin">
-                        <AdminDashboardContent />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/admin/analytics" element={
-                      <ProtectedRoute requiredRole="admin">
-                        <AnalyticsPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/admin/users" element={
-                      <ProtectedRoute
-                        requiredRole="admin"
-                        requiredPermission={["view_users", "view_roles", "manage_users"]}
-                      >
-                        <UserManagementPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/admin/ai-configuration" element={
-                      <ProtectedRoute requiredRole="admin">
-                        <ConfigurationManager />
-                      </ProtectedRoute>
-                    }>
-                      <Route path="models" element={<AIModelManager />} />
-                      <Route path="response-formats" element={<ResponseFormatterManager />} />
-                      <Route path="follow-up" element={<FollowUpManager />} />
-                      <Route path="branching-flows" element={<BranchingFlowsManager />} />
-                      <Route path="settings" element={<AISettingsManager />} />
-                      <Route path="*" element={<RedirectComponent componentName="Requested AI Component" />} />
-                    </Route>
-                    <Route path="/admin/knowledge-base" element={
-                      <ProtectedRoute requiredRole="admin">
-                        <KnowledgeBasePage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/admin/widget-builder" element={
-                      <ProtectedRoute requiredRole="admin">
-                        <WidgetBuilderPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/admin/settings" element={
-                      <ProtectedRoute>
-                        <SettingsPage />
-                      </ProtectedRoute>
-                    } />
-                  </Route>
+                {/* Admin routes */}
+                <Route path="/admin/dashboard" element={<AdminDashboardContent />} />
+                <Route path="/admin/analytics" element={<AnalyticsPage />} />
+                <Route path="/admin/users" element={<UserManagementPage />} />
+                <Route path="/admin/ai-configuration" element={<AIConfigurationPage />}>
+                  <Route path="models" element={<AIModelManager />} />
+                  <Route path="response-formats" element={<ResponseFormatterManager />} />
+                  <Route path="follow-up" element={<FollowUpManager />} />
+                  <Route path="branching-flows" element={<BranchingFlowsManager />} />
+                  <Route path="settings" element={<AISettingsManager />} />
+                  <Route path="*" element={<RedirectComponent componentName="Requested AI Component" />} />
+                </Route>
+                <Route path="/admin/knowledge-base" element={<KnowledgeBasePage />} />
+                <Route path="/admin/widget-builder" element={<WidgetBuilderPage />} />
+                <Route path="/admin/settings" element={<SettingsPageWrapper />} />
+              </Route>
 
-                  {/* Error pages */}
-                  <Route path="/unauthorized" element={<UnauthorizedPage />} />
-                  {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <Toaster />
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-              </div>
-            )}
+              {/* Error pages */}
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster />
           </ErrorBoundary>
         </ThemeProvider>
       </QueryClientProvider>

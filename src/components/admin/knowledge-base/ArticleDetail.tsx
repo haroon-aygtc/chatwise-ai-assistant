@@ -39,7 +39,7 @@ const articleFormSchema = z.object({
 });
 
 export function ArticleDetail({ article, isEditing, onSave }: ArticleDetailProps) {
-    const { categories, collections, handleUpdateResource, updateResourceMutation } = useKnowledgeBase();
+    const { categories, collections, handleUpdateResource } = useKnowledgeBase();
     const { toast } = useToast();
     const [viewTab, setViewTab] = useState<"preview" | "markdown">("preview");
 
@@ -306,11 +306,7 @@ export function ArticleDetail({ article, isEditing, onSave }: ArticleDetailProps
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={updateResourceMutation.isPending}
                                 >
-                                    {updateResourceMutation.isPending && (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    )}
                                     <Save className="mr-2 h-4 w-4" />
                                     Save Changes
                                 </Button>

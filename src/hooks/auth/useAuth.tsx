@@ -168,17 +168,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
             id: String(userData.id), // Convert number id to string
             permissions: permissions, // Ensure permissions is set
           } as User);
+
+          // Set session marker to help with page refreshes
+          sessionStorage.setItem("has_active_session", "true");
+
+          // Update last active time
+          localStorage.setItem('last_active_time', Date.now().toString());
         } else {
           setUser(null);
           tokenService.clearToken();
+          sessionStorage.removeItem("has_active_session");
         }
       } else {
         setUser(null);
         tokenService.clearToken();
+        sessionStorage.removeItem("has_active_session");
       }
     } catch (error) {
       setUser(null);
       tokenService.clearToken();
+      sessionStorage.removeItem("has_active_session");
     } finally {
       setIsLoading(false);
       refreshInProgress.current = false;
@@ -190,13 +199,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Set page load time in sessionStorage
     sessionStorage.setItem('page_load_time', Date.now().toString());
 
-    // Set a flag to indicate this is a page load/refresh
+    // Set a flag to indicate this is a page load/refresh with a longer timeout
     sessionStorage.setItem('prevent_auth_redirect', 'true');
 
-    // Clear the flag after a short delay
+    // Clear the flag after a longer delay
     setTimeout(() => {
       sessionStorage.removeItem('prevent_auth_redirect');
-    }, 5000); // Give more time for initial auth to complete
+    }, 10000); // Increased from 5000ms to 10000ms for initial auth to complete
 
     const initializeAuth = async () => {
       setIsLoading(true);
@@ -205,7 +214,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Improved page reload detection
         const isPageReload = document.readyState !== 'complete';
         const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
-        const isRecentPageLoad = (Date.now() - pageLoadTime) < 3000;
+        const isRecentPageLoad = (Date.now() - pageLoadTime) < 5000; // Increased from 3000ms to 5000ms
         const isRefreshScenario = isPageReload || isRecentPageLoad;
 
         // Check for session storage marker first (helps with page refreshes)
@@ -218,6 +227,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // This prevents brief flashes of login page during refresh
         if ((isRefreshScenario || hasActiveSession) && token) {
           console.log("Auth: Page refresh or active session detected");
+
+          // Set a temporary user immediately to prevent login flashes
+          if (isRefreshScenario && hasActiveSession) {
+            setUser({
+              id: 'temp-user',
+              name: 'Loading...',
+              email: '',
+              permissions: [],
+              roles: [],
+            } as User);
+          }
 
           try {
             // Use a shorter timeout for the initial auth check during refresh
@@ -243,23 +263,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
               return;
             }
           } catch (loadError) {
+            console.warn("Auth: Initial user data fetch failed:", loadError);
+
             // If we're in a refresh scenario with active session, don't immediately log out
             // This prevents jarring redirects during page refresh
             if (isRefreshScenario && hasActiveSession) {
               console.log("Auth: Preserving session during refresh despite error");
-              // Return a temporary user to prevent redirect
-              setUser({
-                id: 'temp-user',
-                name: 'Loading...',
-                email: '',
-                permissions: [],
-                roles: [],
-              } as User);
 
-              // Schedule a proper auth check after a short delay
-              setTimeout(() => {
-                refreshAuth();
-              }, 2000);
+              // Keep the temporary user to prevent redirect
+              if (!user) {
+                setUser({
+                  id: 'temp-user',
+                  name: 'Loading...',
+                  email: '',
+                  permissions: [],
+                  roles: [],
+                } as User);
+              }
+
+              // Schedule multiple retry attempts with exponential backoff
+              const retryAuth = (attempt = 1, maxAttempts = 3) => {
+                if (attempt > maxAttempts) {
+                  console.log(`Auth: All ${maxAttempts} retry attempts failed`);
+                  return;
+                }
+
+                const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
+                console.log(`Auth: Scheduling retry attempt ${attempt}/${maxAttempts} after ${delay}ms`);
+
+                setTimeout(() => {
+                  console.log(`Auth: Executing retry attempt ${attempt}/${maxAttempts}`);
+                  refreshAuth().catch(() => {
+                    retryAuth(attempt + 1, maxAttempts);
+                  });
+                }, delay);
+              };
+
+              // Start retry sequence
+              retryAuth();
 
               setIsLoading(false);
               return;
@@ -280,6 +321,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           try {
             await tokenService.initCsrfToken();
           } catch (csrfError) {
+            console.warn("Failed to initialize CSRF token:", csrfError);
             // Continue anyway - this shouldn't prevent authentication check
           }
 
@@ -306,39 +348,63 @@ export function AuthProvider({ children }: AuthProviderProps) {
               tokenService.clearToken();
             }
           } catch (userError) {
-            // If we have an active session marker, try one more time after a delay
+            console.warn("Failed to fetch user data:", userError);
+
+            // If we have an active session marker, try multiple times with exponential backoff
             if (hasActiveSession && token) {
-              // Wait a bit and try again
-              setTimeout(async () => {
-                try {
-                  const retryUserData = await authService.getCurrentUser();
-                  if (retryUserData) {
-                    // Ensure permissions is always an array
-                    const permissions = Array.isArray(retryUserData.permissions)
-                      ? retryUserData.permissions
-                      : [];
+              let retryCount = 0;
+              const maxRetries = 3;
 
-                    // Convert the authService User to our domain User
-                    setUser({
-                      ...retryUserData,
-                      id: String(retryUserData.id), // Convert number id to string
-                      permissions: permissions, // Ensure permissions is set
-                    } as User);
+              const attemptRetry = async () => {
+                retryCount++;
+                const delay = Math.pow(2, retryCount - 1) * 1000; // 1s, 2s, 4s
 
-                    setIsLoading(false);
-                    return;
+                console.log(`Auth: Retry attempt ${retryCount}/${maxRetries} after ${delay}ms`);
+
+                setTimeout(async () => {
+                  try {
+                    const retryUserData = await authService.getCurrentUser();
+                    if (retryUserData) {
+                      // Ensure permissions is always an array
+                      const permissions = Array.isArray(retryUserData.permissions)
+                        ? retryUserData.permissions
+                        : [];
+
+                      // Convert the authService User to our domain User
+                      setUser({
+                        ...retryUserData,
+                        id: String(retryUserData.id), // Convert number id to string
+                        permissions: permissions, // Ensure permissions is set
+                      } as User);
+
+                      // Update session marker
+                      sessionStorage.setItem("has_active_session", "true");
+
+                      setIsLoading(false);
+                      return;
+                    }
+                  } catch (retryError) {
+                    console.warn(`Auth: Retry attempt ${retryCount} failed:`, retryError);
+
+                    // Try again if we haven't reached max retries
+                    if (retryCount < maxRetries) {
+                      attemptRetry();
+                      return;
+                    }
                   }
-                } catch (retryError) {
-                  // Retry failed
-                }
 
-                // If retry fails, clear token and set user to null
-                tokenService.clearToken();
-                setUser(null);
-                setIsLoading(false);
-              }, 1000);
+                  // If all retries fail, clear token and set user to null
+                  console.log("Auth: All retry attempts failed, clearing session");
+                  tokenService.clearToken();
+                  setUser(null);
+                  setIsLoading(false);
+                }, delay);
+              };
 
-              // Don't set isLoading to false yet, we'll do it in the timeout
+              // Start the retry process
+              attemptRetry();
+
+              // Don't set isLoading to false yet, we'll do it in the retry process
               return;
             } else {
               // If we can't fetch the user data and don't have an active session marker, clear the token
@@ -350,6 +416,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(null);
         }
       } catch (error) {
+        console.error("Auth initialization error:", error);
         tokenService.clearToken();
         setUser(null);
       } finally {
@@ -358,7 +425,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initializeAuth();
-  }, []);
+  }, [refreshAuth]);
 
   // Add listener for storage events to detect token changes in other tabs
   useEffect(() => {

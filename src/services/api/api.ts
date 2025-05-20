@@ -324,7 +324,8 @@ class HttpClient {
           const isPageReload = document.readyState !== 'complete';
           const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
           const timeSinceLoad = Date.now() - pageLoadTime;
-          const isRecentPageLoad = timeSinceLoad < 3000;
+          const isRecentPageLoad = timeSinceLoad < 5000; // Increased from 3000ms to 5000ms
+          const isRefreshScenario = isPageReload || isRecentPageLoad;
 
           // Check for explicit redirect prevention flag
           const hasPreventRedirectFlag = sessionStorage.getItem('prevent_auth_redirect') === 'true';
@@ -332,12 +333,11 @@ class HttpClient {
           // Check if we have an active session marker
           const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
 
-          // Determine if we should prevent redirect
+          // Determine if we should prevent redirect - more lenient conditions
           const preventRedirect =
             hasPreventRedirectFlag ||
-            isPageReload ||
-            isRecentPageLoad ||
-            (hasActiveSession && timeSinceLoad < 5000); // More lenient if we had an active session
+            isRefreshScenario ||
+            (hasActiveSession && timeSinceLoad < 10000); // Increased from 5000ms to 10000ms
 
           // Log the authentication error with context
           console.log(`Authentication error detected. Redirect prevention: ${preventRedirect ? 'Yes' : 'No'}`, {
@@ -355,20 +355,40 @@ class HttpClient {
           } else {
             console.log("Token preserved during page refresh despite 401 error");
 
-            // For API calls during page refresh with active session, retry once after a delay
-            if (hasActiveSession && (isPageReload || isRecentPageLoad)) {
+            // For API calls during page refresh with active session, retry with more attempts
+            if (hasActiveSession && isRefreshScenario) {
               const originalRequest = error.config as any;
 
-              // Only retry if we haven't already
-              if (!originalRequest._retry) {
-                originalRequest._retry = true;
+              // Allow up to 3 retry attempts (increased from 1)
+              const maxRetries = 3;
+              const retryCount = originalRequest._retryCount || 0;
 
-                // Wait a short time before retrying
+              if (retryCount < maxRetries) {
+                // Increment retry counter
+                originalRequest._retryCount = retryCount + 1;
+
+                // Exponential backoff for retries
+                const delay = Math.pow(2, retryCount) * 500; // 500ms, 1000ms, 2000ms
+
+                console.log(`Retry attempt ${retryCount + 1}/${maxRetries} after ${delay}ms`);
+
+                // Wait before retrying with exponential backoff
                 return new Promise(resolve => {
                   setTimeout(() => {
-                    console.log("Retrying request after 401 during page refresh");
-                    resolve(this.instance(originalRequest));
-                  }, 1000);
+                    console.log(`Retrying request after 401 (attempt ${retryCount + 1})`);
+
+                    // Try to refresh the token before retrying
+                    tokenService.initCsrfToken()
+                      .catch(e => console.warn("Failed to refresh CSRF token before retry:", e))
+                      .finally(() => {
+                        // Add fresh token if available
+                        const token = tokenService.getToken();
+                        if (token) {
+                          originalRequest.headers.Authorization = `Bearer ${token}`;
+                        }
+                        resolve(this.instance(originalRequest));
+                      });
+                  }, delay);
                 });
               }
             }
@@ -382,15 +402,31 @@ class HttpClient {
               window.location.pathname,
             );
 
-            // Use history API instead of direct location change to avoid full page reload
-            if (window.history && window.history.pushState) {
-              window.history.pushState({}, '', '/login?session=expired');
-              // Dispatch a custom event to notify the app about the route change
-              window.dispatchEvent(new CustomEvent('app:auth:expired'));
-            } else {
-              // Fallback for older browsers
-              window.location.href = "/login?session=expired";
-            }
+            // Dispatch event first to allow auth context to update
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+
+            // Short delay before redirect to allow event handlers to run
+            setTimeout(() => {
+              // Use React Router's navigate if available through custom event
+              const customEvent = new CustomEvent('app:navigate', {
+                detail: { to: '/login?session=expired' }
+              });
+
+              const wasHandled = window.dispatchEvent(customEvent);
+
+              // If event wasn't handled, fall back to history API
+              if (!wasHandled) {
+                // Use history API instead of direct location change to avoid full page reload
+                if (window.history && window.history.pushState) {
+                  window.history.pushState({}, '', '/login?session=expired');
+                  // Dispatch a custom event to notify the app about the route change
+                  window.dispatchEvent(new CustomEvent('app:auth:expired'));
+                } else {
+                  // Fallback for older browsers
+                  window.location.href = "/login?session=expired";
+                }
+              }
+            }, 100);
           }
         }
 
