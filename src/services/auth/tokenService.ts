@@ -29,6 +29,9 @@ const tokenService = {
     localStorage.setItem("token_last_accessed", Date.now().toString());
     sessionStorage.setItem("has_active_session", "true");
 
+    // Set page load time for token validation
+    sessionStorage.setItem("page_load_time", Date.now().toString());
+
     try {
       const decoded = jwtDecode(token);
       if ((decoded as any).exp) {
@@ -86,8 +89,8 @@ const tokenService = {
 
       // Check if we're in development mode
       const isDevelopment =
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1';
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
 
       // Use a different endpoint based on environment
       const csrfEndpoint = isDevelopment
@@ -108,23 +111,25 @@ const tokenService = {
         });
 
         if (!response.ok) {
-          console.warn(`CSRF token fetch failed: ${response.status} ${response.statusText}`);
+          console.warn(
+            `CSRF token fetch failed: ${response.status} ${response.statusText}`,
+          );
           // Create a fallback token for development purposes
           if (isDevelopment) {
-            const meta = document.createElement('meta');
-            meta.name = 'csrf-token';
-            meta.content = 'development-csrf-token-fallback';
+            const meta = document.createElement("meta");
+            meta.name = "csrf-token";
+            meta.content = "development-csrf-token-fallback";
             document.head.appendChild(meta);
-            console.info('Using fallback CSRF token for development');
+            console.info("Using fallback CSRF token for development");
           }
         }
       } catch (fetchError) {
-        console.warn('Error fetching CSRF token:', fetchError);
+        console.warn("Error fetching CSRF token:", fetchError);
         // Don't throw error, just log it and continue
         // This prevents authentication from breaking if CSRF endpoint is down
       }
     } catch (error) {
-      console.error('CSRF initialization error:', error);
+      console.error("CSRF initialization error:", error);
       // Don't throw the error to prevent breaking the app
     }
   },
@@ -156,6 +161,11 @@ const tokenService = {
     const hasActiveSession =
       sessionStorage.getItem("has_active_session") === "true";
 
+    // Set page load time if not already set
+    if (!sessionStorage.getItem("page_load_time")) {
+      sessionStorage.setItem("page_load_time", Date.now().toString());
+    }
+
     // Improved page reload detection using modern and legacy methods
     let isPageReload = document.readyState !== "complete";
 
@@ -176,11 +186,11 @@ const tokenService = {
     );
     const timeSinceLoad = Date.now() - pageLoadTime;
 
-    // Consider it a page reload if we're within 3 seconds of page load time
-    isPageReload = isPageReload || timeSinceLoad < 3000;
+    // Consider it a page reload if we're within 5 seconds of page load time
+    isPageReload = isPageReload || timeSinceLoad < 5000;
 
     // Define isRefreshScenario for use throughout the function
-    const isRefreshScenario = isPageReload || timeSinceLoad < 3000;
+    const isRefreshScenario = isPageReload || timeSinceLoad < 5000;
 
     // Set a flag to prevent redirect during page reload
     if (isPageReload) {
@@ -188,14 +198,16 @@ const tokenService = {
       // Clear this flag after a short delay
       setTimeout(() => {
         sessionStorage.removeItem("prevent_auth_redirect");
-      }, 3000);
+      }, 5000);
     }
 
     // No token means not authenticated, but preserve session during refresh
     if (!token) {
       // During page refresh with active session, don't immediately invalidate
       if (isRefreshScenario && hasActiveSession) {
-        console.log("No token found but preserving session during page refresh");
+        console.log(
+          "No token found but preserving session during page refresh",
+        );
         return true;
       }
       return false;
@@ -212,10 +224,13 @@ const tokenService = {
           // More lenient expiration handling during refresh
           if (isExpired) {
             if (isRefreshScenario && hasActiveSession) {
-              // During refresh with active session, consider valid for 30 seconds after expiry
+              // During refresh with active session, consider valid for 60 seconds after expiry
               const expiredBy = Date.now() - expTime;
-              if (expiredBy < 30000) { // 30 second grace period during refresh
-                console.log("Using expired token during refresh (within grace period)");
+              if (expiredBy < 60000) {
+                // 60 second grace period during refresh
+                console.log(
+                  "Using expired token during refresh (within grace period)",
+                );
                 return true;
               }
             }
@@ -258,10 +273,12 @@ const tokenService = {
 
       // During page reload, be more lenient with expired tokens
       if (isRefreshScenario && hasActiveSession && isExpired) {
-        // Increased grace period from 5 to 30 seconds for expired tokens during reload
-        const gracePeriod = 30; // seconds
+        // Increased grace period from 30 to 60 seconds for expired tokens during reload
+        const gracePeriod = 60; // seconds
         if (now - decoded.exp < gracePeriod) {
-          console.log("Using expired JWT token during refresh (within grace period)");
+          console.log(
+            "Using expired JWT token during refresh (within grace period)",
+          );
           return true;
         }
       }
@@ -280,7 +297,9 @@ const tokenService = {
 
       // During page reload, assume token is valid if there's a token and active session
       if (isRefreshScenario && hasActiveSession && token) {
-        console.log("Error validating token but preserving session during refresh");
+        console.log(
+          "Error validating token but preserving session during refresh",
+        );
         return true;
       }
 
@@ -310,18 +329,25 @@ const tokenService = {
     const hasActiveSession =
       sessionStorage.getItem("has_active_session") === "true";
 
+    // Set page load time if not already set
+    if (!sessionStorage.getItem("page_load_time")) {
+      sessionStorage.setItem("page_load_time", Date.now().toString());
+    }
+
     // Check if we're in a page reload scenario
     const isPageReload = document.readyState !== "complete";
     const pageLoadTime = Number(
       sessionStorage.getItem("page_load_time") || "0",
     );
-    const isRecentPageLoad = Date.now() - pageLoadTime < 3000;
+    const isRecentPageLoad = Date.now() - pageLoadTime < 5000;
     const isRefreshScenario = isPageReload || isRecentPageLoad;
 
     // No token means it's expired, but be more lenient during refresh
     if (!token) {
       if (isRefreshScenario && hasActiveSession) {
-        console.log("No token found but preserving session during page refresh (isTokenExpired)");
+        console.log(
+          "No token found but preserving session during page refresh (isTokenExpired)",
+        );
         return false; // Consider not expired during refresh with active session
       }
       return true;
@@ -341,10 +367,10 @@ const tokenService = {
 
       // During refresh, be more lenient with expired tokens
       if (isExpired && isRefreshScenario) {
-        // Increased grace period from 5 to 30 seconds during refresh
+        // Increased grace period to 30 seconds during refresh
         const expiredBy = Date.now() - expTime;
-        if (expiredBy < 5000) {
-          // 5 second grace period
+        if (expiredBy < 30000) {
+          // 30 second grace period
           return false;
         }
         return true;
@@ -386,10 +412,12 @@ const tokenService = {
 
       // During refresh, be more lenient with expired tokens
       if (isExpired && isRefreshScenario && hasActiveSession) {
-        // Increased grace period from 5 to 30 seconds during reload
-        const gracePeriod = 30; // seconds
+        // Increased grace period to 60 seconds during reload
+        const gracePeriod = 60; // seconds
         if (now - decoded.exp < gracePeriod) {
-          console.log("JWT token expired but within grace period during refresh");
+          console.log(
+            "JWT token expired but within grace period during refresh",
+          );
           return false;
         }
       }
@@ -404,7 +432,9 @@ const tokenService = {
 
       // During refresh, trust the session marker
       if (isRefreshScenario && hasActiveSession) {
-        console.log("Error checking token expiration but preserving session during refresh");
+        console.log(
+          "Error checking token expiration but preserving session during refresh",
+        );
         return false;
       }
 

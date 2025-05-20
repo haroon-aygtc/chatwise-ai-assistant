@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,16 +23,21 @@ import { RedirectComponent } from "@/components/admin/ai-configuration/RedirectC
 import { useAuth } from "@/hooks/auth/useAuth";
 import LoginPage from "@/pages/auth/LoginPage";
 import SignupPage from "@/pages/auth/SignupPage";
+// Import tempo routes conditionally
+const routes = import.meta.env.VITE_TEMPO ? [] : [];
 
 // Debug flag
 const DEBUG = import.meta.env.DEV;
 
 // Error boundary component to catch React errors
 class ErrorBoundary extends React.Component<
-  { children: React.ReactNode, fallback?: React.ReactNode },
-  { hasError: boolean, error: Error | null }
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error: Error | null }
 > {
-  constructor(props: { children: React.ReactNode, fallback?: React.ReactNode }) {
+  constructor(props: {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
+  }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -52,9 +57,12 @@ class ErrorBoundary extends React.Component<
       }
       return (
         <div className="p-5">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Something went wrong</h2>
+          <h2 className="text-xl font-bold text-red-600 mb-2">
+            Something went wrong
+          </h2>
           <p className="mb-4 text-gray-700">
-            An error occurred in the application. Please try refreshing the page.
+            An error occurred in the application. Please try refreshing the
+            page.
           </p>
           <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto">
             {this.state.error?.toString()}
@@ -84,8 +92,12 @@ const queryClient = new QueryClient({
 });
 
 // Create placeholders using RedirectComponent for unimplemented features
-const AISettingsManager = () => <RedirectComponent componentName="AI Settings" />;
-const BranchingFlowsManager = () => <RedirectComponent componentName="Branching Flows" />;
+const AISettingsManager = () => (
+  <RedirectComponent componentName="AI Settings" />
+);
+const BranchingFlowsManager = () => (
+  <RedirectComponent componentName="Branching Flows" />
+);
 
 // Simple component for Not Found pages
 const NotFound = () => (
@@ -102,17 +114,19 @@ const NotFound = () => (
 );
 
 function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refreshAuth } = useAuth();
 
+  // Set page load time and handle visibility changes
   useEffect(() => {
     // Track page load state to prevent immediate redirects
-    const isFirstLoad = !sessionStorage.getItem('app_initialized');
+    const isFirstLoad = !sessionStorage.getItem("app_initialized");
 
     // Always update page load time for refresh detection
-    sessionStorage.setItem('page_load_time', Date.now().toString());
+    sessionStorage.setItem("page_load_time", Date.now().toString());
 
     // Check if we have an active session
-    const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+    const hasActiveSession =
+      sessionStorage.getItem("has_active_session") === "true";
 
     // If authenticated, ensure the session is marked as active
     if (isAuthenticated) {
@@ -120,34 +134,59 @@ function App() {
     }
 
     // If this is a page refresh with an active session, preserve it
-    if (document.readyState !== 'complete' && hasActiveSession) {
+    if (document.readyState !== "complete" && hasActiveSession) {
       if (DEBUG) console.log("App: Detected page refresh with active session");
 
       // Ensure the session is marked as active
       sessionStorage.setItem("has_active_session", "true");
 
       // Add a flag to prevent immediate auth redirects with longer timeout
-      sessionStorage.setItem('prevent_auth_redirect', 'true');
+      sessionStorage.setItem("prevent_auth_redirect", "true");
 
       // Remove the prevention after a longer delay
       setTimeout(() => {
-        sessionStorage.removeItem('prevent_auth_redirect');
+        sessionStorage.removeItem("prevent_auth_redirect");
       }, 15000); // Increased to 15 seconds
+
+      // Refresh auth to ensure we have the latest user data
+      refreshAuth().catch((err) => {
+        console.warn("Failed to refresh auth during page load:", err);
+      });
     }
 
     if (isFirstLoad) {
       // Mark that app is initialized to track first page load
-      sessionStorage.setItem('app_initialized', 'true');
+      sessionStorage.setItem("app_initialized", "true");
 
       // Add a flag to prevent immediate auth redirects
-      sessionStorage.setItem('prevent_auth_redirect', 'true');
+      sessionStorage.setItem("prevent_auth_redirect", "true");
 
       // Remove the prevention after a delay
       setTimeout(() => {
-        sessionStorage.removeItem('prevent_auth_redirect');
+        sessionStorage.removeItem("prevent_auth_redirect");
       }, 10000);
     }
-  }, [isAuthenticated]);
+
+    // Listen for page visibility changes to detect tab switches
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Update page load time when tab becomes visible again
+        sessionStorage.setItem("page_load_time", Date.now().toString());
+
+        // If we have an active session, refresh auth when returning to the tab
+        if (sessionStorage.getItem("has_active_session") === "true") {
+          refreshAuth().catch((err) => {
+            console.warn("Failed to refresh auth on visibility change:", err);
+          });
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isAuthenticated, refreshAuth]);
 
   // Listen for auth expired events
   const handleAuthExpired = () => {
@@ -168,13 +207,19 @@ function App() {
 
   useEffect(() => {
     // Add event listeners
-    window.addEventListener('auth:expired', handleAuthExpired as EventListener);
-    window.addEventListener('app:navigate', handleAppNavigate as EventListener);
+    window.addEventListener("auth:expired", handleAuthExpired as EventListener);
+    window.addEventListener("app:navigate", handleAppNavigate as EventListener);
 
     // Clean up event listeners
     return () => {
-      window.removeEventListener('auth:expired', handleAuthExpired as EventListener);
-      window.removeEventListener('app:navigate', handleAppNavigate as EventListener);
+      window.removeEventListener(
+        "auth:expired",
+        handleAuthExpired as EventListener,
+      );
+      window.removeEventListener(
+        "app:navigate",
+        handleAppNavigate as EventListener,
+      );
     };
   }, []);
 
@@ -184,22 +229,66 @@ function App() {
   }, []);
 
   // Helper component to protect routes
-  const ProtectedRoute = ({ children, requiredRole, requiredPermission }: {
+  const ProtectedRoute = ({
+    children,
+    requiredRole,
+    requiredPermission,
+  }: {
     children: React.ReactNode;
     requiredRole?: string;
     requiredPermission?: string | string[];
   }) => {
     const { user, hasRole, hasPermission } = useAuth();
 
+    // Check if this is a page refresh scenario
+    const isPageRefresh = () => {
+      const pageLoadTime = Number(
+        sessionStorage.getItem("page_load_time") || "0",
+      );
+      const timeSinceLoad = Date.now() - pageLoadTime;
+      const isRecentPageLoad = timeSinceLoad < 5000; // 5 seconds
+      const hasActiveSession =
+        sessionStorage.getItem("has_active_session") === "true";
+      const preventRedirect =
+        sessionStorage.getItem("prevent_auth_redirect") === "true";
+
+      return (isRecentPageLoad || preventRedirect) && hasActiveSession;
+    };
+
+    // If we're in a page refresh scenario, show loading instead of redirecting
+    if (!user && isPageRefresh()) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+
     if (!user) {
       return <Navigate to="/login" replace />;
     }
 
     if (requiredRole && !hasRole(requiredRole)) {
+      // During page refresh, show loading instead of redirecting
+      if (isPageRefresh()) {
+        return (
+          <div className="flex items-center justify-center h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        );
+      }
       return <Navigate to="/unauthorized" replace />;
     }
 
     if (requiredPermission && !hasPermission(requiredPermission)) {
+      // During page refresh, show loading instead of redirecting
+      if (isPageRefresh()) {
+        return (
+          <div className="flex items-center justify-center h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        );
+      }
       return <Navigate to="/unauthorized" replace />;
     }
 
@@ -214,9 +303,12 @@ function App() {
             fallback={
               <div className="flex items-center justify-center h-screen">
                 <div className="p-6 max-w-md bg-white rounded-lg shadow-lg">
-                  <h2 className="text-2xl font-bold mb-4 text-red-600">Authentication Error</h2>
+                  <h2 className="text-2xl font-bold mb-4 text-red-600">
+                    Authentication Error
+                  </h2>
                   <p className="mb-4">
-                    There was a problem with the authentication system. Please try refreshing the page.
+                    There was a problem with the authentication system. Please
+                    try refreshing the page.
                   </p>
                   <button
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -228,6 +320,8 @@ function App() {
               </div>
             }
           >
+            {/* Tempo routes are handled by the tempo plugin */}
+
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
@@ -248,20 +342,46 @@ function App() {
                 <Route path="/chat-sessions" element={<ChatSessionsPage />} />
 
                 {/* Admin routes */}
-                <Route path="/admin/dashboard" element={<AdminDashboardContent />} />
+                <Route
+                  path="/admin/dashboard"
+                  element={<AdminDashboardContent />}
+                />
                 <Route path="/admin/analytics" element={<AnalyticsPage />} />
                 <Route path="/admin/users" element={<UserManagementPage />} />
-                <Route path="/admin/ai-configuration" element={<AIConfigurationPage />}>
+                <Route
+                  path="/admin/ai-configuration"
+                  element={<AIConfigurationPage />}
+                >
                   <Route path="models" element={<AIModelManager />} />
-                  <Route path="response-formats" element={<ResponseFormatterManager />} />
+                  <Route
+                    path="response-formats"
+                    element={<ResponseFormatterManager />}
+                  />
                   <Route path="follow-up" element={<FollowUpManager />} />
-                  <Route path="branching-flows" element={<BranchingFlowsManager />} />
+                  <Route
+                    path="branching-flows"
+                    element={<BranchingFlowsManager />}
+                  />
                   <Route path="settings" element={<AISettingsManager />} />
-                  <Route path="*" element={<RedirectComponent componentName="Requested AI Component" />} />
+                  <Route
+                    path="*"
+                    element={
+                      <RedirectComponent componentName="Requested AI Component" />
+                    }
+                  />
                 </Route>
-                <Route path="/admin/knowledge-base" element={<KnowledgeBasePage />} />
-                <Route path="/admin/widget-builder" element={<WidgetBuilderPage />} />
-                <Route path="/admin/settings" element={<SettingsPageWrapper />} />
+                <Route
+                  path="/admin/knowledge-base"
+                  element={<KnowledgeBasePage />}
+                />
+                <Route
+                  path="/admin/widget-builder"
+                  element={<WidgetBuilderPage />}
+                />
+                <Route
+                  path="/admin/settings"
+                  element={<SettingsPageWrapper />}
+                />
               </Route>
 
               {/* Error pages */}

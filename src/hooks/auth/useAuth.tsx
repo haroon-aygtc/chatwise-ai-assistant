@@ -1,16 +1,27 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { User } from '@/types/user';
-import { Role } from '@/types';
-import authService, { tokenService } from '@/services/auth';
-import { SignupData } from '@/services/auth/types';
-import { useToast } from '@/components/ui/use-toast';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
+import { User } from "@/types/user";
+import { Role } from "@/types";
+import authService, { tokenService } from "@/services/auth";
+import { SignupData } from "@/services/auth/types";
+import { useToast } from "@/components/ui/use-toast";
 
 // Define the auth context type
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean,
+  ) => Promise<boolean>;
   logout: () => Promise<void>;
   signup: (data: SignupData) => Promise<boolean>;
   hasRole: (role: string | string[]) => boolean;
@@ -37,44 +48,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshInProgress = React.useRef<boolean>(false);
 
   // Define login function with proper error handling
-  const login = useCallback(async (email: string, password: string, rememberMe?: boolean): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // First ensure CSRF token is initialized
-      await tokenService.initCsrfToken();
+  const login = useCallback(
+    async (
+      email: string,
+      password: string,
+      rememberMe?: boolean,
+    ): Promise<boolean> => {
+      setIsLoading(true);
+      try {
+        // First ensure CSRF token is initialized
+        await tokenService.initCsrfToken();
 
-      const { user: userData } = await authService.login({ email, password, remember: !!rememberMe });
+        const { user: userData } = await authService.login({
+          email,
+          password,
+          remember: !!rememberMe,
+        });
 
-      if (!userData) {
-        throw new Error('Login successful but no user data returned');
+        if (!userData) {
+          throw new Error("Login successful but no user data returned");
+        }
+
+        // Set session marker to help with page refreshes
+        sessionStorage.setItem("has_active_session", "true");
+
+        // Store the current time as last login time
+        localStorage.setItem("last_login_time", Date.now().toString());
+
+        // Cache user data for refresh scenarios
+        localStorage.setItem("cached_user_data", JSON.stringify(userData));
+
+        // Ensure permissions is always an array
+        const permissions = Array.isArray(userData.permissions)
+          ? userData.permissions
+          : [];
+
+        // Convert the authService User to our domain User
+        setUser({
+          ...userData,
+          id: String(userData.id), // Convert number id to string
+          permissions: permissions, // Ensure permissions is set
+        } as User);
+
+        // Successfully logged in
+        return true;
+      } catch (error) {
+        return false;
+      } finally {
+        setIsLoading(false);
       }
-
-      // Set session marker to help with page refreshes
-      sessionStorage.setItem("has_active_session", "true");
-
-      // Store the current time as last login time
-      localStorage.setItem("last_login_time", Date.now().toString());
-
-      // Ensure permissions is always an array
-      const permissions = Array.isArray(userData.permissions)
-        ? userData.permissions
-        : [];
-
-      // Convert the authService User to our domain User
-      setUser({
-        ...userData,
-        id: String(userData.id), // Convert number id to string
-        permissions: permissions, // Ensure permissions is set
-      } as User);
-
-      // Successfully logged in
-      return true;
-    } catch (error) {
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Define logout function with useCallback to avoid dependency issues
   const logout = useCallback(async (): Promise<void> => {
@@ -89,9 +114,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Clear other session-related data
       localStorage.removeItem("last_login_time");
       localStorage.removeItem("last_active_time");
+      localStorage.removeItem("cached_user_data");
     } catch (error) {
       // Still clear session markers even if logout API fails
       sessionStorage.removeItem("has_active_session");
+      localStorage.removeItem("cached_user_data");
     } finally {
       setIsLoading(false);
     }
@@ -107,8 +134,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { user: userData } = await authService.register(data);
 
       if (!userData) {
-        throw new Error('Signup successful but no user data returned');
+        throw new Error("Signup successful but no user data returned");
       }
+
+      // Cache user data for refresh scenarios
+      localStorage.setItem("cached_user_data", JSON.stringify(userData));
 
       // Ensure permissions is always an array
       const permissions = Array.isArray(userData.permissions)
@@ -146,7 +176,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const token = tokenService.getToken();
       const isValid = tokenService.validateToken();
 
-      if (isValid) {
+      // Check if this is a page refresh scenario
+      const isPageReload = document.readyState !== "complete";
+      const pageLoadTime = Number(
+        sessionStorage.getItem("page_load_time") || "0",
+      );
+      const isRecentPageLoad = Date.now() - pageLoadTime < 5000;
+      const isRefreshScenario = isPageReload || isRecentPageLoad;
+      const hasActiveSession =
+        sessionStorage.getItem("has_active_session") === "true";
+
+      if (isValid || (isRefreshScenario && hasActiveSession && token)) {
         // Initialize CSRF token first (for Sanctum protection)
         try {
           await tokenService.initCsrfToken();
@@ -154,26 +194,106 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Continue anyway - this shouldn't prevent authentication check
         }
 
-        const userData = await authService.getCurrentUser();
+        try {
+          const userData = await authService.getCurrentUser();
 
-        if (userData) {
-          // Ensure permissions is always an array
-          const permissions = Array.isArray(userData.permissions)
-            ? userData.permissions
-            : [];
+          if (userData) {
+            // Ensure permissions is always an array
+            const permissions = Array.isArray(userData.permissions)
+              ? userData.permissions
+              : [];
 
-          // Convert the authService User to our domain User
+            // Convert the authService User to our domain User
+            setUser({
+              ...userData,
+              id: String(userData.id), // Convert number id to string
+              permissions: permissions, // Ensure permissions is set
+            } as User);
+
+            // Cache user data for refresh scenarios
+            localStorage.setItem("cached_user_data", JSON.stringify(userData));
+
+            // Set session marker to help with page refreshes
+            sessionStorage.setItem("has_active_session", "true");
+
+            // Update last active time
+            localStorage.setItem("last_active_time", Date.now().toString());
+          } else if (isRefreshScenario && hasActiveSession) {
+            // During page refresh, try to use cached user data
+            const cachedUser = JSON.parse(
+              localStorage.getItem("cached_user_data") || "null",
+            );
+            if (cachedUser) {
+              console.log("Using cached user data during refresh");
+              setUser({
+                ...cachedUser,
+                id: String(cachedUser.id),
+                permissions: Array.isArray(cachedUser.permissions)
+                  ? cachedUser.permissions
+                  : [],
+              } as User);
+              return;
+            }
+
+            // If no cached data, use temporary user
+            setUser({
+              id: "temp-user",
+              name: "Loading...",
+              email: "",
+              permissions: [],
+              roles: [],
+            } as User);
+          } else {
+            setUser(null);
+            tokenService.clearToken();
+            sessionStorage.removeItem("has_active_session");
+          }
+        } catch (error) {
+          // During page refresh, try to use cached user data
+          if (isRefreshScenario && hasActiveSession) {
+            const cachedUser = JSON.parse(
+              localStorage.getItem("cached_user_data") || "null",
+            );
+            if (cachedUser) {
+              console.log("API error during refresh, using cached user data");
+              setUser({
+                ...cachedUser,
+                id: String(cachedUser.id),
+                permissions: Array.isArray(cachedUser.permissions)
+                  ? cachedUser.permissions
+                  : [],
+              } as User);
+              return;
+            }
+
+            // If no cached data, use temporary user
+            setUser({
+              id: "temp-user",
+              name: "Loading...",
+              email: "",
+              permissions: [],
+              roles: [],
+            } as User);
+          } else {
+            setUser(null);
+            tokenService.clearToken();
+            sessionStorage.removeItem("has_active_session");
+          }
+        }
+      } else if (isRefreshScenario && hasActiveSession && token) {
+        // During page refresh with invalid token but active session, try to use cached data
+        const cachedUser = JSON.parse(
+          localStorage.getItem("cached_user_data") || "null",
+        );
+        if (cachedUser) {
+          console.log("Invalid token during refresh, using cached user data");
           setUser({
-            ...userData,
-            id: String(userData.id), // Convert number id to string
-            permissions: permissions, // Ensure permissions is set
+            ...cachedUser,
+            id: String(cachedUser.id),
+            permissions: Array.isArray(cachedUser.permissions)
+              ? cachedUser.permissions
+              : [],
           } as User);
-
-          // Set session marker to help with page refreshes
-          sessionStorage.setItem("has_active_session", "true");
-
-          // Update last active time
-          localStorage.setItem('last_active_time', Date.now().toString());
         } else {
           setUser(null);
           tokenService.clearToken();
@@ -185,9 +305,46 @@ export function AuthProvider({ children }: AuthProviderProps) {
         sessionStorage.removeItem("has_active_session");
       }
     } catch (error) {
-      setUser(null);
-      tokenService.clearToken();
-      sessionStorage.removeItem("has_active_session");
+      // Check if this is a page refresh scenario
+      const isPageReload = document.readyState !== "complete";
+      const pageLoadTime = Number(
+        sessionStorage.getItem("page_load_time") || "0",
+      );
+      const isRecentPageLoad = Date.now() - pageLoadTime < 5000;
+      const isRefreshScenario = isPageReload || isRecentPageLoad;
+      const hasActiveSession =
+        sessionStorage.getItem("has_active_session") === "true";
+      const token = tokenService.getToken();
+
+      if (isRefreshScenario && hasActiveSession && token) {
+        // During page refresh with error, try to use cached user data
+        const cachedUser = JSON.parse(
+          localStorage.getItem("cached_user_data") || "null",
+        );
+        if (cachedUser) {
+          console.log("Error during refresh, using cached user data");
+          setUser({
+            ...cachedUser,
+            id: String(cachedUser.id),
+            permissions: Array.isArray(cachedUser.permissions)
+              ? cachedUser.permissions
+              : [],
+          } as User);
+        } else {
+          // If no cached data, use temporary user
+          setUser({
+            id: "temp-user",
+            name: "Loading...",
+            email: "",
+            permissions: [],
+            roles: [],
+          } as User);
+        }
+      } else {
+        setUser(null);
+        tokenService.clearToken();
+        sessionStorage.removeItem("has_active_session");
+      }
     } finally {
       setIsLoading(false);
       refreshInProgress.current = false;
@@ -197,14 +354,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Check if the user is authenticated on component mount
   useEffect(() => {
     // Set page load time in sessionStorage
-    sessionStorage.setItem('page_load_time', Date.now().toString());
+    sessionStorage.setItem("page_load_time", Date.now().toString());
 
     // Set a flag to indicate this is a page load/refresh with a longer timeout
-    sessionStorage.setItem('prevent_auth_redirect', 'true');
+    sessionStorage.setItem("prevent_auth_redirect", "true");
 
     // Clear the flag after a longer delay
     setTimeout(() => {
-      sessionStorage.removeItem('prevent_auth_redirect');
+      sessionStorage.removeItem("prevent_auth_redirect");
     }, 10000); // Increased from 5000ms to 10000ms for initial auth to complete
 
     const initializeAuth = async () => {
@@ -212,13 +369,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       try {
         // Improved page reload detection
-        const isPageReload = document.readyState !== 'complete';
-        const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
-        const isRecentPageLoad = (Date.now() - pageLoadTime) < 5000; // Increased from 3000ms to 5000ms
+        const isPageReload = document.readyState !== "complete";
+        const pageLoadTime = Number(
+          sessionStorage.getItem("page_load_time") || "0",
+        );
+        const isRecentPageLoad = Date.now() - pageLoadTime < 5000; // Increased from 3000ms to 5000ms
         const isRefreshScenario = isPageReload || isRecentPageLoad;
 
         // Check for session storage marker first (helps with page refreshes)
-        const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+        const hasActiveSession =
+          sessionStorage.getItem("has_active_session") === "true";
 
         // Try to get token and check validity
         const token = tokenService.getToken();
@@ -230,13 +390,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           // Set a temporary user immediately to prevent login flashes
           if (isRefreshScenario && hasActiveSession) {
-            setUser({
-              id: 'temp-user',
-              name: 'Loading...',
-              email: '',
-              permissions: [],
-              roles: [],
-            } as User);
+            // Try to use cached user data first
+            const cachedUser = JSON.parse(
+              localStorage.getItem("cached_user_data") || "null",
+            );
+            if (cachedUser) {
+              console.log("Using cached user data during initial load");
+              setUser({
+                ...cachedUser,
+                id: String(cachedUser.id),
+                permissions: Array.isArray(cachedUser.permissions)
+                  ? cachedUser.permissions
+                  : [],
+              } as User);
+            } else {
+              setUser({
+                id: "temp-user",
+                name: "Loading...",
+                email: "",
+                permissions: [],
+                roles: [],
+              } as User);
+            }
           }
 
           try {
@@ -256,6 +431,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 permissions: permissions, // Ensure permissions is set
               } as User);
 
+              // Cache user data for refresh scenarios
+              localStorage.setItem(
+                "cached_user_data",
+                JSON.stringify(userData),
+              );
+
               // Update the session marker
               sessionStorage.setItem("has_active_session", "true");
 
@@ -268,14 +449,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // If we're in a refresh scenario with active session, don't immediately log out
             // This prevents jarring redirects during page refresh
             if (isRefreshScenario && hasActiveSession) {
-              console.log("Auth: Preserving session during refresh despite error");
+              console.log(
+                "Auth: Preserving session during refresh despite error",
+              );
+
+              // Try to use cached user data
+              const cachedUser = JSON.parse(
+                localStorage.getItem("cached_user_data") || "null",
+              );
+              if (cachedUser) {
+                console.log("Using cached user data after API error");
+                setUser({
+                  ...cachedUser,
+                  id: String(cachedUser.id),
+                  permissions: Array.isArray(cachedUser.permissions)
+                    ? cachedUser.permissions
+                    : [],
+                } as User);
+
+                setIsLoading(false);
+                return;
+              }
 
               // Keep the temporary user to prevent redirect
               if (!user) {
                 setUser({
-                  id: 'temp-user',
-                  name: 'Loading...',
-                  email: '',
+                  id: "temp-user",
+                  name: "Loading...",
+                  email: "",
                   permissions: [],
                   roles: [],
                 } as User);
@@ -289,10 +490,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 }
 
                 const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
-                console.log(`Auth: Scheduling retry attempt ${attempt}/${maxAttempts} after ${delay}ms`);
+                console.log(
+                  `Auth: Scheduling retry attempt ${attempt}/${maxAttempts} after ${delay}ms`,
+                );
 
                 setTimeout(() => {
-                  console.log(`Auth: Executing retry attempt ${attempt}/${maxAttempts}`);
+                  console.log(
+                    `Auth: Executing retry attempt ${attempt}/${maxAttempts}`,
+                  );
                   refreshAuth().catch(() => {
                     retryAuth(attempt + 1, maxAttempts);
                   });
@@ -341,6 +546,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 permissions: permissions, // Ensure permissions is set
               } as User);
 
+              // Cache user data for refresh scenarios
+              localStorage.setItem(
+                "cached_user_data",
+                JSON.stringify(userData),
+              );
+
               // Mark that we have an active session
               sessionStorage.setItem("has_active_session", "true");
             } else {
@@ -352,6 +563,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             // If we have an active session marker, try multiple times with exponential backoff
             if (hasActiveSession && token) {
+              // Try to use cached user data first
+              const cachedUser = JSON.parse(
+                localStorage.getItem("cached_user_data") || "null",
+              );
+              if (cachedUser) {
+                console.log("Using cached user data after API error");
+                setUser({
+                  ...cachedUser,
+                  id: String(cachedUser.id),
+                  permissions: Array.isArray(cachedUser.permissions)
+                    ? cachedUser.permissions
+                    : [],
+                } as User);
+
+                setIsLoading(false);
+                return;
+              }
+
               let retryCount = 0;
               const maxRetries = 3;
 
@@ -359,14 +588,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 retryCount++;
                 const delay = Math.pow(2, retryCount - 1) * 1000; // 1s, 2s, 4s
 
-                console.log(`Auth: Retry attempt ${retryCount}/${maxRetries} after ${delay}ms`);
+                console.log(
+                  `Auth: Retry attempt ${retryCount}/${maxRetries} after ${delay}ms`,
+                );
 
                 setTimeout(async () => {
                   try {
                     const retryUserData = await authService.getCurrentUser();
                     if (retryUserData) {
                       // Ensure permissions is always an array
-                      const permissions = Array.isArray(retryUserData.permissions)
+                      const permissions = Array.isArray(
+                        retryUserData.permissions,
+                      )
                         ? retryUserData.permissions
                         : [];
 
@@ -377,6 +610,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         permissions: permissions, // Ensure permissions is set
                       } as User);
 
+                      // Cache user data for refresh scenarios
+                      localStorage.setItem(
+                        "cached_user_data",
+                        JSON.stringify(retryUserData),
+                      );
+
                       // Update session marker
                       sessionStorage.setItem("has_active_session", "true");
 
@@ -384,7 +623,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
                       return;
                     }
                   } catch (retryError) {
-                    console.warn(`Auth: Retry attempt ${retryCount} failed:`, retryError);
+                    console.warn(
+                      `Auth: Retry attempt ${retryCount} failed:`,
+                      retryError,
+                    );
 
                     // Try again if we haven't reached max retries
                     if (retryCount < maxRetries) {
@@ -394,7 +636,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   }
 
                   // If all retries fail, clear token and set user to null
-                  console.log("Auth: All retry attempts failed, clearing session");
+                  console.log(
+                    "Auth: All retry attempts failed, clearing session",
+                  );
                   tokenService.clearToken();
                   setUser(null);
                   setIsLoading(false);
@@ -430,13 +674,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Add listener for storage events to detect token changes in other tabs
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'auth_token') {
+      if (event.key === "auth_token") {
         refreshAuth();
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [refreshAuth]);
 
   // Set up token expiry check in a separate effect
@@ -474,111 +718,158 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     // Add event listener for custom auth expiry event
-    window.addEventListener('auth:expired', handleAuthExpired as EventListener);
+    window.addEventListener("auth:expired", handleAuthExpired as EventListener);
 
     // Also refresh auth on visibility change (when user returns to the tab)
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
+      if (document.visibilityState === "visible" && user) {
         // Only refresh if we were away for more than 5 minutes
-        const lastActiveTime = Number(localStorage.getItem('last_active_time') || '0');
+        const lastActiveTime = Number(
+          localStorage.getItem("last_active_time") || "0",
+        );
         const now = Date.now();
         const awayTime = now - lastActiveTime;
 
-        if (awayTime > 5 * 60 * 1000) { // 5 minutes in milliseconds
+        if (awayTime > 5 * 60 * 1000) {
+          // 5 minutes in milliseconds
           refreshAuth();
         }
 
         // Update last active time
-        localStorage.setItem('last_active_time', now.toString());
+        localStorage.setItem("last_active_time", now.toString());
       }
     };
 
     // Set initial last active time
-    localStorage.setItem('last_active_time', Date.now().toString());
+    localStorage.setItem("last_active_time", Date.now().toString());
 
     // Add event listener for visibility change
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Clean up intervals and event listeners
     return () => {
       clearInterval(tokenCheckInterval);
-      window.removeEventListener('auth:expired', handleAuthExpired as EventListener);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener(
+        "auth:expired",
+        handleAuthExpired as EventListener,
+      );
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [user, logout, toast, refreshAuth]);
 
   // Check if user has a specific role
-  const hasRole = useCallback((role: string | string[]): boolean => {
-    if (!user || !user.roles) return false;
+  const hasRole = useCallback(
+    (role: string | string[]): boolean => {
+      if (!user || !user.roles) return false;
 
-    // Convert role parameter to array if it's a single string
-    const rolesToCheck = Array.isArray(role) ? role : [role];
+      // Convert role parameter to array if it's a single string
+      const rolesToCheck = Array.isArray(role) ? role : [role];
 
-    // Check if user has any of the specified roles
-    return rolesToCheck.some(r => {
-      // Handle the case where user.roles could be an array or an object
-      if (Array.isArray(user.roles)) {
-        return user.roles.some(ur =>
-          // If the user role is a string, direct comparison
-          (typeof ur === 'string' && ur === r) ||
-          // If the user role is an object, check the name property
-          (typeof ur === 'object' && ur && 'name' in ur && ur.name === r)
-        );
-      } else if (typeof user.roles === 'object' && user.roles !== null) {
-        // If roles is an object with role names as keys
-        return r in user.roles;
-      }
-      return false;
-    });
-  }, [user]);
+      // Check if user has any of the specified roles
+      return rolesToCheck.some((r) => {
+        // Handle the case where user.roles could be an array or an object
+        if (Array.isArray(user.roles)) {
+          return user.roles.some(
+            (ur) =>
+              // If the user role is a string, direct comparison
+              (typeof ur === "string" && ur === r) ||
+              // If the user role is an object, check the name property
+              (typeof ur === "object" && ur && "name" in ur && ur.name === r),
+          );
+        } else if (typeof user.roles === "object" && user.roles !== null) {
+          // If roles is an object with role names as keys
+          return r in user.roles;
+        }
+        return false;
+      });
+    },
+    [user],
+  );
 
   // Check if user has a specific permission
-  const hasPermission = useCallback((permission: string | string[]): boolean => {
-    if (!user || !user.permissions) return false;
+  const hasPermission = useCallback(
+    (permission: string | string[]): boolean => {
+      if (!user || !user.permissions) return false;
 
-    // Permission aliases for more intuitive frontend permission checks
-    // This allows frontend code to use more intuitive permission names
-    const permissionAliases: Record<string, string[]> = {
-      'access admin panel': ['view_users', 'manage_users', 'view_roles'],
-      'manage users': ['view_users', 'create_users', 'edit_users', 'delete_users', 'manage_users'],
-      'manage roles': ['view_roles', 'create_roles', 'edit_roles', 'delete_roles', 'manage_roles'],
-      'manage widgets': ['create_widgets', 'edit_widgets', 'publish_widgets', 'delete_widgets'],
-      'manage kb': ['create_kb_articles', 'edit_kb_articles', 'delete_kb_articles', 'manage_kb_categories'],
-      'manage ai': ['manage_models', 'edit_prompts', 'test_ai', 'view_ai_logs']
-    };
+      // Permission aliases for more intuitive frontend permission checks
+      // This allows frontend code to use more intuitive permission names
+      const permissionAliases: Record<string, string[]> = {
+        "access admin panel": ["view_users", "manage_users", "view_roles"],
+        "manage users": [
+          "view_users",
+          "create_users",
+          "edit_users",
+          "delete_users",
+          "manage_users",
+        ],
+        "manage roles": [
+          "view_roles",
+          "create_roles",
+          "edit_roles",
+          "delete_roles",
+          "manage_roles",
+        ],
+        "manage widgets": [
+          "create_widgets",
+          "edit_widgets",
+          "publish_widgets",
+          "delete_widgets",
+        ],
+        "manage kb": [
+          "create_kb_articles",
+          "edit_kb_articles",
+          "delete_kb_articles",
+          "manage_kb_categories",
+        ],
+        "manage ai": [
+          "manage_models",
+          "edit_prompts",
+          "test_ai",
+          "view_ai_logs",
+        ],
+      };
 
-    // Regular permission check using the permissions array from the backend
-    const userPermissions = Array.isArray(user.permissions)
-      ? user.permissions
-      : [];
+      // Regular permission check using the permissions array from the backend
+      const userPermissions = Array.isArray(user.permissions)
+        ? user.permissions
+        : [];
 
-    // Check against single or multiple permissions
-    const requiredPermissions = Array.isArray(permission) ? permission : [permission];
+      // Check against single or multiple permissions
+      const requiredPermissions = Array.isArray(permission)
+        ? permission
+        : [permission];
 
-    // For each required permission, check if user has it directly or via an alias
-    return requiredPermissions.some(p => {
-      // Direct permission check
-      if (userPermissions.includes(p)) return true;
+      // For each required permission, check if user has it directly or via an alias
+      return requiredPermissions.some((p) => {
+        // Direct permission check
+        if (userPermissions.includes(p)) return true;
 
-      // Check via aliases (if this permission has aliases defined)
-      const aliases = permissionAliases[p];
-      if (aliases && aliases.some(alias => userPermissions.includes(alias))) {
-        return true;
-      }
+        // Check via aliases (if this permission has aliases defined)
+        const aliases = permissionAliases[p];
+        if (
+          aliases &&
+          aliases.some((alias) => userPermissions.includes(alias))
+        ) {
+          return true;
+        }
 
-      // Check for permission with different format (with/without underscores)
-      // This handles both "view users" and "view_users" format variations
-      const normalizedPermission = p.replace(/[ _]/g, '_');
-      const spacedPermission = p.replace(/[ _]/g, ' ');
+        // Check for permission with different format (with/without underscores)
+        // This handles both "view users" and "view_users" format variations
+        const normalizedPermission = p.replace(/[ _]/g, "_");
+        const spacedPermission = p.replace(/[ _]/g, " ");
 
-      return userPermissions.includes(normalizedPermission) ||
-        userPermissions.includes(spacedPermission);
-    });
-  }, [user]);
+        return (
+          userPermissions.includes(normalizedPermission) ||
+          userPermissions.includes(spacedPermission)
+        );
+      });
+    },
+    [user],
+  );
 
   // Update user data
   const updateUser = useCallback((userData: Partial<User>): void => {
-    setUser(prevUser => {
+    setUser((prevUser) => {
       if (prevUser) {
         return { ...prevUser, ...userData };
       } else {
@@ -607,7 +898,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

@@ -48,6 +48,9 @@ const authService = {
     // Set session marker to help with page refreshes
     sessionStorage.setItem("has_active_session", "true");
 
+    // Cache user data for refresh scenarios
+    localStorage.setItem("cached_user_data", JSON.stringify(user));
+
     return { user, token };
   },
 
@@ -77,6 +80,15 @@ const authService = {
         "X-Requested-With": "XMLHttpRequest",
       },
     });
+
+    // Cache user data for refresh scenarios
+    if (response.data.user) {
+      localStorage.setItem(
+        "cached_user_data",
+        JSON.stringify(response.data.user),
+      );
+    }
+
     return response.data.user;
   },
 
@@ -107,6 +119,9 @@ const authService = {
     // Clear session marker
     sessionStorage.removeItem("has_active_session");
 
+    // Clear cached user data
+    localStorage.removeItem("cached_user_data");
+
     return { success: true };
   },
 
@@ -119,6 +134,15 @@ const authService = {
       headers,
       withCredentials: true,
     });
+
+    // Cache user data for refresh scenarios
+    if (response.data.user) {
+      localStorage.setItem(
+        "cached_user_data",
+        JSON.stringify(response.data.user),
+      );
+    }
+
     return response.data.user;
   },
 
@@ -183,13 +207,13 @@ const authService = {
       const pageLoadTime = Number(
         sessionStorage.getItem("page_load_time") || "0",
       );
-      const isRecentPageLoad = Date.now() - pageLoadTime < 3000;
+      const isRecentPageLoad = Date.now() - pageLoadTime < 5000; // Increased from 3000ms
       const hasPreventRedirectFlag =
         sessionStorage.getItem("prevent_auth_redirect") === "true";
       const isPageRefresh =
         isPageReload || isRecentPageLoad || hasPreventRedirectFlag;
 
-      // If we're in a page refresh and have a session marker, assume session is valid
+      // If we're in a page refresh and have a session marker, try API but fallback to cached data
       if (
         isPageRefresh &&
         sessionStorage.getItem("has_active_session") === "true"
@@ -200,7 +224,7 @@ const authService = {
           const response = await axios.get(`${API_CONFIG.BASE_URL}/user`, {
             headers,
             withCredentials: true,
-            timeout: 2000, // Short timeout for refresh scenario
+            timeout: 3000, // Increased timeout for refresh scenario
           });
 
           if (response.data?.user) {
@@ -212,12 +236,29 @@ const authService = {
               userData.permissions = [];
             }
 
+            // Cache user data for future refresh scenarios
+            localStorage.setItem("cached_user_data", JSON.stringify(userData));
+
             return userData;
           }
         } catch (silentError) {
-          // On page refresh, if API fails, don't clear session yet
-          // This prevents jarring redirects
-          console.log("Silent auth check failed during page refresh");
+          // On page refresh, if API fails, try to use cached user data
+          console.log(
+            "Silent auth check failed during page refresh, trying cached data",
+          );
+
+          const cachedUser = JSON.parse(
+            localStorage.getItem("cached_user_data") || "null",
+          );
+          if (cachedUser) {
+            console.log("Using cached user data during refresh");
+            return {
+              ...cachedUser,
+              permissions: Array.isArray(cachedUser.permissions)
+                ? cachedUser.permissions
+                : [],
+            };
+          }
 
           // Return a temporary user object to prevent redirect
           // The real session will be verified on the next non-refresh request
@@ -250,6 +291,9 @@ const authService = {
         userData.permissions = [];
       }
 
+      // Cache user data for refresh scenarios
+      localStorage.setItem("cached_user_data", JSON.stringify(userData));
+
       return userData;
     } catch (error) {
       // During page refresh, be more lenient with auth errors - improved detection
@@ -257,7 +301,7 @@ const authService = {
       const pageLoadTime = Number(
         sessionStorage.getItem("page_load_time") || "0",
       );
-      const isRecentPageLoad = Date.now() - pageLoadTime < 3000;
+      const isRecentPageLoad = Date.now() - pageLoadTime < 5000; // Increased from 3000ms
       const hasPreventRedirectFlag =
         sessionStorage.getItem("prevent_auth_redirect") === "true";
       const isPageRefresh =
@@ -267,7 +311,24 @@ const authService = {
         isPageRefresh &&
         sessionStorage.getItem("has_active_session") === "true"
       ) {
-        console.log("Auth check failed during page refresh");
+        console.log(
+          "Auth check failed during page refresh, trying cached data",
+        );
+
+        // Try to use cached user data
+        const cachedUser = JSON.parse(
+          localStorage.getItem("cached_user_data") || "null",
+        );
+        if (cachedUser) {
+          console.log("Using cached user data after API error");
+          return {
+            ...cachedUser,
+            permissions: Array.isArray(cachedUser.permissions)
+              ? cachedUser.permissions
+              : [],
+          };
+        }
+
         return {
           id: "temp-user",
           name: "Loading...",

@@ -1,42 +1,21 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
+import { tempo } from "tempo-devtools/dist/vite";
 
-export default defineConfig(({ mode }) => ({
-  base:
-    process.env.NODE_ENV === "development"
-      ? "/"
-      : process.env.VITE_BASE_PATH || "/",
-  optimizeDeps: {
-    entries: ["src/main.tsx"],
-  },
-
-  plugins: [react(), mode === "development" && componentTagger()].filter(
-    Boolean,
-  ),
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [
+    react(),
+    tempo(), // Add the tempo plugin
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-
   server: {
-    port: 8080,
-    allowedHosts: process.env.TEMPO === "true" ? true : true,
-    proxy: {
-      "/api": {
-        target: "https://boring-chaum3-cdgun.view-3.tempo-dev.app",
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, "/api"),
-      },
-      "/sanctum": {
-        target: "https://boring-chaum3-cdgun.view-3.tempo-dev.app",
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path,
-      },
-    },
+    // @ts-ignore
+    allowedHosts: process.env.TEMPO === "true" ? true : undefined,
   },
-}));
+});
