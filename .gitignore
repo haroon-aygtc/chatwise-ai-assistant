@@ -51,7 +51,11 @@ src/services/api-tester/
 **/insomnia.json
 **/thunder-collection.json
 **/api-docs/
-
+.ApiTester.tsx
+/ApiTester.tsx
+ApiTester.tsx
+**/ApiTester.tsx
+src/components/api-tester/ApiTester.tsx
 # Modules and dependencies
 /vendor/
 /node_modules/
