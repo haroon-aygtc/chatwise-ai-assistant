@@ -1,45 +1,51 @@
-
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import * as dataSourceService from '@/services/ai-configuration/dataSourceService';
-import { DataSourceSettings } from '@/services/ai-configuration/dataSourceService';
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import {
+  DataSourceSettings,
+  getDataSourceSettings,
+  updateDataSourceSettings,
+} from "@/services/ai-configuration/dataSourceService";
 
 export function useDataSourceSettings() {
   const [settings, setSettings] = useState<DataSourceSettings>({
     enabled: true,
-    priority: 'medium',
+    priority: "medium",
     includeCitation: true,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const data = await dataSourceService.getDataSourceSettings();
+      const data = await getDataSourceSettings();
       setSettings(data);
-    } catch (error) {
-      console.error('Error fetching data source settings:', error);
-      toast.error('Failed to load data source settings');
+    } catch (err) {
+      setError(
+        err instanceof Error ? err : new Error("Failed to fetch settings"),
+      );
+      toast.error("Failed to load data source settings");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
-  const handleSaveSettings = async (newSettings: DataSourceSettings) => {
+  const handleSaveSettings = async (updatedSettings: DataSourceSettings) => {
     setIsSaving(true);
     try {
-      const updatedSettings = await dataSourceService.updateDataSourceSettings(newSettings);
-      setSettings(updatedSettings);
-      toast.success('Settings saved successfully');
+      const data = await updateDataSourceSettings(updatedSettings);
+      setSettings(data);
+      toast.success("Settings updated successfully");
       return true;
-    } catch (error) {
-      console.error('Error saving data source settings:', error);
-      toast.error('Failed to save settings');
+    } catch (err) {
+      toast.error("Failed to update settings");
+      console.error(err);
       return false;
     } finally {
       setIsSaving(false);
@@ -50,6 +56,7 @@ export function useDataSourceSettings() {
     settings,
     isLoading,
     isSaving,
+    error,
     handleSaveSettings,
     refreshSettings: fetchSettings,
   };
