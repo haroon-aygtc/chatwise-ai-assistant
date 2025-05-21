@@ -40,6 +40,123 @@ class KnowledgeBaseController extends Controller
         $this->knowledgeBaseService = $knowledgeBaseService;
         $this->responseService = $responseService;
     }
+    
+    /**
+     * Get all data sources
+     */
+    public function getAllDataSources(): JsonResponse
+    {
+        try {
+            $dataSources = $this->knowledgeBaseService->getAllDataSources();
+            return $this->responseService->success($dataSources);
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Get data source by ID
+     */
+    public function getDataSourceById(string $id): JsonResponse
+    {
+        try {
+            $dataSource = $this->knowledgeBaseService->getDataSourceById($id);
+            if (!$dataSource) {
+                return $this->responseService->error('Data source not found', 404);
+            }
+            return $this->responseService->success($dataSource);
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Create a new data source
+     */
+    public function createDataSource(Request $request): JsonResponse
+    {
+        try {
+            $data = $request->all();
+            $dataSource = $this->knowledgeBaseService->createDataSource($data);
+            return $this->responseService->success($dataSource, 'Data source created successfully', 201);
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Update a data source
+     */
+    public function updateDataSource(string $id, Request $request): JsonResponse
+    {
+        try {
+            $data = $request->all();
+            $dataSource = $this->knowledgeBaseService->updateDataSource($id, $data);
+            if (!$dataSource) {
+                return $this->responseService->error('Data source not found', 404);
+            }
+            return $this->responseService->success($dataSource, 'Data source updated successfully');
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Delete a data source
+     */
+    public function deleteDataSource(string $id): JsonResponse
+    {
+        try {
+            $result = $this->knowledgeBaseService->deleteDataSource($id);
+            if (!$result) {
+                return $this->responseService->error('Data source not found', 404);
+            }
+            return $this->responseService->success(null, 'Data source deleted successfully');
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Test a data source
+     */
+    public function testDataSource(string $id, Request $request): JsonResponse
+    {
+        try {
+            $query = $request->input('query');
+            $result = $this->knowledgeBaseService->testDataSource($id, $query);
+            return $this->responseService->success($result);
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Get data source settings
+     */
+    public function getDataSourceSettings(): JsonResponse
+    {
+        try {
+            $settings = $this->knowledgeBaseService->getDataSourceSettings();
+            return $this->responseService->success($settings);
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Update data source settings
+     */
+    public function updateDataSourceSettings(Request $request): JsonResponse
+    {
+        try {
+            $data = $request->all();
+            $settings = $this->knowledgeBaseService->updateDataSourceSettings($data);
+            return $this->responseService->success($settings, 'Data source settings updated successfully');
+        } catch (\Exception $e) {
+            return $this->responseService->error($e->getMessage());
+        }
+    }
 
     /**
      * Get all documents

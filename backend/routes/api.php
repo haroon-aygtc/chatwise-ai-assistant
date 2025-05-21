@@ -257,6 +257,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Knowledge Base routes
     Route::prefix('knowledge-base')->group(function () {
+        // Data Sources
+        Route::get('/data-sources', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllDataSources']);
+        Route::get('/data-sources/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getDataSourceById']);
+        Route::post('/data-sources', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'createDataSource']);
+        Route::put('/data-sources/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateDataSource']);
+        Route::delete('/data-sources/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'deleteDataSource']);
+        Route::post('/data-sources/{id}/test', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'testDataSource']);
+        Route::get('/data-sources/settings', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getDataSourceSettings']);
+        Route::put('/data-sources/settings', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'updateDataSourceSettings']);
+
         // Resources
         Route::get('/resources', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getAllResources']);
         Route::get('/resources/{id}', [\App\Http\Controllers\API\KnowledgeBaseController::class, 'getResourceById']);

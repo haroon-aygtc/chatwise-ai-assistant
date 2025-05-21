@@ -1,15 +1,22 @@
-import apiService from '../api/api';
+import apiService from "../api/api";
 
 export interface DataSourceSettings {
   enabled: boolean;
-  priority: 'low' | 'medium' | 'high' | 'exclusive';
+  priority: "low" | "medium" | "high" | "exclusive";
   includeCitation: boolean;
 }
 
 export interface DataSource {
   id: string;
   name: string;
-  type: 'database' | 'storage' | 'knowledge-base' | 'website' | 'file' | 'context' | 'rule';
+  type:
+    | "database"
+    | "storage"
+    | "knowledge-base"
+    | "website"
+    | "file"
+    | "context"
+    | "rule";
   description?: string;
   configuration: Record<string, unknown>;
   isActive: boolean;
@@ -23,9 +30,10 @@ export interface DataSource {
  */
 export const getAllDataSources = async (): Promise<DataSource[]> => {
   try {
-    return await apiService.get('/data-sources');
+    const response = await apiService.get("/knowledge-base/data-sources");
+    return response.data || [];
   } catch (error) {
-    console.error('Error fetching data sources:', error);
+    console.error("Error fetching data sources:", error);
     return [];
   }
 };
@@ -33,9 +41,12 @@ export const getAllDataSources = async (): Promise<DataSource[]> => {
 /**
  * Get a specific data source by ID
  */
-export const getDataSourceById = async (id: string): Promise<DataSource | null> => {
+export const getDataSourceById = async (
+  id: string,
+): Promise<DataSource | null> => {
   try {
-    return await apiService.get(`/data-sources/${id}`);
+    const response = await apiService.get(`/knowledge-base/data-sources/${id}`);
+    return response.data || null;
   } catch (error) {
     console.error(`Error fetching data source ${id}:`, error);
     return null;
@@ -45,22 +56,35 @@ export const getDataSourceById = async (id: string): Promise<DataSource | null> 
 /**
  * Create a new data source
  */
-export const createDataSource = async (dataSource: Omit<DataSource, 'id'>): Promise<DataSource> => {
-  return await apiService.post('/data-sources', dataSource);
+export const createDataSource = async (
+  dataSource: Omit<DataSource, "id">,
+): Promise<DataSource> => {
+  const response = await apiService.post(
+    "/knowledge-base/data-sources",
+    dataSource,
+  );
+  return response.data;
 };
 
 /**
  * Update an existing data source
  */
-export const updateDataSource = async (id: string, dataSource: Partial<DataSource>): Promise<DataSource> => {
-  return await apiService.put(`/data-sources/${id}`, dataSource);
+export const updateDataSource = async (
+  id: string,
+  dataSource: Partial<DataSource>,
+): Promise<DataSource> => {
+  const response = await apiService.put(
+    `/knowledge-base/data-sources/${id}`,
+    dataSource,
+  );
+  return response.data;
 };
 
 /**
  * Delete a data source
  */
 export const deleteDataSource = async (id: string): Promise<void> => {
-  await apiService.delete(`/data-sources/${id}`);
+  await apiService.delete(`/knowledge-base/data-sources/${id}`);
 };
 
 /**
@@ -68,12 +92,21 @@ export const deleteDataSource = async (id: string): Promise<void> => {
  */
 export const getDataSourceSettings = async (): Promise<DataSourceSettings> => {
   try {
-    return await apiService.get('/data-sources/settings');
+    const response = await apiService.get(
+      "/knowledge-base/data-sources/settings",
+    );
+    return (
+      response.data || {
+        enabled: true,
+        priority: "medium",
+        includeCitation: true,
+      }
+    );
   } catch (error) {
-    console.error('Error fetching data source settings:', error);
+    console.error("Error fetching data source settings:", error);
     return {
       enabled: true,
-      priority: 'medium',
+      priority: "medium",
       includeCitation: true,
     };
   }
@@ -82,16 +115,29 @@ export const getDataSourceSettings = async (): Promise<DataSourceSettings> => {
 /**
  * Update data source settings
  */
-export const updateDataSourceSettings = async (settings: DataSourceSettings): Promise<DataSourceSettings> => {
-  return await apiService.put('/data-sources/settings', { ...settings });
+export const updateDataSourceSettings = async (
+  settings: DataSourceSettings,
+): Promise<DataSourceSettings> => {
+  const response = await apiService.put(
+    "/knowledge-base/data-sources/settings",
+    { ...settings },
+  );
+  return response.data;
 };
 
 /**
  * Test data source functionality
  */
-export const testDataSource = async (id: string, query: string): Promise<{
+export const testDataSource = async (
+  id: string,
+  query: string,
+): Promise<{
   result: string;
-  sources: Array<{ title: string; url?: string; }>
+  sources: Array<{ title: string; url?: string }>;
 }> => {
-  return await apiService.post(`/data-sources/${id}/test`, { query });
+  const response = await apiService.post(
+    `/knowledge-base/data-sources/${id}/test`,
+    { query },
+  );
+  return response.data;
 };

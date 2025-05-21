@@ -22,7 +22,7 @@ import authService from "../auth/authService";
 import { useAuth } from "@/hooks/auth/useAuth";
 
 // Extend AxiosRequestConfig to include our custom properties
-declare module 'axios' {
+declare module "axios" {
   interface InternalAxiosRequestConfig {
     _requestKey?: string;
   }
@@ -83,18 +83,18 @@ class HttpClient {
   private instance: AxiosInstance;
   // Extended list of rate-limited routes to prevent authentication issues
   private rateLimitedRoutes = [
-    '/ai/models',
-    '/ai/routing-rules',
-    '/ai/providers',
-    '/knowledge-base/resources',
-    '/users',
-    '/permissions'
+    "/ai/models",
+    "/ai/routing-rules",
+    "/ai/providers",
+    "/knowledge-base/resources",
+    "/users",
+    "/permissions",
   ];
 
   // Improved rate limiter with batch control
   private requestBatch = {
     count: 0,
-    lastReset: Date.now()
+    lastReset: Date.now(),
   };
 
   constructor() {
@@ -120,17 +120,24 @@ class HttpClient {
     if (!isPublicApiMode) {
       // Use setTimeout to ensure this happens after the constructor
       setTimeout(() => {
-        tokenService.initCsrfToken().then(token => {
-          if (API_CONFIG.DEBUG) {
-            if (token) {
-              console.log(`API Client initialized with CSRF token: ${token.substring(0, 10)}...`);
-            } else {
-              console.warn("API Client initialized but no CSRF token obtained");
+        tokenService
+          .initCsrfToken()
+          .then((token) => {
+            if (API_CONFIG.DEBUG) {
+              if (token) {
+                console.log(
+                  `API Client initialized with CSRF token: ${token.substring(0, 10)}...`,
+                );
+              } else {
+                console.warn(
+                  "API Client initialized but no CSRF token obtained",
+                );
+              }
             }
-          }
-        }).catch(error => {
-          console.warn("Failed to initialize CSRF token:", error);
-        });
+          })
+          .catch((error) => {
+            console.warn("Failed to initialize CSRF token:", error);
+          });
       }, 0);
     }
   }
@@ -143,9 +150,9 @@ class HttpClient {
     this.instance.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         // Check if this route should be rate limited
-        if (config.method === 'get' && config.url) {
-          const shouldRateLimit = this.rateLimitedRoutes.some(route =>
-            config.url?.includes(route)
+        if (config.method === "get" && config.url) {
+          const shouldRateLimit = this.rateLimitedRoutes.some((route) =>
+            config.url?.includes(route),
           );
 
           if (shouldRateLimit) {
@@ -170,8 +177,10 @@ class HttpClient {
             // If we've exceeded our batch size, delay this request
             if (this.requestBatch.count >= RATE_LIMIT_BATCH_SIZE) {
               const delay = RATE_LIMIT_DELAY + Math.random() * 500; // Add jitter
-              console.log(`Rate limiting request to ${config.url}, delaying ${delay}ms`);
-              await new Promise(resolve => setTimeout(resolve, delay));
+              console.log(
+                `Rate limiting request to ${config.url}, delaying ${delay}ms`,
+              );
+              await new Promise((resolve) => setTimeout(resolve, delay));
               // Reset counter after delay
               this.requestBatch.count = 0;
               this.requestBatch.lastReset = Date.now();
@@ -261,84 +270,27 @@ class HttpClient {
         }
 
         const response = error.response;
-        const url = error.config?.url || '';
+        const url = error.config?.url || "";
 
-        // Handle knowledge base specific errors to prevent infinite loops
-        if (response?.status === 500 && url.includes('/knowledge-base')) {
+        // Log knowledge base errors but don't use fallback data anymore since backend is implemented
+        if (response?.status === 500 && url.includes("/knowledge-base")) {
           console.error(`Knowledge base API error for ${url}:`, error);
-          console.warn(`Using fallback data for ${url}`);
-
-          // For resources listing endpoints, return empty data
-          if (url.includes('/resources')) {
-            return Promise.resolve({
-              data: {
-                data: [],
-                total: 0,
-                current_page: 1,
-                last_page: 1
-              }
-            });
-          }
-
-          // For document listing endpoints, return empty data
-          if (url.includes('/documents')) {
-            return Promise.resolve({
-              data: {
-                data: [],
-                total: 0,
-                current_page: 1,
-                last_page: 1
-              }
-            });
-          }
-
-          // For collections endpoints, return empty array
-          if (url.includes('/collections')) {
-            return Promise.resolve({ data: [] });
-          }
-
-          // For category endpoints, return empty array
-          if (url.includes('/categories')) {
-            return Promise.resolve({ data: [] });
-          }
-
-          // For profiles endpoints, return empty array
-          if (url.includes('/profiles')) {
-            return Promise.resolve({ data: [] });
-          }
-
-          // For context-scopes endpoints, return empty array
-          if (url.includes('/context-scopes')) {
-            return Promise.resolve({ data: [] });
-          }
-
-          // For settings endpoint, return default settings
-          if (url.includes('/settings')) {
-            return Promise.resolve({
-              data: {
-                isEnabled: true,
-                priority: 'medium',
-                includeCitations: true,
-                vectorDimensions: 1536,
-                vectorDatabase: "local"
-              }
-            });
-          }
-
-          // For any other knowledge base endpoint, return empty data
-          return Promise.resolve({ data: [] });
+          // Let the error propagate to the component for proper handling
+          return Promise.reject(error);
         }
 
         // Handle 500 errors more gracefully for certain endpoints
         if (response?.status === 500) {
-          const url = error.config?.url || '';
+          const url = error.config?.url || "";
 
-          if (this.rateLimitedRoutes.some(route => url.includes(route))) {
-            console.log(`Server error for rate-limited route (${url}). Handling gracefully.`);
+          if (this.rateLimitedRoutes.some((route) => url.includes(route))) {
+            console.log(
+              `Server error for rate-limited route (${url}). Handling gracefully.`,
+            );
             // For AI models and routing rules, return empty arrays instead of failing
-            if (url.includes('/ai/models')) {
+            if (url.includes("/ai/models")) {
               return Promise.resolve({ data: { data: [] } });
-            } else if (url.includes('/ai/routing-rules')) {
+            } else if (url.includes("/ai/routing-rules")) {
               return Promise.resolve({ data: { data: [] } });
             }
           }
@@ -400,17 +352,21 @@ class HttpClient {
         // Handle authentication errors (status 401)
         if (response?.status === 401) {
           // Improved page reload detection
-          const isPageReload = document.readyState !== 'complete';
-          const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
+          const isPageReload = document.readyState !== "complete";
+          const pageLoadTime = Number(
+            sessionStorage.getItem("page_load_time") || "0",
+          );
           const timeSinceLoad = Date.now() - pageLoadTime;
           const isRecentPageLoad = timeSinceLoad < 5000; // Increased from 3000ms to 5000ms
           const isRefreshScenario = isPageReload || isRecentPageLoad;
 
           // Check for explicit redirect prevention flag
-          const hasPreventRedirectFlag = sessionStorage.getItem('prevent_auth_redirect') === 'true';
+          const hasPreventRedirectFlag =
+            sessionStorage.getItem("prevent_auth_redirect") === "true";
 
           // Check if we have an active session marker
-          const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
+          const hasActiveSession =
+            sessionStorage.getItem("has_active_session") === "true";
 
           // Determine if we should prevent redirect - more lenient conditions
           const preventRedirect =
@@ -419,20 +375,25 @@ class HttpClient {
             (hasActiveSession && timeSinceLoad < 10000); // Increased from 5000ms to 10000ms
 
           // Log the authentication error with context
-          console.log(`Authentication error detected. Redirect prevention: ${preventRedirect ? 'Yes' : 'No'}`, {
-            isPageReload,
-            timeSinceLoad,
-            hasPreventRedirectFlag,
-            hasActiveSession,
-            path: window.location.pathname
-          });
+          console.log(
+            `Authentication error detected. Redirect prevention: ${preventRedirect ? "Yes" : "No"}`,
+            {
+              isPageReload,
+              timeSinceLoad,
+              hasPreventRedirectFlag,
+              hasActiveSession,
+              path: window.location.pathname,
+            },
+          );
 
           // During page refresh, don't immediately clear the session to prevent flashing
           if (!preventRedirect) {
             tokenService.clearSession();
             console.log("Session cleared due to authentication error");
           } else {
-            console.log("Session preserved during page refresh despite 401 error");
+            console.log(
+              "Session preserved during page refresh despite 401 error",
+            );
 
             // For API calls during page refresh with active session, retry with more attempts
             if (hasActiveSession && isRefreshScenario) {
@@ -449,16 +410,26 @@ class HttpClient {
                 // Exponential backoff for retries
                 const delay = Math.pow(2, retryCount) * 500; // 500ms, 1000ms, 2000ms
 
-                console.log(`Retry attempt ${retryCount + 1}/${maxRetries} after ${delay}ms`);
+                console.log(
+                  `Retry attempt ${retryCount + 1}/${maxRetries} after ${delay}ms`,
+                );
 
                 // Wait before retrying with exponential backoff
-                return new Promise(resolve => {
+                return new Promise((resolve) => {
                   setTimeout(() => {
-                    console.log(`Retrying request after 401 (attempt ${retryCount + 1})`);
+                    console.log(
+                      `Retrying request after 401 (attempt ${retryCount + 1})`,
+                    );
 
                     // Try to refresh the token before retrying
-                    tokenService.initCsrfToken()
-                      .catch(e => console.warn("Failed to refresh CSRF token before retry:", e))
+                    tokenService
+                      .initCsrfToken()
+                      .catch((e) =>
+                        console.warn(
+                          "Failed to refresh CSRF token before retry:",
+                          e,
+                        ),
+                      )
                       .finally(() => {
                         // Add fresh CSRF token if available
                         const csrfToken = tokenService.getCsrfToken();
@@ -474,7 +445,10 @@ class HttpClient {
           }
 
           // Only redirect if we're not already on the login page and not in a prevent redirect scenario
-          if (!window.location.pathname.includes("/login") && !preventRedirect) {
+          if (
+            !window.location.pathname.includes("/login") &&
+            !preventRedirect
+          ) {
             // Store the current URL to redirect back after login
             sessionStorage.setItem(
               "redirectAfterLogin",
@@ -482,13 +456,13 @@ class HttpClient {
             );
 
             // Dispatch event first to allow auth context to update
-            window.dispatchEvent(new CustomEvent('auth:expired'));
+            window.dispatchEvent(new CustomEvent("auth:expired"));
 
             // Short delay before redirect to allow event handlers to run
             setTimeout(() => {
               // Use React Router's navigate if available through custom event
-              const customEvent = new CustomEvent('app:navigate', {
-                detail: { to: '/login?session=expired' }
+              const customEvent = new CustomEvent("app:navigate", {
+                detail: { to: "/login?session=expired" },
               });
 
               const wasHandled = window.dispatchEvent(customEvent);
@@ -497,9 +471,9 @@ class HttpClient {
               if (!wasHandled) {
                 // Use history API instead of direct location change to avoid full page reload
                 if (window.history && window.history.pushState) {
-                  window.history.pushState({}, '', '/login?session=expired');
+                  window.history.pushState({}, "", "/login?session=expired");
                   // Dispatch a custom event to notify the app about the route change
-                  window.dispatchEvent(new CustomEvent('app:auth:expired'));
+                  window.dispatchEvent(new CustomEvent("app:auth:expired"));
                 } else {
                   // Fallback for older browsers
                   window.location.href = "/login?session=expired";
@@ -516,7 +490,7 @@ class HttpClient {
             tokenService.clearSession();
 
             // Dispatch auth expired event
-            window.dispatchEvent(new CustomEvent('auth:expired'));
+            window.dispatchEvent(new CustomEvent("auth:expired"));
           }
         }
 
@@ -585,7 +559,10 @@ class HttpClient {
   /**
    * Make a GET request
    */
-  public async get<T = unknown>(url: string, options?: { params?: ApiParams }): Promise<T> {
+  public async get<T = unknown>(
+    url: string,
+    options?: { params?: ApiParams },
+  ): Promise<T> {
     const response = await this.instance.get<T>(url, options);
     return response.data;
   }
@@ -648,20 +625,14 @@ export default httpClient;
 export const get = <T = unknown>(url: string, params?: ApiParams): Promise<T> =>
   httpClient.get(url, { params });
 
-export const post = <T = unknown>(
-  url: string,
-  data?: ApiData,
-): Promise<T> => httpClient.post(url, data);
+export const post = <T = unknown>(url: string, data?: ApiData): Promise<T> =>
+  httpClient.post(url, data);
 
-export const put = <T = unknown>(
-  url: string,
-  data?: ApiData,
-): Promise<T> => httpClient.put(url, data);
+export const put = <T = unknown>(url: string, data?: ApiData): Promise<T> =>
+  httpClient.put(url, data);
 
-export const patch = <T = unknown>(
-  url: string,
-  data?: ApiData,
-): Promise<T> => httpClient.patch(url, data);
+export const patch = <T = unknown>(url: string, data?: ApiData): Promise<T> =>
+  httpClient.patch(url, data);
 
 export const del = <T = unknown>(url: string): Promise<T> =>
   httpClient.delete(url);
@@ -671,4 +642,5 @@ export const upload = <T = unknown>(
   formData: FormData,
 ): Promise<T> => httpClient.uploadFile(url, formData);
 
-export const getCsrfToken = (force: boolean = false) => httpClient.fetchCsrfToken(force);
+export const getCsrfToken = (force: boolean = false) =>
+  httpClient.fetchCsrfToken(force);
