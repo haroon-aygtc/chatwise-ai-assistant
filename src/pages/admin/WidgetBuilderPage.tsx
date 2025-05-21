@@ -2,9 +2,8 @@ import WidgetBuilder from "@/components/admin/WidgetBuilder";
 import ProtectedRoute from "@/modules/auth/components/ProtectedRoute";
 
 const WidgetBuilderPage = () => {
-
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredPermissions={["manage_widgets"]}>
       <WidgetBuilder />
     </ProtectedRoute>
   );

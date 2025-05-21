@@ -5,12 +5,12 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { toast } from "sonner";
-import { getCSRFToken } from "../auth/tokenService";
-import { API_BASE_URL } from "./config";
-import { ApiError, handleApiError } from "./errors";
+import tokenService from "../auth/tokenService";
+import API_CONFIG from "./config";
+import { ApiError } from "./errors";
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_CONFIG.BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -22,7 +22,7 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   async (config) => {
     // Add CSRF token to requests
-    const token = await getCSRFToken();
+    const token = tokenService.getCsrfToken();
     if (token) {
       config.headers["X-CSRF-TOKEN"] = token;
     }
@@ -76,7 +76,9 @@ apiClient.interceptors.response.use(
     }
 
     // Handle all other errors
-    return Promise.reject(handleApiError(error));
+    return Promise.reject(
+      new ApiError(error.message, error.response?.status || 500),
+    );
   },
 );
 
@@ -135,6 +137,16 @@ const apiService = {
       return response.data;
     } catch (error) {
       throw error;
+    }
+  },
+
+  async fetchCsrfToken(): Promise<string | null> {
+    try {
+      await tokenService.initCsrfToken();
+      return tokenService.getCsrfToken();
+    } catch (error) {
+      console.error("Failed to fetch CSRF token:", error);
+      return null;
     }
   },
 };

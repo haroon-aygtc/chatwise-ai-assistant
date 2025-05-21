@@ -9,13 +9,18 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
 
   // Get port from environment variable or use default
-  const port = parseInt(env.VITE_PORT || '5173', 10);
+  const port = parseInt(env.VITE_PORT || "5173", 10);
 
   return {
     plugins: [
-      react(),
+      react({
+        jsxRuntime: "classic",
+      }),
       tempo(), // Add the tempo plugin
     ],
+    optimizeDeps: {
+      include: ["react", "react-dom", "react-router-dom"],
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -27,16 +32,17 @@ export default defineConfig(({ mode }) => {
       allowedHosts: process.env.TEMPO === "true" ? true : undefined,
       // Add proxy for API requests to avoid CORS issues during development
       proxy: {
-        '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8000/api',
+        "/api": {
+          target: env.VITE_API_URL || "http://localhost:8000/api",
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+          rewrite: (path) => path.replace(/^\/api/, ""),
         },
-        '/sanctum': {
-          target: env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000',
+        "/sanctum": {
+          target:
+            env.VITE_API_URL?.replace(/\/api$/, "") || "http://localhost:8000",
           changeOrigin: true,
-        }
-      }
+        },
+      },
     },
   };
 });

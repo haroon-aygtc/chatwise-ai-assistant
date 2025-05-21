@@ -1,98 +1,69 @@
+/**
+ * Protected Route Component
+ *
+ * Ensures that routes are only accessible to authenticated users
+ * Redirects to login page if user is not authenticated
+ */
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/auth/useAuth";
-import tokenService from "@/services/auth/tokenService";
-
-// Debug flag
-const DEBUG = process.env.NODE_ENV === "development";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: string | string[];
-  requiredPermission?: string | string[];
+  requiredPermissions?: string[];
   redirectTo?: string;
 }
 
+/**
+ * Protected Route Component
+ *
+ * @param children - The components to render if authenticated
+ * @param requiredPermissions - Optional array of permissions required to access the route
+ * @param redirectTo - Optional redirect path (defaults to /login)
+ */
 const ProtectedRoute = ({
   children,
-  requiredRole,
-  requiredPermission,
+  requiredPermissions = [],
   redirectTo = "/login",
 }: ProtectedRouteProps) => {
-  const {
-    isAuthenticated,
-    isLoading,
-    hasRole,
-    hasPermission,
-    user,
-  } = useAuth();
+  const { isAuthenticated, isLoading, user, checkAuth } = useAuth();
   const location = useLocation();
 
-  // Listen for auth expired events
+  // Check authentication on mount
   useEffect(() => {
-    const handleAuthExpired = () => {
-      // Force navigation to login page
-      window.location.href = "/login?session=expired";
-    };
+    if (!isAuthenticated && !isLoading) {
+      checkAuth();
+    }
+  }, [isAuthenticated, isLoading, checkAuth]);
 
-    window.addEventListener("auth:expired", handleAuthExpired as EventListener);
-
-    return () => {
-      window.removeEventListener(
-        "auth:expired",
-        handleAuthExpired as EventListener,
-      );
-    };
-  }, []);
-
-  // Check if we should show loading state
+  // Show loading state
   if (isLoading) {
-    if (DEBUG) console.log("ProtectedRoute: Still loading auth state");
-    // Show loading spinner while checking authentication
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // If not authenticated, redirect to login
+  // Redirect if not authenticated
   if (!isAuthenticated) {
-    // Check if we should prevent redirect during page load
-    const preventRedirect = sessionStorage.getItem("prevent_auth_redirect") === "true";
-    const hasActiveSession = tokenService.hasActiveSession();
+    return (
+      <Navigate to={redirectTo} state={{ from: location.pathname }} replace />
+    );
+  }
 
-    if (preventRedirect && hasActiveSession) {
-      if (DEBUG) console.log("ProtectedRoute: Preventing redirect during page load");
-      return (
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      );
+  // Check permissions if required
+  if (requiredPermissions.length > 0 && user) {
+    const hasRequiredPermissions = requiredPermissions.every((permission) =>
+      user.permissions?.includes(permission),
+    );
+
+    if (!hasRequiredPermissions) {
+      return <Navigate to="/unauthorized" replace />;
     }
-
-    if (DEBUG) console.log(`ProtectedRoute: Not authenticated, redirecting to ${redirectTo}`);
-
-    // Store the current URL to redirect back after login
-    sessionStorage.setItem("redirectAfterLogin", location.pathname);
-
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // Check role requirements
-  if (requiredRole && !hasRole(requiredRole)) {
-    if (DEBUG) console.log(`ProtectedRoute: Missing required role(s): ${JSON.stringify(requiredRole)}`);
-    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
-  }
-
-  // Check permission requirements
-  if (requiredPermission && !hasPermission(requiredPermission)) {
-    if (DEBUG) console.log(`ProtectedRoute: Missing required permission(s): ${JSON.stringify(requiredPermission)}`);
-    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
-  }
-
-  // All checks passed, render the protected route
-  if (DEBUG) console.log("ProtectedRoute: Access granted");
+  // Render children if authenticated and authorized
   return <>{children}</>;
 };
 

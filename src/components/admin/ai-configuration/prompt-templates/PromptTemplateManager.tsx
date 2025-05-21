@@ -22,7 +22,7 @@ import { useAIModels } from "@/hooks/ai-configuration/useAIModels";
 
 /**
  * PromptTemplateManager - Main component for prompt template management
- * 
+ *
  * Features:
  * - View, create, edit, clone, and delete templates
  * - Filter and search templates
@@ -53,7 +53,8 @@ const PromptTemplateManager = () => {
   // UI state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<PromptTemplate | null>(null);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isVisualBuilderOpen, setIsVisualBuilderOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -86,7 +87,8 @@ const PromptTemplateManager = () => {
     } catch (error) {
       toast({
         title: "Error creating template",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     }
@@ -107,7 +109,8 @@ const PromptTemplateManager = () => {
     } catch (error) {
       toast({
         title: "Error updating template",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     }
@@ -124,7 +127,8 @@ const PromptTemplateManager = () => {
     } catch (error) {
       toast({
         title: "Error deleting template",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     }
@@ -153,7 +157,8 @@ const PromptTemplateManager = () => {
     } catch (error) {
       toast({
         title: "Error setting default template",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     }
@@ -171,7 +176,8 @@ const PromptTemplateManager = () => {
     } catch (error) {
       toast({
         title: "Error cloning template",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     }
@@ -197,7 +203,8 @@ const PromptTemplateManager = () => {
     } catch (error) {
       toast({
         title: "Error updating system prompt",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     }
@@ -217,7 +224,10 @@ const PromptTemplateManager = () => {
     <div className="space-y-6">
       <TemplateManagerHeader onAddTemplate={() => setIsAddDialogOpen(true)} />
 
-      {!isWizardOpen && !isVisualBuilderOpen && !isLibraryOpen && !isTestingOpen ? (
+      {!isWizardOpen &&
+      !isVisualBuilderOpen &&
+      !isLibraryOpen &&
+      !isTestingOpen ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card
@@ -300,7 +310,11 @@ const PromptTemplateManager = () => {
                 <TemplateSearch
                   searchQuery={filters.search || ""}
                   onSearchChange={handleSearchChange}
-                  categories={[...new Set(templates.map(t => t.category).filter(Boolean))]}
+                  categories={[
+                    ...new Set(
+                      templates.map((t) => t.category).filter(Boolean),
+                    ),
+                  ]}
                   selectedCategory={filters.category || null}
                   onCategoryChange={handleCategoryChange}
                 />

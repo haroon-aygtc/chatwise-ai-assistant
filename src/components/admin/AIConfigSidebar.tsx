@@ -1,63 +1,77 @@
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Bot,
-  Database,
+  FileText,
   MessageSquare,
   Wand2,
   Sparkles,
   MessageCircle,
   ChevronRight,
+  GitBranch,
+  Settings,
+  Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AIConfigSidebarProps {
-  activeModule: string;
-  onModuleChange: (module: string) => void;
+  standalone?: boolean;
 }
 
-const AIConfigSidebar = ({
-  activeModule,
-  onModuleChange,
-}: AIConfigSidebarProps) => {
+const AIConfigSidebar = ({ standalone = false }: AIConfigSidebarProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
+
   const modules = [
     {
       id: "models",
       name: "AI Models",
       icon: <Bot className="h-5 w-5" />,
       description: "Configure AI models and providers",
-    },
-    {
-      id: "knowledge-base",
-      name: "Knowledge Base",
-      icon: <Database className="h-5 w-5" />,
-      description: "Connect your AI to knowledge sources",
+      path: "/admin/ai-configuration/models",
     },
     {
       id: "prompts",
       name: "Prompt Templates",
       icon: <MessageSquare className="h-5 w-5" />,
       description: "Create and manage prompt templates",
+      path: "/admin/ai-configuration/prompts",
     },
     {
-      id: "formatting",
+      id: "response-formats",
       name: "Response Formatting",
-      icon: <Wand2 className="h-5 w-5" />,
+      icon: <FileText className="h-5 w-5" />,
       description: "Configure how AI responses are structured",
-    },
-    {
-      id: "branding",
-      name: "Branding Engine",
-      icon: <Sparkles className="h-5 w-5" />,
-      description: "Apply brand voice and styling to responses",
+      path: "/admin/ai-configuration/response-formats",
     },
     {
       id: "follow-up",
       name: "Follow-Up Engine",
       icon: <MessageCircle className="h-5 w-5" />,
       description: "Configure follow-up suggestions",
+      path: "/admin/ai-configuration/follow-up",
+    },
+    {
+      id: "branching-flows",
+      name: "Branching Flows",
+      icon: <GitBranch className="h-5 w-5" />,
+      description: "Create conversation paths with branches",
+      path: "/admin/ai-configuration/branching-flows",
+    },
+    {
+      id: "settings",
+      name: "AI Settings",
+      icon: <Settings className="h-5 w-5" />,
+      description: "Configure global AI behavior settings",
+      path: "/admin/ai-configuration/settings",
     },
   ];
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
 
   return (
     <div className="w-64 border-r bg-background h-full">
@@ -70,19 +84,19 @@ const AIConfigSidebar = ({
           {modules.map((module) => (
             <Button
               key={module.id}
-              variant={activeModule === module.id ? "secondary" : "ghost"}
+              variant={currentPath === module.path ? "secondary" : "ghost"}
               className={cn(
                 "w-full justify-start mb-1 text-left",
-                activeModule === module.id
+                currentPath === module.path
                   ? "bg-secondary"
                   : "hover:bg-secondary/50",
               )}
-              onClick={() => onModuleChange(module.id)}
+              onClick={() => handleNavigate(module.path)}
             >
               <div className="flex items-center w-full">
                 <div className="mr-2">{module.icon}</div>
                 <span>{module.name}</span>
-                {activeModule === module.id && (
+                {currentPath === module.path && (
                   <ChevronRight className="ml-auto h-4 w-4" />
                 )}
               </div>

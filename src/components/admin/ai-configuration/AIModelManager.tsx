@@ -30,7 +30,18 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Plus, Save, Settings, RefreshCw, PlusCircle, Check, X, Search, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Plus,
+  Save,
+  Settings,
+  RefreshCw,
+  PlusCircle,
+  Check,
+  X,
+  Search,
+  Loader2,
+} from "lucide-react";
 import { AIModel, AIProvider, ModelProvider } from "@/types/ai-configuration";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -136,7 +147,12 @@ export const AIModelManager = () => {
 
     try {
       setSavingProvider(true);
-      const createdProvider = await aiService.createProvider(newProvider as Omit<ModelProvider, "id" | "createdAt" | "updatedAt" | "slug">);
+      const createdProvider = await aiService.createProvider(
+        newProvider as Omit<
+          ModelProvider,
+          "id" | "createdAt" | "updatedAt" | "slug"
+        >,
+      );
       setProviders([...providers, createdProvider]);
       setShowAddProvider(false);
       setNewProvider({
@@ -287,17 +303,21 @@ export const AIModelManager = () => {
   };
 
   // Filter models by search term
-  const filteredModels = models.filter((model) =>
-    model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    model.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (model.modelId && model.modelId.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredModels = models.filter(
+    (model) =>
+      model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      model.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (model.modelId &&
+        model.modelId.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   // Filter providers by search term
-  const filteredProviders = providers.filter((provider) =>
-    provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (provider.description && provider.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredProviders = providers.filter(
+    (provider) =>
+      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (provider.description &&
+        provider.description.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   // Render a grid of model cards grouped by provider
@@ -306,14 +326,19 @@ export const AIModelManager = () => {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="border rounded-lg p-4 h-64 animate-pulse bg-muted/40"></div>
+            <div
+              key={i}
+              className="border rounded-lg p-4 h-64 animate-pulse bg-muted/40"
+            ></div>
           ))}
         </div>
       );
     }
 
     // Filter out invalid models
-    const validModels = filteredModels.filter(model => model && model.id && model.name);
+    const validModels = filteredModels.filter(
+      (model) => model && model.id && model.name,
+    );
 
     if (validModels.length === 0) {
       return (
@@ -323,15 +348,15 @@ export const AIModelManager = () => {
           </div>
           <h3 className="text-lg font-medium">No models found</h3>
           <p className="text-muted-foreground mt-1">
-            {searchTerm ?
-              `No models match "${searchTerm}". Try a different search term or clear the filter.` :
-              "There are no models configured yet. Click 'Add Model' to create one."}
+            {searchTerm
+              ? `No models match "${searchTerm}". Try a different search term or clear the filter.`
+              : "There are no models configured yet. Click 'Add Model' to create one."}
           </p>
           {searchTerm && (
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => setSearchTerm('')}
+              onClick={() => setSearchTerm("")}
             >
               Clear Filter
             </Button>
@@ -341,14 +366,17 @@ export const AIModelManager = () => {
     }
 
     // Group models by provider - safely handling null/undefined values
-    const modelsByProvider = validModels.reduce((acc, model) => {
-      const provider = model.provider || 'Unknown';
-      if (!acc[provider]) {
-        acc[provider] = [];
-      }
-      acc[provider].push(model);
-      return acc;
-    }, {} as Record<string, AIModel[]>);
+    const modelsByProvider = validModels.reduce(
+      (acc, model) => {
+        const provider = model.provider || "Unknown";
+        if (!acc[provider]) {
+          acc[provider] = [];
+        }
+        acc[provider].push(model);
+        return acc;
+      },
+      {} as Record<string, AIModel[]>,
+    );
 
     if (Object.keys(modelsByProvider).length === 0) {
       return (
@@ -487,10 +515,7 @@ export const AIModelManager = () => {
                 <RefreshCw className="h-4 w-4 mr-1" />
                 Refresh
               </Button>
-              <Button
-                size="sm"
-                onClick={() => setShowAddModel(true)}
-              >
+              <Button size="sm" onClick={() => setShowAddModel(true)}>
                 <PlusCircle className="h-4 w-4 mr-1" />
                 Add Model
               </Button>

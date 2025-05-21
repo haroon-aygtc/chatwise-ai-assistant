@@ -129,7 +129,8 @@ function App() {
 
     // If authenticated, ensure the session is marked as active
     if (isAuthenticated) {
-      if (DEBUG) console.log("App: User is authenticated, marking session as active");
+      if (DEBUG)
+        console.log("App: User is authenticated, marking session as active");
       localStorage.setItem("has_active_session", "true");
       sessionStorage.setItem("has_active_session", "true");
     }
@@ -251,6 +252,7 @@ function App() {
                   element={<AIConfigurationPage />}
                 >
                   <Route path="models" element={<AIModelManager />} />
+                  <Route path="prompts" element={<PromptTemplateManager />} />
                   <Route
                     path="response-formats"
                     element={<ResponseFormatterManager />}

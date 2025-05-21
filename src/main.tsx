@@ -7,7 +7,7 @@ import "intl-tel-input/build/css/intlTelInput.css";
 import { BrowserRouter } from "react-router-dom";
 // Import the dev tools and initialize them
 import { TempoDevtools } from "tempo-devtools";
-import { AuthProvider } from "@/hooks/auth/useAuth";
+import { AuthProvider } from "@/hooks/auth/AuthProvider";
 TempoDevtools.init();
 
 // Ensure CSRF token is fetched before rendering
@@ -17,7 +17,10 @@ import apiService from "./services/api/api";
 const DEBUG = true;
 
 // Initialize app with Sanctum cookie-based authentication
-if (DEBUG) console.log("Main: Initializing app with Sanctum cookie-based authentication");
+if (DEBUG)
+  console.log(
+    "Main: Initializing app with Sanctum cookie-based authentication",
+  );
 
 const basename = import.meta.env.BASE_URL;
 
@@ -41,7 +44,7 @@ const initApp = async () => {
         <AuthProvider>
           <App />
         </AuthProvider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
   }
 };
