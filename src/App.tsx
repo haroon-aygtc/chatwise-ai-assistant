@@ -17,6 +17,7 @@ import SettingsPageWrapper from "@/pages/admin/SettingsPageWrapper";
 import KnowledgeBasePage from "@/pages/admin/KnowledgeBasePage";
 import AIConfigurationPage from "@/pages/admin/AIConfigurationPage";
 import { AIModelManager } from "@/components/admin/ai-configuration/AIModelManager";
+import { PromptTemplateManager } from "@/components/admin/ai-configuration/prompt-templates/PromptTemplateManager";
 import { ResponseFormatterManager } from "@/components/admin/ai-configuration/response-formats";
 import { FollowUpManager } from "@/components/admin/ai-configuration/FollowUpManager";
 import { RedirectComponent } from "@/components/admin/ai-configuration/RedirectComponent";

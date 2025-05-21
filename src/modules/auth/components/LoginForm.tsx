@@ -47,25 +47,27 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // Call login function from auth hook
-      const success = await login(values.email, values.password, values.remember);
+      // Call login function from auth hook with correct parameter structure
+      await login({
+        email: values.email,
+        password: values.password,
+        remember: values.remember
+      });
 
-      if (success) {
-        // Check if there's a redirect URL in session storage
-        const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+      // Check if there's a redirect URL in session storage
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
 
-        // Display success toast
-        toast.success({
-          title: "Login successful",
-          description: "You have been successfully logged in",
-        });
+      // Display success toast
+      toast({
+        title: "Login successful",
+        description: "You have been successfully logged in",
+      });
 
-        // Clear the redirect URL from session storage
-        sessionStorage.removeItem('redirectAfterLogin');
+      // Clear the redirect URL from session storage
+      sessionStorage.removeItem('redirectAfterLogin');
 
-        // Navigate to the redirect URL
-        navigate(redirectUrl);
-      }
+      // Navigate to the redirect URL
+      navigate(redirectUrl);
     } catch (error) {
       // Error handling is now centralized in authService
     } finally {
