@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop the table if it exists to avoid conflicts
-        Schema::dropIfExists('response_formats');
+        // Skip if table already exists
+        if (Schema::hasTable('response_formats')) {
+            return;
+        }
 
         Schema::create('response_formats', function (Blueprint $table) {
             $table->id();
@@ -35,6 +37,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('response_formats');
+        // Don't drop the table to avoid conflicts with other migrations
+        // Schema::dropIfExists('response_formats');
     }
 };

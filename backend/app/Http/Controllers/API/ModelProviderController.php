@@ -4,18 +4,22 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\ModelProvider;
+use App\Services\ModelProviderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ModelProviderController extends Controller
 {
+    protected $providerService;
+
     /**
      * Create a new controller instance.
+     *
+     * @param ModelProviderService $providerService
      */
-    public function __construct()
+    public function __construct(ModelProviderService $providerService)
     {
-        // Middleware should be defined in routes, not in the controller
-        // The middleware method is not available directly on the controller
+        $this->providerService = $providerService;
     }
 
     /**
@@ -25,24 +29,47 @@ class ModelProviderController extends Controller
      */
     public function index()
     {
-        $providers = ModelProvider::where('isActive', true)->get();
-        return response()->json(['data' => $providers]);
+        try {
+            $providers = $this->providerService->getAllProviders();
+            return response()->json(['data' => $providers]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch providers: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
-     * Get model provider by ID.
+     * Get active model providers.
      *
-     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getActiveProviders()
+    {
+        try {
+            $providers = $this->providerService->getActiveProviders();
+            return response()->json(['data' => $providers]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch active providers: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get provider by ID.
+     *
+     * @param string $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
-        $provider = ModelProvider::with('models')->findOrFail($id);
-        return response()->json(['data' => $provider]);
+        try {
+            $provider = $this->providerService->getProviderById($id);
+            return response()->json(['data' => $provider]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch provider: ' . $e->getMessage()], 404);
+        }
     }
 
     /**
-     * Create a new model provider.
+     * Create a new provider.
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -57,21 +84,22 @@ class ModelProviderController extends Controller
             'baseUrlRequired' => 'boolean',
             'baseUrlName' => 'nullable|string|max:255',
             'isActive' => 'boolean',
-            'logoUrl' => 'nullable|string|url',
+            'logoUrl' => 'nullable|string',
         ]);
 
-        // Generate slug from name
-        $validated['slug'] = Str::slug($validated['name']);
-
-        $provider = ModelProvider::create($validated);
-        return response()->json(['data' => $provider, 'message' => 'Model provider created successfully'], 201);
+        try {
+            $provider = $this->providerService->createProvider($validated);
+            return response()->json(['data' => $provider, 'message' => 'Provider created successfully'], 201);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to create provider: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
-     * Update an existing model provider.
+     * Update an existing provider.
      *
      * @param Request $request
-     * @param int $id
+     * @param string $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
@@ -84,31 +112,46 @@ class ModelProviderController extends Controller
             'baseUrlRequired' => 'boolean',
             'baseUrlName' => 'nullable|string|max:255',
             'isActive' => 'boolean',
-            'logoUrl' => 'nullable|string|url',
+            'logoUrl' => 'nullable|string',
         ]);
 
-        // Update slug if name changes
-        if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+        try {
+            $provider = $this->providerService->updateProvider($id, $validated);
+            return response()->json(['data' => $provider, 'message' => 'Provider updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to update provider: ' . $e->getMessage()], 500);
         }
-
-        $provider = ModelProvider::findOrFail($id);
-        $provider->update($validated);
-
-        return response()->json(['data' => $provider, 'message' => 'Model provider updated successfully']);
     }
 
     /**
-     * Delete a model provider.
+     * Delete a provider.
      *
-     * @param int $id
+     * @param string $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {
-        $provider = ModelProvider::findOrFail($id);
-        $provider->delete();
+        try {
+            $this->providerService->deleteProvider($id);
+            return response()->json(['message' => 'Provider deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to delete provider: ' . $e->getMessage()], 500);
+        }
+    }
 
-        return response()->json(['message' => 'Model provider deleted successfully']);
+    /**
+     * Get models for a specific provider.
+     *
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getProviderModels($id)
+    {
+        try {
+            $models = $this->providerService->getProviderModels($id);
+            return response()->json(['data' => $models]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch provider models: ' . $e->getMessage()], 500);
+        }
     }
 }

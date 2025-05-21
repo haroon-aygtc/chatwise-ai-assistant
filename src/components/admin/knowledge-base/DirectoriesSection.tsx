@@ -110,7 +110,7 @@ export function DirectoriesSection({
                 includePatterns: selectedResource.includePatterns || [],
                 excludePatterns: selectedResource.excludePatterns || [],
             });
-            setIsEditing(true);
+        setIsEditing(true);
         } else {
             const collectionsList = Array.isArray(collections) ? collections : [];
             form.reset({
@@ -393,29 +393,29 @@ export function DirectoriesSection({
                             <h2 className="text-xl font-semibold">
                                 {isEditing ? "Edit Directory" : "Create New Directory"}
                             </h2>
-                            <div className="flex gap-2">
+                                <div className="flex gap-2">
                                 {isEditing && selectedResource && (
                                     <>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleSync(selectedResource.id)}
-                                        >
-                                            <RefreshCw className="h-4 w-4 mr-1" />
-                                            Sync
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => handleDelete(selectedResource.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4 mr-1" />
-                                            Delete
-                                        </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleSync(selectedResource.id)}
+                                    >
+                                        <RefreshCw className="h-4 w-4 mr-1" />
+                                        Sync
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleDelete(selectedResource.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Delete
+                                    </Button>
                                     </>
                                 )}
                             </div>
-                        </div>
+                                </div>
 
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -440,7 +440,7 @@ export function DirectoriesSection({
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Collection</FormLabel>
-                                                <div>
+                                    <div>
                                                     <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -455,7 +455,7 @@ export function DirectoriesSection({
                                                             )) : null}
                                                         </SelectContent>
                                                     </Select>
-                                                </div>
+                                    </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -507,7 +507,7 @@ export function DirectoriesSection({
                                         <FormItem>
                                             <FormLabel>File Types</FormLabel>
                                             <FormControl>
-                                                <div>
+                                <div>
                                                     <Select
                                                         onValueChange={(value) => {
                                                             const currentTypes = field.value || [];
@@ -583,7 +583,7 @@ export function DirectoriesSection({
                                                         >
                                                             Add
                                                         </Button>
-                                                    </div>
+                                    </div>
                                                 </FormControl>
                                                 <FormDescription>
                                                     Patterns to include (glob format)
@@ -604,7 +604,7 @@ export function DirectoriesSection({
                                                                     />
                                                                 </Badge>
                                                             ))}
-                                                        </div>
+                                </div>
                                                     </ScrollArea>
                                                 )}
                                             </FormItem>
@@ -653,7 +653,7 @@ export function DirectoriesSection({
                                                                     />
                                                                 </Badge>
                                                             ))}
-                                                        </div>
+                                    </div>
                                                     </ScrollArea>
                                                 )}
                                             </FormItem>
@@ -690,21 +690,21 @@ export function DirectoriesSection({
                                             <FormMessage />
                                             {field.value && field.value.length > 0 && (
                                                 <ScrollArea className="h-16 w-full border rounded-md p-2 mt-2">
-                                                    <div className="flex flex-wrap gap-2">
+                                        <div className="flex flex-wrap gap-2">
                                                         {field.value.map((tag) => (
                                                             <Badge
                                                                 key={tag}
                                                                 variant="secondary"
                                                                 className="flex items-center gap-1 px-2 py-1"
                                                             >
-                                                                {tag}
+                                                    {tag}
                                                                 <X
                                                                     className="h-3 w-3 cursor-pointer"
                                                                     onClick={() => handleRemoveTag(tag)}
                                                                 />
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
+                                                </Badge>
+                                            ))}
+                                        </div>
                                                 </ScrollArea>
                                             )}
                                         </FormItem>
@@ -759,19 +759,19 @@ export function DirectoriesSection({
                                     <div className="border rounded-md p-4 bg-muted/30 mt-4">
                                         <h3 className="text-sm font-medium mb-2">Statistics</h3>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Files processed</p>
-                                                <p className="text-lg font-semibold">{selectedResource.fileCount || 0}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Last sync</p>
-                                                <p className="text-sm">
-                                                    {selectedResource.lastSyncedAt
-                                                        ? format(new Date(selectedResource.lastSyncedAt), "MMM d, yyyy HH:mm")
-                                                        : "Never"}
-                                                </p>
-                                            </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Files processed</p>
+                                            <p className="text-lg font-semibold">{selectedResource.fileCount || 0}</p>
                                         </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Last sync</p>
+                                            <p className="text-sm">
+                                                {selectedResource.lastSyncedAt
+                                                    ? format(new Date(selectedResource.lastSyncedAt), "MMM d, yyyy HH:mm")
+                                                    : "Never"}
+                                            </p>
+                                        </div>
+                                    </div>
                                     </div>
                                 )}
 
@@ -786,8 +786,8 @@ export function DirectoriesSection({
                                     <Button type="submit">
                                         <Save className="mr-2 h-4 w-4" />
                                         {isEditing ? "Update Directory" : "Create Directory"}
-                                    </Button>
-                                </div>
+                            </Button>
+                        </div>
                             </form>
                         </Form>
                     </div>

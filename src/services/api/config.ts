@@ -8,28 +8,46 @@
  * - Environment-specific settings
  */
 
-// Check if we're in public API mode (with localStorage persistence)
-const getPublicModeFromStorage = (): boolean => {
-  const storedValue = localStorage.getItem("publicApiMode");
-  return storedValue !== null
-    ? storedValue === "true"
-    : import.meta.env.VITE_PUBLIC_API_MODE === "true";
+export interface ApiConfig {
+  BASE_URL: string;
+  TIMEOUT: number;
+  DEBUG: boolean;
+}
+
+/**
+ * Get the API base URL based on environment
+ */
+function getApiBaseUrl(): string {
+  // If full API URL is defined, use that directly
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // If separate components are defined, construct the URL
+  if (import.meta.env.VITE_BACKEND_HOST) {
+    const protocol = import.meta.env.VITE_BACKEND_PROTOCOL || 'http';
+    const host = import.meta.env.VITE_BACKEND_HOST;
+    const port = import.meta.env.VITE_BACKEND_PORT ? `:${import.meta.env.VITE_BACKEND_PORT}` : '';
+    const path = import.meta.env.VITE_BACKEND_PATH || 'api';
+
+    return `${protocol}://${host}${port}/${path}`;
+  }
+
+  // Default: Use relative path (same origin as frontend)
+  return '/api';
+}
+
+// Default configuration
+const API_CONFIG: ApiConfig = {
+  BASE_URL: getApiBaseUrl(),
+  TIMEOUT: 30000, // 30 seconds
+  DEBUG: import.meta.env.DEV || false,
 };
 
-const isPublicMode = getPublicModeFromStorage();
-
-// Environment variables with fallbacks
-const API_CONFIG = Object.freeze({
-  BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
-  TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
-  WITH_CREDENTIALS: !isPublicMode, // Skip credentials in public mode
-  DEBUG: import.meta.env.DEV,
-});
+// Check if we're in public API mode (no auth)
+export const isPublicApiMode = import.meta.env.VITE_PUBLIC_API_MODE === 'true';
 
 export default API_CONFIG;
-
-// Also export API_URL for backward compatibility
-export const API_URL = API_CONFIG.BASE_URL;
 
 /**
  * API Endpoints
@@ -68,7 +86,10 @@ export const PERMISSION_ENDPOINTS = Object.freeze({
  * Centralized management of headers that need to be included in all requests
  */
 class HeadersManager {
-  private headers: Record<string, string> = {};
+  private headers: Record<string, string> = {
+    'X-App-Version': import.meta.env.VITE_APP_VERSION || '1.0.0',
+    'X-App-Platform': 'web',
+  };
 
   /**
    * Add a global header
@@ -113,9 +134,6 @@ export const removeGlobalHeader = (key: string): void =>
   headersManager.remove(key);
 export const getGlobalHeaders = (): Record<string, string> =>
   headersManager.getAll();
-
-// Export public mode status and setter for use in other modules
-export const isPublicApiMode = isPublicMode;
 
 // Function to update public API mode
 export const setPublicApiMode = (value: boolean): void => {

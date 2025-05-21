@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             AdminPermissionsSeeder::class, // Add our new seeder to ensure admin has all permissions
             UserSeeder::class,
             ModelProviderSeeder::class,    // Add Model Provider seeder
+            AIModelSeeder::class,          // Add AI Model seeder after the provider seeder
             PromptTemplateSeeder::class,
             KnowledgeBaseSeeder::class,
             ResponseFormatSeeder::class,

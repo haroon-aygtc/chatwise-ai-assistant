@@ -1,22 +1,33 @@
 import { useState, useEffect } from "react";
-import { AIModel } from "@/types/ai-configuration";
+import { AIModel, AIProvider, ModelConfiguration } from "@/types/ai-configuration";
 
 export const useModelCardState = (model: AIModel) => {
-  // Extract initial values from the model
-  const initialTemperature = Number(model.configuration.temperature) || 0.7;
-  const initialMaxTokens = Number(model.configuration.maxTokens) || 2048;
-  const initialModelId =
-    (model.configuration.model as string) || model.modelId || "";
-  const initialBaseUrl = model.baseUrl || "";
+  // Ensure we have a valid configuration object even if it's missing
+  const config = model?.configuration || {
+    temperature: 0.7,
+    maxTokens: 2048,
+    model: "",
+  };
+
+  // Extract initial values from the model with proper fallbacks
+  const initialTemperature = config.temperature !== undefined ? Number(config.temperature) : 0.7;
+  const initialMaxTokens = config.maxTokens !== undefined ? Number(config.maxTokens) : 2048;
+  const initialModelId = (config.model as string) || model?.modelId || "";
+  const initialBaseUrl = model?.baseUrl || "";
 
   // Basic state
   const [temperature, setTemperature] = useState<number>(initialTemperature);
   const [maxTokens, setMaxTokens] = useState<number>(initialMaxTokens);
-  const [isActive, setIsActive] = useState(model.isActive);
-  const [apiKey, setApiKey] = useState(model.apiKey || "");
+  const [isActive, setIsActive] = useState(model?.isActive !== undefined ? model.isActive : true);
+  const [apiKey, setApiKey] = useState(model?.apiKey || "");
   const [modelId, setModelId] = useState(initialModelId);
   const [baseUrl, setBaseUrl] = useState(initialBaseUrl);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Use a more flexible approach to handle provider-specific properties
+  const getConfigValue = <T,>(key: string, defaultValue: T): T => {
+    return (config as any)[key] !== undefined ? (config as any)[key] : defaultValue;
+  };
 
   // Provider-specific state
   const [providerSpecificState, setProviderSpecificState] = useState<
@@ -25,28 +36,32 @@ export const useModelCardState = (model: AIModel) => {
     // Initialize with provider-specific values from the model configuration
     const state: Record<string, any> = {};
 
+    if (!model?.provider) {
+      return state;
+    }
+
     switch (model.provider) {
       case "OpenAI":
-        state.organization = model.configuration.organization || "";
+        state.organization = getConfigValue("organization", "");
         break;
       case "Google":
-        state.safetySettings = model.configuration.safetySettings || {};
+        state.safetySettings = getConfigValue("safetySettings", {});
         break;
       case "Anthropic":
-        state.topK = model.configuration.topK || 40;
+        state.topK = getConfigValue("topK", 40);
         break;
       case "HuggingFace":
-        state.task = model.configuration.task || "text-generation";
-        state.waitForModel = model.configuration.waitForModel || false;
+        state.task = getConfigValue("task", "text-generation");
+        state.waitForModel = getConfigValue("waitForModel", false);
         break;
       case "OpenRouter":
-        state.routeType = model.configuration.routeType || "lowest-cost";
+        state.routeType = getConfigValue("routeType", "lowest-cost");
         break;
       case "Mistral":
-        state.safePrompt = model.configuration.safePrompt || false;
+        state.safePrompt = getConfigValue("safePrompt", false);
         break;
       case "TogetherAI":
-        state.repetitionPenalty = model.configuration.repetitionPenalty || 1.1;
+        state.repetitionPenalty = getConfigValue("repetitionPenalty", 1.1);
         break;
     }
 
@@ -63,6 +78,11 @@ export const useModelCardState = (model: AIModel) => {
 
   // Check for changes in any state values
   useEffect(() => {
+    if (!model) {
+      setHasChanges(false);
+      return;
+    }
+
     const temperatureChanged = temperature !== initialTemperature;
     const maxTokensChanged = maxTokens !== initialMaxTokens;
     const activeChanged = isActive !== model.isActive;
@@ -75,53 +95,55 @@ export const useModelCardState = (model: AIModel) => {
     // Check for changes in provider-specific state
     let providerSpecificChanged = false;
 
-    switch (model.provider) {
-      case "OpenAI":
-        providerSpecificChanged =
-          providerSpecificState.organization !==
-          (model.configuration.organization || "");
-        break;
-      case "Google":
-        providerSpecificChanged =
-          JSON.stringify(providerSpecificState.safetySettings) !==
-          JSON.stringify(model.configuration.safetySettings || {});
-        break;
-      case "Anthropic":
-        providerSpecificChanged =
-          providerSpecificState.topK !== (model.configuration.topK || 40);
-        break;
-      case "HuggingFace":
-        providerSpecificChanged =
-          providerSpecificState.task !==
-            (model.configuration.task || "text-generation") ||
-          providerSpecificState.waitForModel !==
-            (model.configuration.waitForModel || false);
-        break;
-      case "OpenRouter":
-        providerSpecificChanged =
-          providerSpecificState.routeType !==
-          (model.configuration.routeType || "lowest-cost");
-        break;
-      case "Mistral":
-        providerSpecificChanged =
-          providerSpecificState.safePrompt !==
-          (model.configuration.safePrompt || false);
-        break;
-      case "TogetherAI":
-        providerSpecificChanged =
-          providerSpecificState.repetitionPenalty !==
-          (model.configuration.repetitionPenalty || 1.1);
-        break;
+    if (model.provider) {
+      switch (model.provider) {
+        case "OpenAI":
+          providerSpecificChanged =
+            providerSpecificState.organization !==
+            getConfigValue("organization", "");
+          break;
+        case "Google":
+          providerSpecificChanged =
+            JSON.stringify(providerSpecificState.safetySettings) !==
+            JSON.stringify(getConfigValue("safetySettings", {}));
+          break;
+        case "Anthropic":
+          providerSpecificChanged =
+            providerSpecificState.topK !== getConfigValue("topK", 40);
+          break;
+        case "HuggingFace":
+          providerSpecificChanged =
+            providerSpecificState.task !==
+            getConfigValue("task", "text-generation") ||
+            providerSpecificState.waitForModel !==
+            getConfigValue("waitForModel", false);
+          break;
+        case "OpenRouter":
+          providerSpecificChanged =
+            providerSpecificState.routeType !==
+            getConfigValue("routeType", "lowest-cost");
+          break;
+        case "Mistral":
+          providerSpecificChanged =
+            providerSpecificState.safePrompt !==
+            getConfigValue("safePrompt", false);
+          break;
+        case "TogetherAI":
+          providerSpecificChanged =
+            providerSpecificState.repetitionPenalty !==
+            getConfigValue("repetitionPenalty", 1.1);
+          break;
+      }
     }
 
     setHasChanges(
       temperatureChanged ||
-        maxTokensChanged ||
-        activeChanged ||
-        apiKeyChanged ||
-        modelIdChanged ||
-        baseUrlChanged ||
-        providerSpecificChanged,
+      maxTokensChanged ||
+      activeChanged ||
+      apiKeyChanged ||
+      modelIdChanged ||
+      baseUrlChanged ||
+      providerSpecificChanged,
     );
   }, [
     temperature,
@@ -136,44 +158,47 @@ export const useModelCardState = (model: AIModel) => {
     initialMaxTokens,
     initialModelId,
     initialBaseUrl,
+    config,
   ]);
 
   // Reset all state values to their initial values
   const handleReset = () => {
     setTemperature(initialTemperature);
     setMaxTokens(initialMaxTokens);
-    setIsActive(model.isActive);
-    setApiKey(model.apiKey || "");
+    setIsActive(model?.isActive !== undefined ? model.isActive : true);
+    setApiKey(model?.apiKey || "");
     setModelId(initialModelId);
     setBaseUrl(initialBaseUrl);
 
     // Reset provider-specific state
     const resetState: Record<string, any> = {};
 
-    switch (model.provider) {
-      case "OpenAI":
-        resetState.organization = model.configuration.organization || "";
-        break;
-      case "Google":
-        resetState.safetySettings = model.configuration.safetySettings || {};
-        break;
-      case "Anthropic":
-        resetState.topK = model.configuration.topK || 40;
-        break;
-      case "HuggingFace":
-        resetState.task = model.configuration.task || "text-generation";
-        resetState.waitForModel = model.configuration.waitForModel || false;
-        break;
-      case "OpenRouter":
-        resetState.routeType = model.configuration.routeType || "lowest-cost";
-        break;
-      case "Mistral":
-        resetState.safePrompt = model.configuration.safePrompt || false;
-        break;
-      case "TogetherAI":
-        resetState.repetitionPenalty =
-          model.configuration.repetitionPenalty || 1.1;
-        break;
+    if (model?.provider) {
+      switch (model.provider) {
+        case "OpenAI":
+          resetState.organization = getConfigValue("organization", "");
+          break;
+        case "Google":
+          resetState.safetySettings = getConfigValue("safetySettings", {});
+          break;
+        case "Anthropic":
+          resetState.topK = getConfigValue("topK", 40);
+          break;
+        case "HuggingFace":
+          resetState.task = getConfigValue("task", "text-generation");
+          resetState.waitForModel = getConfigValue("waitForModel", false);
+          break;
+        case "OpenRouter":
+          resetState.routeType = getConfigValue("routeType", "lowest-cost");
+          break;
+        case "Mistral":
+          resetState.safePrompt = getConfigValue("safePrompt", false);
+          break;
+        case "TogetherAI":
+          resetState.repetitionPenalty =
+            getConfigValue("repetitionPenalty", 1.1);
+          break;
+      }
     }
 
     setProviderSpecificState(resetState);

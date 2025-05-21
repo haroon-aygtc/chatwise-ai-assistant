@@ -7,7 +7,9 @@ use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\FollowUpController;
 use App\Http\Controllers\API\PromptTemplateController;
-use App\Http\Controllers\API\RoutingRuleController;
+use App\Http\Controllers\API\SystemPromptController;
+use App\Http\Controllers\API\AITestController;
+// use App\Http\Controllers\API\RoutingRuleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -177,6 +179,59 @@ Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'user'])
 
 Route::middleware('auth:sanctum')->group(function () {
 
+    // AI Configuration Module
+    Route::prefix('ai')->group(function () {
+        // AI Models
+        Route::get('/models', [AIModelController::class, 'index']);
+        Route::get('/models/{id}', [AIModelController::class, 'show']);
+        Route::post('/models', [AIModelController::class, 'store']);
+        Route::put('/models/{id}', [AIModelController::class, 'update']);
+        Route::delete('/models/{id}', [AIModelController::class, 'destroy']);
+        Route::post('/models/{id}/default', [AIModelController::class, 'setDefault']);
+        Route::post('/models/{id}/test', [AIModelController::class, 'testModel']);
+
+        // Model Providers
+        Route::get('/providers', [ModelProviderController::class, 'index']);
+        Route::get('/providers/active', [ModelProviderController::class, 'getActiveProviders']);
+        Route::get('/providers/{id}', [ModelProviderController::class, 'show']);
+        Route::post('/providers', [ModelProviderController::class, 'store']);
+        Route::put('/providers/{id}', [ModelProviderController::class, 'update']);
+        Route::delete('/providers/{id}', [ModelProviderController::class, 'destroy']);
+        Route::get('/providers/{id}/models', [ModelProviderController::class, 'getProviderModels']);
+
+        // System Prompts
+        Route::get('/system-prompts', [SystemPromptController::class, 'index']);
+        Route::get('/system-prompts/active', [SystemPromptController::class, 'getCurrentPrompt']);
+        Route::get('/system-prompts/{id}', [SystemPromptController::class, 'show']);
+        Route::post('/system-prompts', [SystemPromptController::class, 'store']);
+        Route::put('/system-prompts/{id}', [SystemPromptController::class, 'update']);
+        Route::delete('/system-prompts/{id}', [SystemPromptController::class, 'destroy']);
+        Route::post('/system-prompts/{id}/activate', [SystemPromptController::class, 'activate']);
+
+        // Prompt Templates
+        Route::get('/prompt-templates', [PromptTemplateController::class, 'index']);
+        Route::get('/prompt-templates/{id}', [PromptTemplateController::class, 'show']);
+        Route::post('/prompt-templates', [PromptTemplateController::class, 'store']);
+        Route::put('/prompt-templates/{id}', [PromptTemplateController::class, 'update']);
+        Route::delete('/prompt-templates/{id}', [PromptTemplateController::class, 'destroy']);
+        Route::get('/prompt-templates/categories/list', [PromptTemplateController::class, 'getCategories']);
+        Route::post('/prompt-templates/{id}/increment-usage', [PromptTemplateController::class, 'incrementUsage']);
+
+        // Follow-up Suggestions
+        Route::get('/follow-up/settings', [FollowUpController::class, 'getSettings']);
+        Route::put('/follow-up/settings', [FollowUpController::class, 'updateSettings']);
+        Route::get('/follow-up/suggestions', [FollowUpController::class, 'getSuggestions']);
+        Route::post('/follow-up/suggestions', [FollowUpController::class, 'createSuggestion']);
+        Route::put('/follow-up/suggestions/{id}', [FollowUpController::class, 'updateSuggestion']);
+        Route::delete('/follow-up/suggestions/{id}', [FollowUpController::class, 'deleteSuggestion']);
+        Route::put('/follow-up/suggestions/reorder', [FollowUpController::class, 'reorderSuggestions']);
+        Route::get('/follow-up/categories', [FollowUpController::class, 'getCategories']);
+
+        // AI Testing Tools
+        Route::post('/test/connection', [AITestController::class, 'testConnection']);
+        Route::post('/test/complete', [AITestController::class, 'testModelCompletely']);
+    });
+
     // User Settings
     Route::get('/users', [\App\Http\Controllers\API\UserController::class, 'index']);
     Route::get('/users/{id}', [\App\Http\Controllers\API\UserController::class, 'show']);
@@ -302,10 +357,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Routing Rules
         // Route::get('/routing-rules', [\App\Http\Controllers\API\RoutingRuleController::class, 'index']); // Moved to public routes
-        Route::get('/routing-rules/{id}', [RoutingRuleController::class, 'show']);
-        Route::post('/routing-rules', [RoutingRuleController::class, 'store']);
-        Route::put('/routing-rules/{id}', [RoutingRuleController::class, 'update']);
-        Route::delete('/routing-rules/{id}', [RoutingRuleController::class, 'destroy']);
+        // Comment out the controller import that doesn't exist
+        // use App\Http\Controllers\API\RoutingRuleController;
+        // Comment out the routing rules routes
+        // Route::get('/routing-rules/{id}', [RoutingRuleController::class, 'show']);
+        // Route::post('/routing-rules', [RoutingRuleController::class, 'store']);
+        // Route::put('/routing-rules/{id}', [RoutingRuleController::class, 'update']);
+        // Route::delete('/routing-rules/{id}', [RoutingRuleController::class, 'destroy']);
 
         // Model Providers
         Route::get('/providers', [ModelProviderController::class, 'index']);

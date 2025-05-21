@@ -31,7 +31,7 @@ class ModelProvider extends Model
         'baseUrlRequired',
         'baseUrlName',
         'isActive',
-        'logoUrl',
+        'logoUrl'
     ];
 
     /**
@@ -44,11 +44,11 @@ class ModelProvider extends Model
         'baseUrlRequired' => 'boolean',
         'isActive' => 'boolean',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     /**
-     * Get the models associated with this provider.
+     * Get the AI models associated with this provider.
      */
     public function models(): HasMany
     {

@@ -12,6 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip if tables already exist
+        if (Schema::hasTable('knowledge_resources') &&
+            Schema::hasTable('resource_collections') &&
+            Schema::hasTable('knowledge_profiles') &&
+            Schema::hasTable('context_scopes')) {
+            return;
+        }
+
         // Drop tables if they exist to avoid conflicts
         Schema::dropIfExists('knowledge_documents');
         Schema::dropIfExists('document_categories');
@@ -62,6 +70,31 @@ return new class extends Migration
             'created_at' => now(),
             'updated_at' => now()
         ]);
+
+        // Create tables only if they don't exist
+        if (!Schema::hasTable('knowledge_resources')) {
+            Schema::create('knowledge_resources', function (Blueprint $table) {
+                // ... existing code ...
+            });
+        }
+
+        if (!Schema::hasTable('resource_collections')) {
+            Schema::create('resource_collections', function (Blueprint $table) {
+                // ... existing code ...
+            });
+        }
+
+        if (!Schema::hasTable('knowledge_profiles')) {
+            Schema::create('knowledge_profiles', function (Blueprint $table) {
+                // ... existing code ...
+            });
+        }
+
+        if (!Schema::hasTable('context_scopes')) {
+            Schema::create('context_scopes', function (Blueprint $table) {
+                // ... existing code ...
+            });
+        }
     }
 
     /**
@@ -69,8 +102,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('knowledge_documents');
-        Schema::dropIfExists('document_categories');
-        Schema::dropIfExists('knowledge_base_settings');
+        // Don't drop tables to avoid conflicts with other migrations
+        // Schema::dropIfExists('context_scopes');
+        // Schema::dropIfExists('knowledge_profiles');
+        // Schema::dropIfExists('resource_collections');
+        // Schema::dropIfExists('knowledge_resources');
     }
 };

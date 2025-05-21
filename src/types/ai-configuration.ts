@@ -269,6 +269,10 @@ export interface ModelProvider {
   slug: string;
   description?: string;
   isActive: boolean;
+  apiKeyName?: string;
+  apiKeyRequired?: boolean;
+  baseUrlName?: string;
+  baseUrlRequired?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -9,110 +9,75 @@ class ModelProviderSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
         $providers = [
             [
                 'name' => 'OpenAI',
                 'slug' => 'openai',
-                'description' => 'Official OpenAI API provider',
+                'description' => 'Provider of GPT models including GPT-4 and GPT-3.5-Turbo',
                 'apiKeyName' => 'OPENAI_API_KEY',
                 'apiKeyRequired' => true,
                 'baseUrlRequired' => false,
-                'baseUrlName' => 'OPENAI_API_URL',
+                'baseUrlName' => 'OPENAI_API_BASE',
                 'isActive' => true,
-                'logoUrl' => '/assets/providers/openai.png',
+                'logoUrl' => 'https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg'
+            ],
+            [
+                'name' => 'Google',
+                'slug' => 'google',
+                'description' => 'Provider of Gemini models',
+                'apiKeyName' => 'GOOGLE_API_KEY',
+                'apiKeyRequired' => true,
+                'baseUrlRequired' => false,
+                'baseUrlName' => null,
+                'isActive' => true,
+                'logoUrl' => 'https://www.gstatic.com/devrel-devsite/prod/v5ba20c1e081870fd30b7c8a21986cd833ce2d5426172434324aecec336f9315e/cloud/images/cloud-logo.svg'
             ],
             [
                 'name' => 'Anthropic',
                 'slug' => 'anthropic',
-                'description' => 'Anthropic Claude API provider',
+                'description' => 'Provider of Claude models',
                 'apiKeyName' => 'ANTHROPIC_API_KEY',
                 'apiKeyRequired' => true,
                 'baseUrlRequired' => false,
-                'baseUrlName' => 'ANTHROPIC_API_URL',
+                'baseUrlName' => 'ANTHROPIC_API_BASE',
                 'isActive' => true,
-                'logoUrl' => '/assets/providers/anthropic.png',
-            ],
-            [
-                'name' => 'TogetherAI',
-                'slug' => 'together',
-                'description' => 'TogetherAI API for open models',
-                'apiKeyName' => 'TOGETHER_API_KEY',
-                'apiKeyRequired' => true,
-                'baseUrlRequired' => false,
-                'baseUrlName' => 'TOGETHER_API_URL',
-                'isActive' => true,
-                'logoUrl' => '/assets/providers/together.png',
+                'logoUrl' => 'https://storage.googleapis.com/anthropic-website-assets/logo-claude-full.svg'
             ],
             [
                 'name' => 'Mistral',
                 'slug' => 'mistral',
-                'description' => 'Mistral AI API provider',
+                'description' => 'Provider of Mistral models',
                 'apiKeyName' => 'MISTRAL_API_KEY',
                 'apiKeyRequired' => true,
                 'baseUrlRequired' => false,
-                'baseUrlName' => 'MISTRAL_API_URL',
+                'baseUrlName' => 'MISTRAL_API_BASE',
                 'isActive' => true,
-                'logoUrl' => '/assets/providers/mistral.png',
+                'logoUrl' => 'https://assets-global.website-files.com/6408352778bf32108ea2a50e/64083c02a9f4911b6a82a73b_LightMode.svg'
             ],
             [
                 'name' => 'Groq',
                 'slug' => 'groq',
-                'description' => 'Groq high-performance LLM provider',
+                'description' => 'Provider of LLM models with exceptional speed',
                 'apiKeyName' => 'GROQ_API_KEY',
                 'apiKeyRequired' => true,
                 'baseUrlRequired' => false,
-                'baseUrlName' => 'GROQ_API_URL',
+                'baseUrlName' => 'GROQ_API_BASE',
                 'isActive' => true,
-                'logoUrl' => '/assets/providers/groq.png',
+                'logoUrl' => 'https://groq.com/images/logo-dark.svg'
             ],
             [
-                'name' => 'OpenRouter',
-                'slug' => 'openrouter',
-                'description' => 'OpenRouter multi-model provider',
-                'apiKeyName' => 'OPENROUTER_API_KEY',
-                'apiKeyRequired' => true,
-                'baseUrlRequired' => false,
-                'baseUrlName' => 'OPENROUTER_API_URL',
-                'isActive' => true,
-                'logoUrl' => '/assets/providers/openrouter.png',
-            ],
-            [
-                'name' => 'HuggingFace',
-                'slug' => 'huggingface',
-                'description' => 'HuggingFace inference API',
-                'apiKeyName' => 'HUGGINGFACE_API_KEY',
-                'apiKeyRequired' => true,
-                'baseUrlRequired' => false,
-                'baseUrlName' => 'HUGGINGFACE_API_URL',
-                'isActive' => true,
-                'logoUrl' => '/assets/providers/huggingface.png',
-            ],
-            [
-                'name' => 'Google Gemini',
-                'slug' => 'gemini',
-                'description' => 'Google Gemini AI provider',
-                'apiKeyName' => 'GEMINI_API_KEY',
-                'apiKeyRequired' => true,
-                'baseUrlRequired' => false,
-                'baseUrlName' => 'GEMINI_API_URL',
-                'isActive' => true,
-                'logoUrl' => '/assets/providers/gemini.png',
-            ],
-            [
-                'name' => 'Custom Provider',
+                'name' => 'Custom',
                 'slug' => 'custom',
-                'description' => 'Custom LLM provider configuration',
-                'apiKeyName' => 'CUSTOM_API_KEY',
-                'apiKeyRequired' => false,
+                'description' => 'For custom LLM deployments or self-hosted models',
+                'apiKeyName' => 'API_KEY',
+                'apiKeyRequired' => true,
                 'baseUrlRequired' => true,
-                'baseUrlName' => 'API URL',
+                'baseUrlName' => 'API_BASE_URL',
                 'isActive' => true,
-                'logoUrl' => '/assets/providers/custom.png',
+                'logoUrl' => null
             ],
         ];
 

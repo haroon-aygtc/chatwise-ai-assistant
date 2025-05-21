@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+<<<<<<< HEAD
 import {
   AlertCircle,
   Plus,
@@ -41,14 +42,19 @@ import {
   X,
   Search,
 } from "lucide-react";
+=======
+import { AlertCircle, Plus, Save, Settings, RefreshCw, PlusCircle, Check, X, Search, Loader2 } from "lucide-react";
+>>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
 import { AIModel, AIProvider, ModelProvider } from "@/types/ai-configuration";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import * as aiModelService from "@/services/ai-configuration/aiModelService";
 import { AddModelDialog } from "./AddModelDialog";
 import { ModelSelect } from "./components/ModelSelect";
 import { ModelFetcher } from "./components/ModelFetcher";
+import { ModelTestDialog } from "./components/ModelTestDialog";
+import { ModelCard } from "./ModelCard";
+import { aiService } from "@/services/api/aiService";
 
 export const AIModelManager = () => {
   const [activeTab, setActiveTab] = useState("models");
@@ -70,6 +76,8 @@ export const AIModelManager = () => {
     baseUrlName: "API_BASE_URL",
     isActive: true,
   });
+  const [testModel, setTestModel] = useState<AIModel | null>(null);
+  const [showTestDialog, setShowTestDialog] = useState<boolean>(false);
 
   const {
     models,
@@ -116,7 +124,7 @@ export const AIModelManager = () => {
   const fetchProviders = async () => {
     try {
       setIsLoadingProviders(true);
-      const fetchedProviders = await aiModelService.getAllProviders();
+      const fetchedProviders = await aiService.getAllProviders();
       setProviders(fetchedProviders);
     } catch (error) {
       console.error("Error fetching providers:", error);
@@ -142,12 +150,16 @@ export const AIModelManager = () => {
 
     try {
       setSavingProvider(true);
+<<<<<<< HEAD
       const createdProvider = await aiModelService.createProvider(
         newProvider as Omit<
           ModelProvider,
           "id" | "createdAt" | "updatedAt" | "slug"
         >,
       );
+=======
+      const createdProvider = await aiService.createProvider(newProvider as Omit<ModelProvider, "id" | "createdAt" | "updatedAt" | "slug">);
+>>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
       setProviders([...providers, createdProvider]);
       setShowAddProvider(false);
       setNewProvider({
@@ -198,7 +210,7 @@ export const AIModelManager = () => {
 
   const handleToggleProviderStatus = async (provider: ModelProvider) => {
     try {
-      await aiModelService.updateProvider(provider.id, {
+      await aiService.updateProvider(provider.id, {
         ...provider,
         isActive: !provider.isActive,
       });
@@ -269,11 +281,12 @@ export const AIModelManager = () => {
     // Add the new model to the list
     refreshData();
     toast({
-      title: "Model added",
-      description: `${model.name} has been added successfully.`,
+      title: "Model Added",
+      description: `${model.name} has been added successfully`,
     });
   };
 
+<<<<<<< HEAD
   // Filter models based on search term
   const filteredModels = models.filter(
     (model) =>
@@ -290,7 +303,126 @@ export const AIModelManager = () => {
       provider.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (provider.description &&
         provider.description.toLowerCase().includes(searchTerm.toLowerCase())),
+=======
+  const handleTestModel = (model: AIModel) => {
+    if (!model.isActive) {
+      toast({
+        title: "Model inactive",
+        description: "Please activate the model before testing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!model.apiKey) {
+      toast({
+        title: "API Key Missing",
+        description: "Please add an API key before testing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTestModel(model);
+    setShowTestDialog(true);
+  };
+
+  // Filter models by search term
+  const filteredModels = models.filter((model) =>
+    model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    model.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (model.modelId && model.modelId.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Filter providers by search term
+  const filteredProviders = providers.filter((provider) =>
+    provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    provider.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (provider.description && provider.description.toLowerCase().includes(searchTerm.toLowerCase()))
+>>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
+  );
+
+  // Render a grid of model cards grouped by provider
+  const renderModelCards = () => {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="border rounded-lg p-4 h-64 animate-pulse bg-muted/40"></div>
+          ))}
+        </div>
+      );
+    }
+
+    // Filter out invalid models
+    const validModels = filteredModels.filter(model => model && model.id && model.name);
+
+    if (validModels.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="rounded-full bg-muted p-3 mb-4">
+            <Search className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium">No models found</h3>
+          <p className="text-muted-foreground mt-1">
+            {searchTerm ?
+              `No models match "${searchTerm}". Try a different search term or clear the filter.` :
+              "There are no models configured yet. Click 'Add Model' to create one."}
+          </p>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => setSearchTerm('')}
+            >
+              Clear Filter
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    // Group models by provider - safely handling null/undefined values
+    const modelsByProvider = validModels.reduce((acc, model) => {
+      const provider = model.provider || 'Unknown';
+      if (!acc[provider]) {
+        acc[provider] = [];
+      }
+      acc[provider].push(model);
+      return acc;
+    }, {} as Record<string, AIModel[]>);
+
+    if (Object.keys(modelsByProvider).length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p>No models available. Add your first AI model to get started.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
+          <div key={provider} className="space-y-3">
+            <h3 className="text-lg font-medium text-primary/80 border-b pb-1">
+              {provider} Models ({providerModels.length})
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {providerModels.map((model) => (
+                <ModelCard
+                  key={model.id}
+                  model={model}
+                  onUpdate={updateModel}
+                  isUpdating={isSaving}
+                  onTest={handleTestModel}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -376,30 +508,38 @@ export const AIModelManager = () => {
           </div>
         </div>
 
-        <TabsContent value="models" className="space-y-6">
-          {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardHeader className="pb-2">
-                    <Skeleton className="h-5 w-1/3" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-20 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* Model Fetcher Component */}
-              <ModelFetcher
-                providers={providers}
-                onModelSave={handleAddModel}
-                existingModels={models}
+        <TabsContent value="models" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search models..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowAddModel(true)}
+              >
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add Model
+              </Button>
+            </div>
+          </div>
 
+<<<<<<< HEAD
               {filteredModels.length === 0 ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center p-6">
@@ -522,6 +662,35 @@ export const AIModelManager = () => {
                 </div>
               )}
             </>
+=======
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
+          )}
+
+          {renderModelCards()}
+
+          {hasChanges && (
+            <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom-5">
+              <p>You have unsaved changes</p>
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-1" />
+                    Save All
+                  </>
+                )}
+              </Button>
+            </div>
+>>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
           )}
         </TabsContent>
 
@@ -781,6 +950,14 @@ export const AIModelManager = () => {
           open={showAddModel}
           onOpenChange={setShowAddModel}
           onSuccess={handleAddModel}
+        />
+      )}
+
+      {showTestDialog && (
+        <ModelTestDialog
+          isOpen={showTestDialog}
+          onClose={() => setShowTestDialog(false)}
+          model={testModel}
         />
       )}
     </div>

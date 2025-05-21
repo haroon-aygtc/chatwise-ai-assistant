@@ -1,4 +1,4 @@
-import apiService from "../api/api";
+import { apiService } from "../api/apiService";
 import {
   AIModel,
   AIProvider,
@@ -7,12 +7,14 @@ import {
   RoutingRule,
 } from "@/types/ai-configuration";
 
+const API_ENDPOINT = '/ai';
+
 /**
  * Get all AI models
  */
 export const getAllModels = async (): Promise<AIModel[]> => {
   try {
-    const response = await apiService.get<{ data: AIModel[] }>("/ai/models");
+    const response = await apiService.get<{ data: AIModel[] }>(`${API_ENDPOINT}/models`);
     return response.data;
   } catch (error) {
     console.error("Error fetching AI models:", error);
@@ -28,7 +30,7 @@ export const getModelsByProvider = async (
 ): Promise<AIModel[]> => {
   try {
     const response = await apiService.get<{ data: AIModel[] }>(
-      `/ai/models/provider/${provider}`,
+      `${API_ENDPOINT}/models/provider/${provider}`,
     );
     return response.data;
   } catch (error) {
@@ -43,7 +45,7 @@ export const getModelsByProvider = async (
 export const getPublicModels = async (): Promise<AIModel[]> => {
   try {
     const response = await apiService.get<{ data: AIModel[] }>(
-      "/ai/models/public",
+      `${API_ENDPOINT}/models/public`,
     );
     return response.data;
   } catch (error) {
@@ -58,7 +60,7 @@ export const getPublicModels = async (): Promise<AIModel[]> => {
 export const getModelById = async (id: string): Promise<AIModel> => {
   try {
     const response = await apiService.get<{ data: AIModel }>(
-      `/ai/models/${id}`,
+      `${API_ENDPOINT}/models/${id}`,
     );
     return response.data;
   } catch (error) {
@@ -98,20 +100,13 @@ export const createModel = async (
       isDefault: model.isDefault !== undefined ? model.isDefault : false,
     };
 
-    // Log the model being created for debugging
-    console.log("Creating AI model:", modelToCreate);
-
     try {
       const response = await apiService.post<{ data: AIModel }>(
-        "/ai/models",
+        `${API_ENDPOINT}/models`,
         modelToCreate,
       );
-      console.log("AI model created successfully:", response.data);
       return response.data;
     } catch (apiError) {
-      // Log detailed error information
-      console.error("API Error creating AI model:", apiError.response?.data || apiError);
-
       // If there's a validation error, provide more details
       if (apiError.response?.status === 422) {
         const validationErrors = apiError.response.data?.errors as Record<string, string[]>;
@@ -170,7 +165,7 @@ export const updateModel = async (
     }
 
     const response = await apiService.put<{ data: AIModel }>(
-      `/ai/models/${id}`,
+      `${API_ENDPOINT}/models/${id}`,
       model,
     );
     return response.data;
@@ -185,7 +180,7 @@ export const updateModel = async (
  */
 export const deleteModel = async (id: string): Promise<void> => {
   try {
-    await apiService.delete<{ success: boolean }>(`/ai/models/${id}`);
+    await apiService.delete<{ success: boolean }>(`${API_ENDPOINT}/models/${id}`);
   } catch (error) {
     console.error(`Error deleting AI model ${id}:`, error);
     throw error;
@@ -198,7 +193,7 @@ export const deleteModel = async (id: string): Promise<void> => {
 export const setDefaultModel = async (id: string): Promise<AIModel> => {
   try {
     const response = await apiService.post<{ data: AIModel }>(
-      `/ai/models/${id}/default`,
+      `${API_ENDPOINT}/models/${id}/default`,
     );
     return response.data;
   } catch (error) {
@@ -217,7 +212,7 @@ export const testModel = async (
 ): Promise<string> => {
   try {
     const response = await apiService.post<{ data: { response: string } }>(
-      `/ai/models/${id}/test`,
+      `${API_ENDPOINT}/models/${id}/test`,
       {
         prompt,
         options,
@@ -242,7 +237,7 @@ export const testModelConfiguration = async (
 ): Promise<string> => {
   try {
     const response = await apiService.post<{ data: { response: string } }>(
-      "/ai/models/test-configuration",
+      `${API_ENDPOINT}/models/test-configuration`,
       {
         provider,
         configuration,
@@ -264,7 +259,7 @@ export const testModelConfiguration = async (
 export const getAllProviders = async (): Promise<ModelProvider[]> => {
   try {
     const response = await apiService.get<{ data: ModelProvider[] }>(
-      "/ai/providers",
+      `${API_ENDPOINT}/providers`,
     );
     return response.data;
   } catch (error) {
@@ -281,7 +276,7 @@ export const getProviderModelOptions = async (
 ): Promise<string[]> => {
   try {
     const response = await apiService.get<{ data: string[] }>(
-      `/ai/providers/${providerId}/models`,
+      `${API_ENDPOINT}/providers/${providerId}/models`,
     );
     return response.data;
   } catch (error) {
@@ -387,7 +382,7 @@ const createMockModel = (
 export const getProviderById = async (id: string): Promise<ModelProvider> => {
   try {
     const response = await apiService.get<{ data: ModelProvider }>(
-      `/ai/providers/${id}`,
+      `${API_ENDPOINT}/providers/${id}`,
     );
     return response.data;
   } catch (error) {
@@ -404,7 +399,7 @@ export const createProvider = async (
 ): Promise<ModelProvider> => {
   try {
     const response = await apiService.post<{ data: ModelProvider }>(
-      "/ai/providers",
+      `${API_ENDPOINT}/providers`,
       provider,
     );
     return response.data;
@@ -423,7 +418,7 @@ export const updateProvider = async (
 ): Promise<ModelProvider> => {
   try {
     const response = await apiService.put<{ data: ModelProvider }>(
-      `/ai/providers/${id}`,
+      `${API_ENDPOINT}/providers/${id}`,
       provider,
     );
     return response.data;
@@ -438,7 +433,7 @@ export const updateProvider = async (
  */
 export const deleteProvider = async (id: string): Promise<void> => {
   try {
-    await apiService.delete<{ success: boolean }>(`/ai/providers/${id}`);
+    await apiService.delete<{ success: boolean }>(`${API_ENDPOINT}/providers/${id}`);
   } catch (error) {
     console.error(`Error deleting model provider ${id}:`, error);
     throw error;
@@ -455,7 +450,7 @@ export const validateProviderApiKey = async (
 ): Promise<boolean> => {
   try {
     const response = await apiService.post<{ data: { valid: boolean } }>(
-      "/ai/providers/validate-key",
+      `${API_ENDPOINT}/providers/validate-key`,
       {
         provider,
         apiKey,
@@ -475,7 +470,7 @@ export const validateProviderApiKey = async (
 export const getRoutingRules = async (): Promise<RoutingRule[]> => {
   try {
     const response = await apiService.get<{ data: RoutingRule[] }>(
-      "/ai/routing-rules",
+      `${API_ENDPOINT}/routing-rules`,
     );
     return response.data;
   } catch (error) {
@@ -492,7 +487,7 @@ export const createRoutingRule = async (
 ): Promise<RoutingRule> => {
   try {
     const response = await apiService.post<{ data: RoutingRule }>(
-      "/ai/routing-rules",
+      `${API_ENDPOINT}/routing-rules`,
       rule,
     );
     return response.data;
@@ -511,7 +506,7 @@ export const updateRoutingRule = async (
 ): Promise<RoutingRule> => {
   try {
     const response = await apiService.put<{ data: RoutingRule }>(
-      `/ai/routing-rules/${id}`,
+      `${API_ENDPOINT}/routing-rules/${id}`,
       rule,
     );
     return response.data;
@@ -526,7 +521,7 @@ export const updateRoutingRule = async (
  */
 export const deleteRoutingRule = async (id: string): Promise<void> => {
   try {
-    await apiService.delete<{ success: boolean }>(`/ai/routing-rules/${id}`);
+    await apiService.delete<{ success: boolean }>(`${API_ENDPOINT}/routing-rules/${id}`);
   } catch (error) {
     console.error(`Error deleting routing rule ${id}:`, error);
     throw error;

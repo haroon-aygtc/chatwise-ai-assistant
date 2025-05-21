@@ -2,6 +2,20 @@
 
 use Laravel\Sanctum\Sanctum;
 
+// Get frontend and backend ports
+$frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+$frontendPort = parse_url($frontendUrl, PHP_URL_PORT) ?: '5173';
+$backendPort = parse_url(env('APP_URL', 'http://localhost:8000'), PHP_URL_PORT) ?: '8000';
+
+// Generate dynamic stateful domains
+$defaultStatefulDomains = implode(',', [
+    "localhost:$frontendPort",
+    "localhost:$backendPort",
+    "127.0.0.1:$frontendPort",
+    "127.0.0.1:$backendPort",
+    'localhost',
+]);
+
 return [
 
     /*
@@ -15,11 +29,10 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,localhost:5173,localhost:5174,localhost:8080,127.0.0.1,127.0.0.1:8000,127.0.0.1:5173,127.0.0.1:5174,127.0.0.1:8080,::1',
-        Sanctum::currentApplicationUrlWithPort()
-    ))),
+    'stateful' => explode(',', env(
+        'SANCTUM_STATEFUL_DOMAINS',
+        $defaultStatefulDomains
+    )),
 
     /*
     |--------------------------------------------------------------------------
@@ -41,12 +54,12 @@ return [
     |--------------------------------------------------------------------------
     |
     | This value controls the number of minutes until an issued token will be
-    | considered expired. This will override any values set in the token's
-    | "expires_at" attribute, but first-party sessions are not affected.
+    | considered expired. If this value is null, personal access tokens do
+    | not expire. This won't tweak the lifetime of first-party sessions.
     |
     */
 
-    'expiration' => 1440, // 24 hours in minutes
+    'expiration' => null,
 
     /*
     |--------------------------------------------------------------------------
@@ -75,9 +88,8 @@ return [
     */
 
     'middleware' => [
-        'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
-        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'verify_csrf_token' => App\Http\Middleware\VerifyCsrfToken::class,
+        'encrypt_cookies' => App\Http\Middleware\EncryptCookies::class,
     ],
 
 ];
