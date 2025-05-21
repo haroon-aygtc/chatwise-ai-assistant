@@ -30,21 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-<<<<<<< HEAD
-import {
-  AlertCircle,
-  Plus,
-  Save,
-  Settings,
-  RefreshCw,
-  PlusCircle,
-  Check,
-  X,
-  Search,
-} from "lucide-react";
-=======
 import { AlertCircle, Plus, Save, Settings, RefreshCw, PlusCircle, Check, X, Search, Loader2 } from "lucide-react";
->>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
 import { AIModel, AIProvider, ModelProvider } from "@/types/ai-configuration";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -150,16 +136,7 @@ export const AIModelManager = () => {
 
     try {
       setSavingProvider(true);
-<<<<<<< HEAD
-      const createdProvider = await aiModelService.createProvider(
-        newProvider as Omit<
-          ModelProvider,
-          "id" | "createdAt" | "updatedAt" | "slug"
-        >,
-      );
-=======
       const createdProvider = await aiService.createProvider(newProvider as Omit<ModelProvider, "id" | "createdAt" | "updatedAt" | "slug">);
->>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
       setProviders([...providers, createdProvider]);
       setShowAddProvider(false);
       setNewProvider({
@@ -286,24 +263,6 @@ export const AIModelManager = () => {
     });
   };
 
-<<<<<<< HEAD
-  // Filter models based on search term
-  const filteredModels = models.filter(
-    (model) =>
-      model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      model.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (model.description &&
-        model.description.toLowerCase().includes(searchTerm.toLowerCase())),
-  );
-
-  // Filter providers based on search term
-  const filteredProviders = providers.filter(
-    (provider) =>
-      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (provider.description &&
-        provider.description.toLowerCase().includes(searchTerm.toLowerCase())),
-=======
   const handleTestModel = (model: AIModel) => {
     if (!model.isActive) {
       toast({
@@ -339,7 +298,6 @@ export const AIModelManager = () => {
     provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     provider.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (provider.description && provider.description.toLowerCase().includes(searchTerm.toLowerCase()))
->>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
   );
 
   // Render a grid of model cards grouped by provider
@@ -539,130 +497,6 @@ export const AIModelManager = () => {
             </div>
           </div>
 
-<<<<<<< HEAD
-              {filteredModels.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center p-6">
-                    <Settings className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold">No Models Found</h3>
-                    <p className="text-muted-foreground text-center max-w-md mb-4">
-                      {searchTerm
-                        ? "No models match your search criteria. Try adjusting your search."
-                        : "You haven't added any AI models yet. Add a model to get started."}
-                    </p>
-                    <Button onClick={() => setShowAddModel(true)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Model
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  <Card>
-                    <CardHeader className="pb-2 border-b">
-                      <CardTitle>Saved Models</CardTitle>
-                      <CardDescription>
-                        AI models saved in your database
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Provider</TableHead>
-                            <TableHead>Default</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredModels.map((model) => (
-                            <TableRow key={model.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex flex-col">
-                                  <span>{model.name}</span>
-                                  {model.description && (
-                                    <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                                      {model.description}
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant="outline"
-                                  className="font-normal"
-                                >
-                                  {model.provider}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {model.isDefault ? (
-                                  <Check className="h-4 w-4 text-green-500" />
-                                ) : (
-                                  <X className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Switch
-                                  checked={model.isActive}
-                                  onCheckedChange={() =>
-                                    handleToggleModelStatus(model)
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    // Find the provider for this model
-                                    const provider = providers.find(
-                                      (p) =>
-                                        p.slug.toLowerCase() ===
-                                          model.provider.toLowerCase() ||
-                                        p.name.toLowerCase() ===
-                                          model.provider.toLowerCase(),
-                                    );
-                                    if (provider) {
-                                      handleConfigureProvider(provider);
-                                    } else {
-                                      toast({
-                                        title: "Provider not found",
-                                        description: `Could not find provider for ${model.provider}`,
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <Settings className="mr-2 h-4 w-4" />
-                                  Configure
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                    <CardFooter className="border-t py-3 flex justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        {filteredModels.length} of {models.length} model(s)
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRefresh}
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Refresh
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </div>
-              )}
-            </>
-=======
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4 mr-2" />
@@ -690,7 +524,6 @@ export const AIModelManager = () => {
                 )}
               </Button>
             </div>
->>>>>>> 079c50a5ca6b8dcc4cf3bba9905ada299e5ac98f
           )}
         </TabsContent>
 
