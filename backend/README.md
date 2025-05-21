@@ -1,61 +1,205 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Chatwise AI Assistant - Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This is the Laravel 10 backend for the Chatwise AI Assistant application. It provides the API, authentication, and database services for the frontend.
 
-## About Laravel
+## Table of Contents
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+1. [Requirements](#requirements)
+2. [Installation](#installation)
+3. [Configuration](#configuration)
+4. [API Services](#api-services)
+5. [Database](#database)
+6. [Authentication](#authentication)
+7. [CORS Configuration](#cors-configuration)
+8. [Port Management](#port-management)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requirements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.1+
+- Composer 2.x
+- MySQL/MariaDB
+- Laravel 10.x
 
-## Learning Laravel
+## Installation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Option 1: Using the installation script (from project root)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```bash
+node install.js
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Option 2: Manual installation
 
-## Laravel Sponsors
+```bash
+# Navigate to backend directory
+cd backend
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Install dependencies
+composer install
 
-### Premium Partners
+# Create environment file
+cp .env.example .env
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+# Generate application key
+php artisan key:generate
 
-## Contributing
+# Run migrations and seeders
+php artisan migrate:fresh --seed
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# Clear caches
+php artisan clear:all
+php artisan cache:clear
+```
 
-## Code of Conduct
+## Configuration
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Key Files
 
-## Security Vulnerabilities
+- `.env` - Environment variables
+- `config/cors.php` - CORS configuration
+- `config/sanctum.php` - Authentication configuration
+- `config/database.php` - Database configuration
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Environment Variables
 
-## License
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_PORT` | Port for the backend server | `8000` |
+| `FRONTEND_URL` | URL of the frontend application | `http://localhost:5173` |
+| `DB_CONNECTION` | Database connection type | `mysql` |
+| `DB_HOST` | Database host | `127.0.0.1` |
+| `DB_PORT` | Database port | `3306` |
+| `DB_DATABASE` | Database name | `laravel` |
+| `DB_USERNAME` | Database username | `root` |
+| `DB_PASSWORD` | Database password | `` |
+| `SANCTUM_STATEFUL_DOMAINS` | Domains for Sanctum authentication | Generated dynamically |
+| `PUBLIC_API_MODE` | Whether to run API in public mode | `false` |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## API Services
+
+The backend provides several core services:
+
+- **Authentication** - User registration, login, and token management
+- **User Management** - User CRUD operations and role management
+- **AI Configuration** - AI model management and configuration
+- **Knowledge Base** - Document and resource management
+- **Chat** - Chat session management and messaging
+- **Widget** - Widget configuration and management
+
+### API Routes
+
+All API routes are prefixed with `/api`. The main route groups include:
+
+- `/api/auth` - Authentication routes
+- `/api/users` - User management routes
+- `/api/settings` - Application settings
+- `/api/ai-models` - AI model configuration
+- `/api/knowledge-base` - Knowledge base resources
+- `/api/chat` - Chat functionality
+- `/api/widgets` - Widget management
+
+## Database
+
+### Migrations
+
+Database migrations are located in `database/migrations`. Run them with:
+
+```bash
+php artisan migrate
+```
+
+### Seeders
+
+Database seeders are located in `database/seeders`. Run them with:
+
+```bash
+php artisan db:seed
+```
+
+### Models
+
+Eloquent models are located in `app/Models`. The main models include:
+
+- `User` - User accounts
+- `AIModel` - AI model configuration
+- `KnowledgeResource` - Knowledge base resources
+- `ChatSession` - Chat sessions
+- `ChatMessage` - Chat messages
+- `Widget` - Widget configuration
+
+## Authentication
+
+The backend uses Laravel Sanctum for API authentication with the following features:
+
+- Token-based authentication
+- CSRF protection
+- Stateful authentication for SPA
+- Role-based access control
+
+### Configuration
+
+Sanctum is configured in `config/sanctum.php`. Key settings include:
+
+- `stateful` - Domains that should receive stateful cookies
+- `expiration` - Token expiration time
+- `middleware` - Middleware for authentication
+
+## CORS Configuration
+
+Cross-Origin Resource Sharing (CORS) is configured in `config/cors.php`. The configuration supports:
+
+- Dynamic allowed origins based on environment variables
+- Pattern matching for development environments
+- Public API mode for open access
+- Credential handling for authentication
+
+### Updating CORS Settings
+
+The CORS settings are automatically updated by the `SyncPorts` Artisan command:
+
+```bash
+php artisan app:sync-ports --backend-port=8000 --frontend-port=5173
+```
+
+## Port Management
+
+### The SyncPorts Command
+
+The backend includes a custom Artisan command to synchronize port settings across the application:
+
+```bash
+php artisan app:sync-ports [options]
+```
+
+#### Options
+
+- `--backend-port` - Port for the backend server (default: 8000)
+- `--frontend-port` - Port for the frontend server (default: 5173)
+
+### What the Command Does
+
+1. Updates backend `.env` file with:
+   - `APP_PORT`
+   - `FRONTEND_URL`
+   - `SANCTUM_STATEFUL_DOMAINS`
+
+2. Updates frontend `.env` file with:
+   - `VITE_API_URL`
+   - `VITE_PORT`
+
+3. Clears configuration cache:
+   - `php artisan config:clear`
+
+### Running on Different Ports
+
+To run the backend on a different port:
+
+```bash
+php artisan serve --port=8001
+```
+
+This should be combined with updating the configuration:
+
+```bash
+php artisan app:sync-ports --backend-port=8001 --frontend-port=5173
+```

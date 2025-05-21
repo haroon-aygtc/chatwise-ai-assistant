@@ -36,9 +36,12 @@ class Cors
                 'http://127.0.0.1:3000'
         ]);
 
+        // Define allowed patterns for dynamic matching
+        $allowedPatterns = config('cors.allowed_origins_patterns', []);
+
         $origin = $request->header('Origin');
         $originAllowed = in_array($origin, $allowedOrigins);
-        
+
         // Check if origin matches any allowed pattern
         if (!$originAllowed && $origin) {
             foreach ($allowedPatterns as $pattern) {
@@ -48,7 +51,7 @@ class Cors
                 }
             }
         }
-        
+
         if ($originAllowed) {
             $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Credentials', 'true');

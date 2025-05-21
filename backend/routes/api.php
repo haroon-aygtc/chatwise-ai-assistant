@@ -7,7 +7,7 @@ use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\FollowUpController;
 use App\Http\Controllers\API\PromptTemplateController;
-use App\Http\Controllers\API\RoutingRuleController;
+// use App\Http\Controllers\API\RoutingRuleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -302,10 +302,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Routing Rules
         // Route::get('/routing-rules', [\App\Http\Controllers\API\RoutingRuleController::class, 'index']); // Moved to public routes
-        Route::get('/routing-rules/{id}', [RoutingRuleController::class, 'show']);
-        Route::post('/routing-rules', [RoutingRuleController::class, 'store']);
-        Route::put('/routing-rules/{id}', [RoutingRuleController::class, 'update']);
-        Route::delete('/routing-rules/{id}', [RoutingRuleController::class, 'destroy']);
+        // Comment out the controller import that doesn't exist
+        // use App\Http\Controllers\API\RoutingRuleController;
+        // Comment out the routing rules routes
+        // Route::get('/routing-rules/{id}', [RoutingRuleController::class, 'show']);
+        // Route::post('/routing-rules', [RoutingRuleController::class, 'store']);
+        // Route::put('/routing-rules/{id}', [RoutingRuleController::class, 'update']);
+        // Route::delete('/routing-rules/{id}', [RoutingRuleController::class, 'destroy']);
 
         // Model Providers
         Route::get('/providers', [ModelProviderController::class, 'index']);

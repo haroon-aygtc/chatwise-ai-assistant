@@ -11,6 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip if table already exists
+        if (Schema::hasTable('system_prompts')) {
+            return;
+        }
+
         Schema::create('system_prompts', function (Blueprint $table) {
             $table->id();
             $table->text('content');
@@ -25,6 +30,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('system_prompts');
+        // Don't drop the table to avoid conflicts with other migrations
+        // Schema::dropIfExists('system_prompts');
     }
 };

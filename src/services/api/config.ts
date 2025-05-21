@@ -18,9 +18,25 @@ const getPublicModeFromStorage = (): boolean => {
 
 const isPublicMode = getPublicModeFromStorage();
 
+// Get backend port from environment variables
+const getBackendPort = (): string => {
+  // If VITE_API_URL is defined, use that directly
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // Otherwise construct URL from components
+  const port = import.meta.env.VITE_BACKEND_PORT || '8000';
+  const host = import.meta.env.VITE_BACKEND_HOST || 'localhost';
+  const protocol = import.meta.env.VITE_BACKEND_PROTOCOL || 'http';
+  const path = import.meta.env.VITE_BACKEND_PATH || 'api';
+
+  return `${protocol}://${host}:${port}/${path}`;
+};
+
 // Environment variables with fallbacks
 const API_CONFIG = Object.freeze({
-  BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  BASE_URL: getBackendPort(),
   TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
   WITH_CREDENTIALS: !isPublicMode, // Skip credentials in public mode
   DEBUG: import.meta.env.DEV,

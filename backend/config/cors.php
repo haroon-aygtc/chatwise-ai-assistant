@@ -1,5 +1,12 @@
 <?php
 
+$frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+$backendUrl = env('APP_URL', 'http://localhost:8000');
+
+// Parse ports from URLs for dynamic configuration
+$frontendPort = parse_url($frontendUrl, PHP_URL_PORT) ?: '5173';
+$backendPort = parse_url($backendUrl, PHP_URL_PORT) ?: '8000';
+
 return [
 
     /*
@@ -30,16 +37,20 @@ return [
     'allowed_origins' => env('PUBLIC_API_MODE', false) === true || env('PUBLIC_API_MODE') === 'true'
         ? ['*']
         : [
-            env('APP_URL', 'http://localhost:8080'),
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'http://127.0.0.1:5173',
-            'http://localhost:5174',
-            'http://127.0.0.1:5174',
-            'http://localhost:8080',
-            'http://127.0.0.1:8080',
-            'http://localhost'
+            $backendUrl,
+            $frontendUrl,
+            "http://localhost:$frontendPort",
+            "http://127.0.0.1:$frontendPort",
+            "http://localhost:$backendPort",
+            "http://127.0.0.1:$backendPort",
+            'http://localhost',
         ],
+
+    // Add support for pattern matching (useful for dev environments with dynamic ports)
+    'allowed_origins_patterns' => [
+        '/^http:\/\/localhost:\d+$/',
+        '/^http:\/\/127\.0\.0\.1:\d+$/',
+    ],
 
     'allowed_headers' => ['*'],
 
