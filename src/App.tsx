@@ -149,8 +149,8 @@ function App() {
       }, 15000); // Increased to 15 seconds
 
       // Refresh auth to ensure we have the latest user data
-      refreshAuth().catch((err) => {
-        console.warn("Failed to refresh auth during page load:", err);
+      refreshAuth().catch(() => {
+        // Silent failure - will be handled by the auth system
       });
     }
 

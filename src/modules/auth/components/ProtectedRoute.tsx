@@ -102,45 +102,22 @@ const ProtectedRoute = ({
     isRefreshing,
   ]);
 
-  // Add debug logging to help diagnose issues
+  // Listen for auth expired events
   useEffect(() => {
-    if (DEBUG) {
-      const hasRequiredRole = requiredRole
-        ? hasRole(requiredRole)
-          ? "Yes"
-          : "No"
-        : "Not Required";
+    const handleAuthExpired = () => {
+      // Force navigation to login page
+      window.location.href = "/login?session=expired";
+    };
 
-      const hasRequiredPermission = requiredPermission
-        ? hasPermission(requiredPermission)
-          ? "Yes"
-          : "No"
-        : "Not Required";
+    window.addEventListener("auth:expired", handleAuthExpired as EventListener);
 
-      console.log("ProtectedRoute Debug:", {
-        isAuthenticated,
-        userId: user?.id,
-        permissionsCount: user?.permissions?.length || 0,
-        requiredRole,
-        requiredPermission,
-        hasRequiredRole,
-        hasRequiredPermission,
-        path: location.pathname,
-        isPageRefresh,
-        useCache,
-      });
-    }
-  }, [
-    isAuthenticated,
-    user,
-    requiredRole,
-    requiredPermission,
-    hasRole,
-    hasPermission,
-    location.pathname,
-    isPageRefresh,
-    useCache,
-  ]);
+    return () => {
+      window.removeEventListener(
+        "auth:expired",
+        handleAuthExpired as EventListener,
+      );
+    };
+  }, []);
 
   // Check if we should show loading state
   if (isLoading || isRefreshing) {

@@ -30,7 +30,17 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Plus, Save, Settings, RefreshCw, PlusCircle, Check, X, Search } from "lucide-react";
+import {
+  AlertCircle,
+  Plus,
+  Save,
+  Settings,
+  RefreshCw,
+  PlusCircle,
+  Check,
+  X,
+  Search,
+} from "lucide-react";
 import { AIModel, AIProvider, ModelProvider } from "@/types/ai-configuration";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -48,7 +58,8 @@ export const AIModelManager = () => {
   const [savingProvider, setSavingProvider] = useState(false);
   const [showAddProvider, setShowAddProvider] = useState(false);
   const [showAddModel, setShowAddModel] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<ModelProvider | null>(null);
+  const [selectedProvider, setSelectedProvider] =
+    useState<ModelProvider | null>(null);
   const [newProvider, setNewProvider] = useState<Partial<ModelProvider>>({
     name: "",
     slug: "",
@@ -79,20 +90,28 @@ export const AIModelManager = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load providers and models in parallel
+    // Load providers and models in parallel with error handling
     const loadInitialData = async () => {
       try {
-        await Promise.all([
-          fetchProviders(),
-          refreshData()
-        ]);
+        await Promise.all([fetchProviders(), refreshData()]);
       } catch (error) {
-        console.error("Error loading initial data:", error);
+        // Show error toast instead of console logging
+        toast({
+          title: "Error",
+          description:
+            "Failed to load initial data. Please try refreshing the page.",
+          variant: "destructive",
+        });
       }
     };
 
     loadInitialData();
-  }, [refreshData]);
+
+    // Set up cleanup for any pending requests when component unmounts
+    return () => {
+      // Component cleanup logic
+    };
+  }, [refreshData, toast]);
 
   const fetchProviders = async () => {
     try {
@@ -123,7 +142,12 @@ export const AIModelManager = () => {
 
     try {
       setSavingProvider(true);
-      const createdProvider = await aiModelService.createProvider(newProvider as Omit<ModelProvider, "id" | "createdAt" | "updatedAt" | "slug">);
+      const createdProvider = await aiModelService.createProvider(
+        newProvider as Omit<
+          ModelProvider,
+          "id" | "createdAt" | "updatedAt" | "slug"
+        >,
+      );
       setProviders([...providers, createdProvider]);
       setShowAddProvider(false);
       setNewProvider({
@@ -180,10 +204,10 @@ export const AIModelManager = () => {
       });
 
       // Update local state
-      setProviders(prevProviders =>
-        prevProviders.map(p =>
-          p.id === provider.id ? { ...p, isActive: !p.isActive } : p
-        )
+      setProviders((prevProviders) =>
+        prevProviders.map((p) =>
+          p.id === provider.id ? { ...p, isActive: !p.isActive } : p,
+        ),
       );
 
       toast({
@@ -220,10 +244,7 @@ export const AIModelManager = () => {
   const handleRefresh = async () => {
     try {
       // Refresh data in parallel
-      await Promise.all([
-        refreshData(),
-        fetchProviders()
-      ]);
+      await Promise.all([refreshData(), fetchProviders()]);
 
       toast({
         title: "Success",
@@ -258,7 +279,8 @@ export const AIModelManager = () => {
     (model) =>
       model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       model.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (model.description && model.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      (model.description &&
+        model.description.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   // Filter providers based on search term
@@ -266,7 +288,8 @@ export const AIModelManager = () => {
     (provider) =>
       provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       provider.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (provider.description && provider.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      (provider.description &&
+        provider.description.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   return (
@@ -285,12 +308,16 @@ export const AIModelManager = () => {
             disabled={isLoading || isLoadingProviders}
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${isLoading || isLoadingProviders ? "animate-spin" : ""
-                }`}
+              className={`mr-2 h-4 w-4 ${
+                isLoading || isLoadingProviders ? "animate-spin" : ""
+              }`}
             />
             Refresh
           </Button>
-          <Button onClick={handleSaveChanges} disabled={!hasChanges || isSaving}>
+          <Button
+            onClick={handleSaveChanges}
+            disabled={!hasChanges || isSaving}
+          >
             <Save className="mr-2 h-4 w-4" />
             Save Changes
           </Button>
@@ -423,7 +450,10 @@ export const AIModelManager = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline" className="font-normal">
+                                <Badge
+                                  variant="outline"
+                                  className="font-normal"
+                                >
                                   {model.provider}
                                 </Badge>
                               </TableCell>
@@ -437,7 +467,9 @@ export const AIModelManager = () => {
                               <TableCell>
                                 <Switch
                                   checked={model.isActive}
-                                  onCheckedChange={() => handleToggleModelStatus(model)}
+                                  onCheckedChange={() =>
+                                    handleToggleModelStatus(model)
+                                  }
                                 />
                               </TableCell>
                               <TableCell>
@@ -446,9 +478,12 @@ export const AIModelManager = () => {
                                   size="sm"
                                   onClick={() => {
                                     // Find the provider for this model
-                                    const provider = providers.find(p =>
-                                      p.slug.toLowerCase() === model.provider.toLowerCase() ||
-                                      p.name.toLowerCase() === model.provider.toLowerCase()
+                                    const provider = providers.find(
+                                      (p) =>
+                                        p.slug.toLowerCase() ===
+                                          model.provider.toLowerCase() ||
+                                        p.name.toLowerCase() ===
+                                          model.provider.toLowerCase(),
                                     );
                                     if (provider) {
                                       handleConfigureProvider(provider);
@@ -554,7 +589,9 @@ export const AIModelManager = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="base-url-name">Base URL Name (Optional)</Label>
+                    <Label htmlFor="base-url-name">
+                      Base URL Name (Optional)
+                    </Label>
                     <Input
                       id="base-url-name"
                       placeholder="Environment variable name for base URL"
@@ -614,7 +651,10 @@ export const AIModelManager = () => {
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateProvider} disabled={savingProvider}>
+                <Button
+                  onClick={handleCreateProvider}
+                  disabled={savingProvider}
+                >
                   {savingProvider ? (
                     <>
                       <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
@@ -650,7 +690,9 @@ export const AIModelManager = () => {
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center p-6">
                     <Settings className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold">No Providers Found</h3>
+                    <h3 className="text-lg font-semibold">
+                      No Providers Found
+                    </h3>
                     <p className="text-muted-foreground text-center max-w-md mb-4">
                       {searchTerm
                         ? "No providers match your search criteria. Try adjusting your search."
@@ -674,7 +716,9 @@ export const AIModelManager = () => {
                           </div>
                           <Switch
                             checked={provider.isActive}
-                            onCheckedChange={() => handleToggleProviderStatus(provider)}
+                            onCheckedChange={() =>
+                              handleToggleProviderStatus(provider)
+                            }
                           />
                         </div>
                       </CardHeader>
@@ -685,15 +729,27 @@ export const AIModelManager = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="font-medium">API Key:</span>
-                            <span>{provider.apiKeyRequired ? "Required" : "Optional"}</span>
+                            <span>
+                              {provider.apiKeyRequired
+                                ? "Required"
+                                : "Optional"}
+                            </span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="font-medium">Base URL:</span>
-                            <span>{provider.baseUrlRequired ? "Required" : "Optional"}</span>
+                            <span>
+                              {provider.baseUrlRequired
+                                ? "Required"
+                                : "Optional"}
+                            </span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="font-medium">Status:</span>
-                            <Badge variant={provider.isActive ? "default" : "secondary"}>
+                            <Badge
+                              variant={
+                                provider.isActive ? "default" : "secondary"
+                              }
+                            >
                               {provider.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </div>

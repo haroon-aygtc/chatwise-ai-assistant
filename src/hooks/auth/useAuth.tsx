@@ -715,36 +715,63 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (user && tokenService.needsRefresh()) {
         refreshAuth();
       }
-    }, 60000); // Check every minute
+    }, 30000); // Check every 30 seconds (reduced from 60s)
 
     // Listen for custom auth expiry event from API client
     const handleAuthExpired = () => {
       if (user) {
-        logout();
+        // Force immediate logout
+        tokenService.clearToken();
+        sessionStorage.removeItem("has_active_session");
+        localStorage.removeItem("cached_user_data");
+        setUser(null);
+
+        // Show toast notification
         toast({
           title: "Session expired",
           description: "Your session has expired. Please log in again.",
           variant: "destructive",
           duration: 5000,
         });
+
+        // Redirect to login page
+        window.location.href = "/login?session=expired";
       }
     };
 
-    // Add event listener for custom auth expiry event
+    // Handle permission denied events
+    const handlePermissionDenied = (event: CustomEvent) => {
+      if (user) {
+        toast({
+          title: "Permission denied",
+          description:
+            event.detail?.message ||
+            "You don't have permission to perform this action",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    };
+
+    // Add event listeners
     window.addEventListener("auth:expired", handleAuthExpired as EventListener);
+    window.addEventListener(
+      "permission:denied",
+      handlePermissionDenied as EventListener,
+    );
 
     // Also refresh auth on visibility change (when user returns to the tab)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && user) {
-        // Only refresh if we were away for more than 5 minutes
+        // Only refresh if we were away for more than 2 minutes (reduced from 5)
         const lastActiveTime = Number(
           localStorage.getItem("last_active_time") || "0",
         );
         const now = Date.now();
         const awayTime = now - lastActiveTime;
 
-        if (awayTime > 5 * 60 * 1000) {
-          // 5 minutes in milliseconds
+        if (awayTime > 2 * 60 * 1000) {
+          // 2 minutes in milliseconds
           refreshAuth();
         }
 
@@ -765,6 +792,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       window.removeEventListener(
         "auth:expired",
         handleAuthExpired as EventListener,
+      );
+      window.removeEventListener(
+        "permission:denied",
+        handlePermissionDenied as EventListener,
       );
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
