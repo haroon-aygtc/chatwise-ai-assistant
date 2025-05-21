@@ -1,5 +1,4 @@
-
-import { User } from '@/types/user';
+import { User } from "@/types/user";
 
 export interface LoginResponse {
   token: string;
@@ -31,4 +30,31 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  terms_accepted?: boolean;
+  organization?: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token?: string;
+}
+
+export interface ResetPasswordData {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
 }

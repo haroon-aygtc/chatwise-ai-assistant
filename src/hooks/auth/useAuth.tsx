@@ -696,8 +696,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [refreshAuth]);
 
-  // Set up auth expiry event handler
+  // Simple session validity check
   useEffect(() => {
+    // Set up a simple session check interval
+    const sessionCheckInterval = setInterval(() => {
+      // Only check if user is logged in
+      if (user) {
+        // Simple ping to verify session is still valid
+        authService.checkSession().catch(() => {
+          // If session check fails, logout
+          logout();
+          toast({
+            title: "Session expired",
+            description: "Your session has expired. Please log in again.",
+            variant: "destructive",
+            duration: 5000,
+          });
+        });
+      }
+    }, 60000); // Check once per minute
 
     // Listen for custom auth expiry event from API client
     const handleAuthExpired = () => {
@@ -746,6 +763,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Clean up event listeners
     return () => {
+      clearInterval(sessionCheckInterval);
       window.removeEventListener(
         "auth:expired",
         handleAuthExpired as EventListener,

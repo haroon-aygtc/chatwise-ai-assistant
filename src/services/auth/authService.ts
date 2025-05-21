@@ -193,6 +193,32 @@ const authService = {
   },
 
   /**
+   * Check if session is still valid
+   */
+  async checkSession() {
+    try {
+      const headers = this.getAuthHeaders();
+      await axios.get(`${API_CONFIG.BASE_URL}/user`, {
+        headers,
+        withCredentials: true,
+        timeout: 3000,
+      });
+      return true;
+    } catch (error) {
+      // If request fails, session is invalid
+      tokenService.removeToken();
+      sessionStorage.removeItem("has_active_session");
+      localStorage.removeItem("cached_user_data");
+
+      // Dispatch auth expired event
+      const authExpiredEvent = new Event("auth:expired");
+      window.dispatchEvent(authExpiredEvent);
+
+      return false;
+    }
+  },
+
+  /**
    * Get current user
    */
   async getCurrentUser() {
@@ -295,8 +321,6 @@ const authService = {
       localStorage.setItem("cached_user_data", JSON.stringify(userData));
 
       // Update in-memory cache
-      // Note: Private fields can only be used within classes, not in objects
-      // Using regular property instead
       this._userCache = {
         data: userData,
         timestamp: Date.now(),
@@ -353,6 +377,13 @@ const authService = {
       }
       return null;
     }
+  },
+
+  // Simple cache for getCurrentUser to prevent duplicate calls during page refresh
+  _userCache: {
+    data: null,
+    timestamp: 0,
+    ttl: 5000, // 5 seconds cache TTL
   },
 };
 
