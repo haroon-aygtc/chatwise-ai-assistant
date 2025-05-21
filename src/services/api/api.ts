@@ -18,6 +18,8 @@ import axios, {
 import { toast } from "@/components/ui/use-toast";
 import API_CONFIG_IMPORT, { getGlobalHeaders, isPublicApiMode } from "./config";
 import tokenService from "../auth/tokenService";
+import authService from "../auth/authService";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 // Extend AxiosRequestConfig to include our custom properties
 declare module 'axios' {
@@ -113,6 +115,24 @@ class HttpClient {
 
     // Set up interceptors
     this.setupInterceptors();
+
+    // Initialize CSRF token if not in public mode
+    if (!isPublicApiMode) {
+      // Use setTimeout to ensure this happens after the constructor
+      setTimeout(() => {
+        tokenService.initCsrfToken().then(token => {
+          if (API_CONFIG.DEBUG) {
+            if (token) {
+              console.log(`API Client initialized with CSRF token: ${token.substring(0, 10)}...`);
+            } else {
+              console.warn("API Client initialized but no CSRF token obtained");
+            }
+          }
+        }).catch(error => {
+          console.warn("Failed to initialize CSRF token:", error);
+        });
+      }, 0);
+    }
   }
 
   /**
@@ -170,10 +190,10 @@ class HttpClient {
           }
         }
 
-        // Add auth token if available
-        const token = tokenService.getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        // Add CSRF token if available
+        const csrfToken = tokenService.getCsrfToken();
+        if (csrfToken) {
+          config.headers["X-CSRF-TOKEN"] = csrfToken;
         }
 
         // Add global headers
@@ -349,14 +369,34 @@ class HttpClient {
         if (!isPublicApiMode && response?.status === 419) {
           console.log("CSRF token expired, refreshing...");
           try {
-            await tokenService.initCsrfToken();
-            // Retry the original request
-            return this.instance(error.config as AxiosRequestConfig);
+            // Force refresh the CSRF token
+            const newToken = await tokenService.initCsrfToken(true);
+
+            if (!newToken) {
+              console.error("Failed to obtain new CSRF token");
+              return Promise.reject(new Error("Failed to refresh CSRF token"));
+            }
+
+            console.log("New CSRF token obtained, retrying request");
+
+            // Clone the original request config
+            const originalRequest = error.config as AxiosRequestConfig;
+
+            // Ensure headers exist
+            if (!originalRequest.headers) {
+              originalRequest.headers = {};
+            }
+
+            // Add the new CSRF token to the request headers
+            originalRequest.headers["X-CSRF-TOKEN"] = newToken;
+            originalRequest.headers["X-XSRF-TOKEN"] = newToken;
+
+            // Retry the original request with the new token
+            return this.instance(originalRequest);
           } catch (csrfError) {
             console.error("CSRF token refresh failed:", csrfError);
           }
         }
-
         // Handle authentication errors (status 401)
         if (response?.status === 401) {
           // Improved page reload detection
@@ -387,12 +427,12 @@ class HttpClient {
             path: window.location.pathname
           });
 
-          // During page refresh, don't immediately clear the token to prevent flashing
+          // During page refresh, don't immediately clear the session to prevent flashing
           if (!preventRedirect) {
-            tokenService.removeToken();
-            console.log("Token cleared due to authentication error");
+            tokenService.clearSession();
+            console.log("Session cleared due to authentication error");
           } else {
-            console.log("Token preserved during page refresh despite 401 error");
+            console.log("Session preserved during page refresh despite 401 error");
 
             // For API calls during page refresh with active session, retry with more attempts
             if (hasActiveSession && isRefreshScenario) {
@@ -420,10 +460,10 @@ class HttpClient {
                     tokenService.initCsrfToken()
                       .catch(e => console.warn("Failed to refresh CSRF token before retry:", e))
                       .finally(() => {
-                        // Add fresh token if available
-                        const token = tokenService.getToken();
-                        if (token) {
-                          originalRequest.headers.Authorization = `Bearer ${token}`;
+                        // Add fresh CSRF token if available
+                        const csrfToken = tokenService.getCsrfToken();
+                        if (csrfToken) {
+                          originalRequest.headers["X-CSRF-TOKEN"] = csrfToken;
                         }
                         resolve(this.instance(originalRequest));
                       });
@@ -469,6 +509,17 @@ class HttpClient {
           }
         }
 
+        // Handle authentication errors (401 Unauthorized, 419 CSRF token mismatch)
+        if (response?.status === 401 || response?.status === 419) {
+          // Clear session
+          if (tokenService.hasActiveSession()) {
+            tokenService.clearSession();
+
+            // Dispatch auth expired event
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+          }
+        }
+
         // Show toast for all errors except validation errors (status 422)
         // and rate limiting errors (status 429)
         if (response?.status !== 422 && response?.status !== 429) {
@@ -504,16 +555,30 @@ class HttpClient {
 
   /**
    * Fetch CSRF token
+   * @param force Force fetching a new token even if one exists
+   * @returns The CSRF token or null if it couldn't be fetched
    */
-  public async fetchCsrfToken(): Promise<void> {
+  public async fetchCsrfToken(force: boolean = false): Promise<string | null> {
     // Skip in public mode
-    if (isPublicApiMode) return;
+    if (isPublicApiMode) return null;
+
     try {
-      await tokenService.initCsrfToken();
+      const token = await tokenService.initCsrfToken(force);
+
+      if (API_CONFIG.DEBUG) {
+        if (token) {
+          console.log(`CSRF token fetched: ${token.substring(0, 10)}...`);
+        } else {
+          console.warn("No CSRF token obtained");
+        }
+      }
+
+      return token;
     } catch (error) {
       console.error("Failed to fetch CSRF token:", error);
       // Don't throw the error to prevent blocking API calls
       // The response interceptor will handle 419 errors and retry
+      return null;
     }
   }
 
@@ -606,4 +671,4 @@ export const upload = <T = unknown>(
   formData: FormData,
 ): Promise<T> => httpClient.uploadFile(url, formData);
 
-export const getCsrfToken = () => httpClient.fetchCsrfToken();
+export const getCsrfToken = (force: boolean = false) => httpClient.fetchCsrfToken(force);

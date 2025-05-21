@@ -16,20 +16,8 @@ import apiService from "./services/api/api";
 // Debug flag
 const DEBUG = true;
 
-// Set page load time as early as possible for refresh detection
-sessionStorage.setItem('page_load_time', Date.now().toString());
-
-// Check if we have an active session and preserve it during page refresh
-const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
-if (document.readyState !== 'complete' && hasActiveSession) {
-  if (DEBUG) console.log("Main: Detected page refresh with active session");
-
-  // Ensure the session is marked as active
-  sessionStorage.setItem("has_active_session", "true");
-
-  // Add a flag to prevent immediate auth redirects
-  sessionStorage.setItem('prevent_auth_redirect', 'true');
-}
+// Initialize app with Sanctum cookie-based authentication
+if (DEBUG) console.log("Main: Initializing app with Sanctum cookie-based authentication");
 
 const basename = import.meta.env.BASE_URL;
 

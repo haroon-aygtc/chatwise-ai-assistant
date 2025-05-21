@@ -71,9 +71,10 @@ export function PermissionGroup({
     (permission) => selectedPermissions.includes(permission.id)
   ).length;
 
-  // Format title for display
+  // Format title for display (capitalizes first letter and replaces dashes)
   const formatTitle = (name: string) => {
-    return name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, " ");
+    const lower = name.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1).replace(/-/g, " ");
   };
 
   // Toggle all permissions in this category
@@ -97,10 +98,12 @@ export function PermissionGroup({
     onChange(newSelectedPermissions);
   };
 
-  // Toggle a single permission
+  // Toggle a single permission (prevent duplicates on add)
   const handleTogglePermission = (permissionId: string, checked: boolean) => {
     if (checked) {
-      onChange([...selectedPermissions, permissionId]);
+      if (!selectedPermissions.includes(permissionId)) {
+        onChange([...selectedPermissions, permissionId]);
+      }
     } else {
       onChange(selectedPermissions.filter(id => id !== permissionId));
     }

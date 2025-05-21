@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function AdminDashboardContent() {
-    const { refreshAuth, hasRole } = useAuth();
+    const { hasRole } = useAuth();
     const navigate = useNavigate();
 
     // Check if user has admin role

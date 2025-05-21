@@ -31,6 +31,10 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL || 'http://localhost:8000/api',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+        '/sanctum': {
+          target: env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000',
+          changeOrigin: true,
         }
       }
     },

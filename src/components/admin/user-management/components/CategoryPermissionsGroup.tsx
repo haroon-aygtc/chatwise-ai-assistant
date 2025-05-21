@@ -28,16 +28,24 @@ export function CategoryPermissionsGroup({
 }: CategoryPermissionsGroupProps) {
   // Check if all permissions in this category are selected
   const allSelected = permissions.every(
-    (permission) => selectedPermissions.includes(permission.id) || selectedPermissions.includes(permission.name)
+    (permission) =>
+      selectedPermissions.includes(permission.id) ||
+      selectedPermissions.includes(permission.name)
   );
 
   // Check if some but not all permissions in this category are selected
   const someSelected =
-    permissions.some((permission) => selectedPermissions.includes(permission.id) || selectedPermissions.includes(permission.name)) && !allSelected;
+    permissions.some(
+      (permission) =>
+        selectedPermissions.includes(permission.id) ||
+        selectedPermissions.includes(permission.name)
+    ) && !allSelected;
 
   // Count of selected permissions in this category
   const selectedCount = permissions.filter(
-    (permission) => selectedPermissions.includes(permission.id) || selectedPermissions.includes(permission.name)
+    (permission) =>
+      selectedPermissions.includes(permission.id) ||
+      selectedPermissions.includes(permission.name)
   ).length;
 
   // Handle toggling all permissions in this category
@@ -111,21 +119,29 @@ export function CategoryPermissionsGroup({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
-          {permissions.map((permission) => {
+          {permissions.map((permission, index) => {
             // Always use permission name for backend compatibility
             const permName = permission.name;
             // Use ID only for display/key purposes
             const permId = permission.id || permission.name;
             const isSelected = selectedPermissions.includes(permName);
 
+            // Updated key to include category and index to guarantee uniqueness
+            const key = `${category}-${permId}-${index}`;
+
             return (
-              <Tooltip key={permId}>
+              <Tooltip key={key}>
                 <TooltipTrigger asChild>
-                  <div className={`flex items-center space-x-2 p-1.5 ${isSelected ? 'bg-secondary/20 rounded-md' : ''}`}>
+                  <div
+                    className={`flex items-center space-x-2 p-1.5 ${isSelected ? "bg-secondary/20 rounded-md" : ""
+                      }`}
+                  >
                     <Checkbox
                       id={`perm-${permId}`}
                       checked={isSelected}
-                      onCheckedChange={(checked) => onTogglePermission(permName, !!checked)}
+                      onCheckedChange={(checked) =>
+                        onTogglePermission(permName, !!checked)
+                      }
                       disabled={disabled}
                     />
                     <label

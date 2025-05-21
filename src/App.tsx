@@ -114,44 +114,29 @@ const NotFound = () => (
 );
 
 function App() {
-  const { isAuthenticated, refreshAuth } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  // Set page load time and handle visibility changes
+  // Set up initial app state
   useEffect(() => {
+    const DEBUG = process.env.NODE_ENV === "development";
+
     // Track page load state to prevent immediate redirects
     const isFirstLoad = !sessionStorage.getItem("app_initialized");
 
-    // Always update page load time for refresh detection
-    sessionStorage.setItem("page_load_time", Date.now().toString());
-
-    // Check if we have an active session
-    const hasActiveSession =
-      sessionStorage.getItem("has_active_session") === "true";
+    // Store page load time for refresh detection
+    const now = Date.now();
+    sessionStorage.setItem("page_load_time", now.toString());
 
     // If authenticated, ensure the session is marked as active
     if (isAuthenticated) {
+      if (DEBUG) console.log("App: User is authenticated, marking session as active");
+      localStorage.setItem("has_active_session", "true");
       sessionStorage.setItem("has_active_session", "true");
-    }
-
-    // If this is a page refresh with an active session, preserve it
-    if (document.readyState !== "complete" && hasActiveSession) {
-      if (DEBUG) console.log("App: Detected page refresh with active session");
-
-      // Ensure the session is marked as active
-      sessionStorage.setItem("has_active_session", "true");
-
-      // Add a flag to prevent immediate auth redirects with longer timeout
-      sessionStorage.setItem("prevent_auth_redirect", "true");
-
-      // Remove the prevention after a longer delay
-      setTimeout(() => {
-        sessionStorage.removeItem("prevent_auth_redirect");
-      }, 15000); // Increased to 15 seconds
-
-
     }
 
     if (isFirstLoad) {
+      if (DEBUG) console.log("App: First load detected");
+
       // Mark that app is initialized to track first page load
       sessionStorage.setItem("app_initialized", "true");
 
@@ -160,12 +145,13 @@ function App() {
 
       // Remove the prevention after a delay
       setTimeout(() => {
+        if (DEBUG) console.log("App: Removing auth redirect prevention");
         sessionStorage.removeItem("prevent_auth_redirect");
-      }, 10000);
+      }, 5000);
+    } else if (DEBUG) {
+      console.log("App: Page refresh detected");
     }
-
-
-  }, [isAuthenticated, refreshAuth]);
+  }, [isAuthenticated]);
 
   // Listen for auth expired events
   const handleAuthExpired = () => {

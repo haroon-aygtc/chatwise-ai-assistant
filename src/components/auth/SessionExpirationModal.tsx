@@ -41,8 +41,21 @@ const SessionExpirationModal = () => {
   const { refreshAuth, logout } = auth;
 
   const handleExtend = async () => {
-    // Refresh authentication
-    await refreshAuth();
+    // Ping the server to extend the session
+    try {
+      // Just make a simple request to the server to extend the session
+      // With Sanctum, this will automatically refresh the session
+      await fetch('/api/user', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+    } catch (error) {
+      console.error("Failed to extend session:", error);
+    }
     setOpen(false);
   };
 

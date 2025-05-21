@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -6,8 +6,8 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
+import axios from "axios";
 import { User } from "@/types/user";
-import { Role } from "@/types";
 import authService, { tokenService } from "@/services/auth";
 import { SignupData } from "@/services/auth/types";
 import { useToast } from "@/components/ui/use-toast";
@@ -97,8 +97,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
     } catch (error) {
       // Still clear session markers even if logout API fails
-      tokenService.removeToken();
-      localStorage.removeItem("cached_user_data");
+      tokenService.clearSession();
     } finally {
       setIsLoading(false);
     }
@@ -140,9 +139,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
 
     try {
-      // Check if token exists
-      const token = tokenService.getToken();
-      if (!token) {
+      // Check if we have an active session
+      if (!tokenService.hasActiveSession()) {
         setUser(null);
         setIsLoading(false);
         return;
@@ -168,11 +166,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } as User);
       } else {
         setUser(null);
-        tokenService.removeToken();
+        tokenService.clearSession();
       }
     } catch (error) {
       setUser(null);
-      tokenService.removeToken();
+      tokenService.clearSession();
     } finally {
       setIsLoading(false);
     }
@@ -182,43 +180,65 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
+      const DEBUG = process.env.NODE_ENV === "development";
 
       try {
-        // Try to get token
-        const token = tokenService.getToken();
-        const hasActiveSession =
-          sessionStorage.getItem("has_active_session") === "true";
+        // Always initialize CSRF token first
+        await tokenService.initCsrfToken();
 
-        // If we have a token, try to get user data
-        if (token && hasActiveSession) {
-          // Initialize CSRF token
-          await tokenService.initCsrfToken();
+        // Check if we have an active session
+        const hasActiveSession = tokenService.hasActiveSession();
 
-          // Fetch user data
-          const userData = await authService.getCurrentUser();
+        if (DEBUG) console.log(`Auth initialization - Active session: ${hasActiveSession}`);
 
-          if (userData) {
-            // Ensure permissions is always an array
-            const permissions = Array.isArray(userData.permissions)
-              ? userData.permissions
-              : [];
+        // If we have an active session, try to get user data
+        if (hasActiveSession) {
+          try {
+            // Fetch user data
+            const userData = await authService.getCurrentUser();
 
-            // Convert the authService User to our domain User
-            setUser({
-              ...userData,
-              id: String(userData.id), // Convert number id to string
-              permissions: permissions, // Ensure permissions is set
-            } as User);
-          } else {
-            setUser(null);
-            tokenService.removeToken();
+            if (userData) {
+              if (DEBUG) console.log("User data retrieved successfully");
+
+              // Ensure permissions is always an array
+              const permissions = Array.isArray(userData.permissions)
+                ? userData.permissions
+                : [];
+
+              // Convert the authService User to our domain User
+              setUser({
+                ...userData,
+                id: String(userData.id), // Convert number id to string
+                permissions: permissions, // Ensure permissions is set
+              } as User);
+
+              // Ensure session is marked as active
+              tokenService.setActiveSession();
+            } else {
+              if (DEBUG) console.log("No user data returned");
+              setUser(null);
+              tokenService.clearSession();
+            }
+          } catch (error) {
+            if (DEBUG) console.error("Error fetching user data:", error);
+
+            // Only clear session if it's an authentication error
+            if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 419)) {
+              tokenService.clearSession();
+              setUser(null);
+            } else {
+              // For other errors, keep the session but set user to null
+              console.error("Non-authentication error during auth initialization:", error);
+              setUser(null);
+            }
           }
         } else {
+          if (DEBUG) console.log("No active session found");
           setUser(null);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        tokenService.removeToken();
+        tokenService.clearSession();
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -228,31 +248,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
   }, []);
 
-  // Simple session validity check
+  // Handle auth events
   useEffect(() => {
-    // Only check if user is logged in
-    if (!user) return;
-
-    // Set up a simple session check interval
-    const sessionCheckInterval = setInterval(() => {
-      authService.checkSession().catch(() => {
-        // If session check fails, logout
-        logout();
-        toast({
-          title: "Session expired",
-          description: "Your session has expired. Please log in again.",
-          variant: "destructive",
-          duration: 5000,
-        });
-      });
-    }, 60000); // Check once per minute
-
     // Handle auth expired event
     const handleAuthExpired = () => {
       if (user) {
         // Force immediate logout
-        tokenService.removeToken();
-        localStorage.removeItem("cached_user_data");
+        tokenService.clearSession();
         setUser(null);
 
         // Show toast notification
@@ -291,7 +293,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Clean up event listeners
     return () => {
-      clearInterval(sessionCheckInterval);
       window.removeEventListener(
         "auth:expired",
         handleAuthExpired as EventListener,
@@ -301,7 +302,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         handlePermissionDenied as EventListener,
       );
     };
-  }, [user, logout, toast]);
+  }, [user, toast]);
 
   // Check if user has a specific role
   const hasRole = useCallback(
