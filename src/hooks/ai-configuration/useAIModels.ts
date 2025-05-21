@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { AIModel, RoutingRule } from "@/types/ai-configuration";
-import * as aiModelService from "@/services/ai-configuration/aiModelService";
+import { aiService } from "@/services/api/aiService";
 
 export function useAIModels() {
   const [models, setModels] = useState<AIModel[]>([]);
@@ -29,11 +29,11 @@ export function useAIModels() {
       try {
         // Fetch models and rules in parallel for better performance
         const [modelsPromise, rulesPromise] = [
-          aiModelService.getAllModels().catch(err => {
+          aiService.getAllModels().catch(err => {
             console.warn("Error fetching AI models:", err);
             return [] as AIModel[]; // Return empty array on error
           }),
-          aiModelService.getRoutingRules().catch(err => {
+          aiService.getRoutingRules().catch(err => {
             console.warn("Error fetching routing rules:", err);
             return [] as RoutingRule[]; // Return empty array on error
           })
@@ -84,7 +84,7 @@ export function useAIModels() {
       }
 
       // Update the model in the backend
-      await aiModelService.updateModel(updatedModel.id, updatedModel);
+      await aiService.updateModel(updatedModel.id, updatedModel);
 
       // Update local state
       setModels(prevModels =>
@@ -107,7 +107,7 @@ export function useAIModels() {
     try {
       // Process each rule that needs updating
       await Promise.all(
-        rules.map(rule => aiModelService.updateRoutingRule(rule.id, rule))
+        rules.map(rule => aiService.updateRoutingRule(rule.id, rule))
       );
 
       setRoutingRules(rules);
@@ -123,7 +123,7 @@ export function useAIModels() {
   // Add routing rule
   const addRoutingRule = async (rule: Omit<RoutingRule, "id">) => {
     try {
-      const newRule = await aiModelService.createRoutingRule(rule);
+      const newRule = await aiService.createRoutingRule(rule);
       setRoutingRules(prevRules => [...prevRules, newRule]);
       setHasChanges(true);
       return newRule;
@@ -137,7 +137,7 @@ export function useAIModels() {
   // Delete routing rule
   const deleteRoutingRule = async (id: string) => {
     try {
-      await aiModelService.deleteRoutingRule(id);
+      await aiService.deleteRoutingRule(id);
       setRoutingRules(prevRules => prevRules.filter(rule => rule.id !== id));
       setHasChanges(true);
     } catch (err) {

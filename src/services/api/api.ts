@@ -61,6 +61,10 @@ export interface ApiErrorResponse {
 // Keep track of in-flight requests to prevent duplicates
 const pendingRequests = new Map<string, Promise<any>>();
 
+// Increase the debounce interval for these routes to prevent overload
+const RATE_LIMIT_DELAY = 500; // ms
+const RATE_LIMIT_BATCH_SIZE = 5; // max concurrent requests
+
 // Create a request key based on method, url and params/data to identify duplicates
 const createRequestKey = (config: AxiosRequestConfig): string => {
   const { method, url, params, data } = config;
@@ -75,7 +79,21 @@ const createRequestKey = (config: AxiosRequestConfig): string => {
  */
 class HttpClient {
   private instance: AxiosInstance;
-  private rateLimitedRoutes = ['/ai/models', '/ai/routing-rules']; // Routes that should be rate limited
+  // Extended list of rate-limited routes to prevent authentication issues
+  private rateLimitedRoutes = [
+    '/ai/models',
+    '/ai/routing-rules',
+    '/ai/providers',
+    '/knowledge-base/resources',
+    '/users',
+    '/permissions'
+  ];
+
+  // Improved rate limiter with batch control
+  private requestBatch = {
+    count: 0,
+    lastReset: Date.now()
+  };
 
   constructor() {
     // Create axios instance with default config
@@ -120,6 +138,27 @@ class HttpClient {
               console.log(`Reusing in-flight request for: ${config.url}`);
               return pendingRequests.get(requestKey);
             }
+
+            // Apply batch limiting for rate-limited routes
+            const now = Date.now();
+            // Reset batch counter if more than 2 seconds have passed
+            if (now - this.requestBatch.lastReset > 2000) {
+              this.requestBatch.count = 0;
+              this.requestBatch.lastReset = now;
+            }
+
+            // If we've exceeded our batch size, delay this request
+            if (this.requestBatch.count >= RATE_LIMIT_BATCH_SIZE) {
+              const delay = RATE_LIMIT_DELAY + Math.random() * 500; // Add jitter
+              console.log(`Rate limiting request to ${config.url}, delaying ${delay}ms`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              // Reset counter after delay
+              this.requestBatch.count = 0;
+              this.requestBatch.lastReset = Date.now();
+            }
+
+            // Increment batch counter
+            this.requestBatch.count++;
 
             // Store this request in the pending map
             config._requestKey = requestKey;

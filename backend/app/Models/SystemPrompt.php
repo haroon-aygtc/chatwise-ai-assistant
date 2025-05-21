@@ -10,23 +10,32 @@ class SystemPrompt extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'system_prompts';
+
+    /**
      * The attributes that are mass assignable.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $fillable = [
         'content',
         'version',
-        'is_active',
+        'is_active'
     ];
 
     /**
      * The attributes that should be cast.
      *
-     * @var array
+     * @var array<string, string>
      */
     protected $casts = [
         'is_active' => 'boolean',
         'version' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 }
