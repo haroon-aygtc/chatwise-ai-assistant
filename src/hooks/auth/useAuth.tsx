@@ -696,26 +696,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [refreshAuth]);
 
-  // Set up token expiry check in a separate effect
+  // Simple session validity check
   useEffect(() => {
-    // Set up token expiry check interval
-    const tokenCheckInterval = setInterval(() => {
-      // If token is expired, trigger a logout
-      if (user && tokenService.isTokenExpired()) {
-        logout();
-        toast({
-          title: "Session expired",
-          description: "Your session has expired. Please log in again.",
-          variant: "destructive",
-          duration: 5000,
+    // Set up a simple session check interval
+    const sessionCheckInterval = setInterval(() => {
+      // Only check if user is logged in
+      if (user) {
+        // Simple ping to verify session is still valid
+        authService.checkSession().catch(() => {
+          // If session check fails, logout
+          logout();
+          toast({
+            title: "Session expired",
+            description: "Your session has expired. Please log in again.",
+            variant: "destructive",
+            duration: 5000,
+          });
         });
       }
-
-      // If token needs refresh, attempt to refresh it proactively
-      if (user && tokenService.needsRefresh()) {
-        refreshAuth();
-      }
-    }, 30000); // Check every 30 seconds (reduced from 60s)
+    }, 60000); // Check once per minute
 
     // Listen for custom auth expiry event from API client
     const handleAuthExpired = () => {
@@ -788,7 +787,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Clean up intervals and event listeners
     return () => {
-      clearInterval(tokenCheckInterval);
+      clearInterval(sessionCheckInterval);
       window.removeEventListener(
         "auth:expired",
         handleAuthExpired as EventListener,
