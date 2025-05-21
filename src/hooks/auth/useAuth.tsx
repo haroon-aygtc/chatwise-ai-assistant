@@ -696,26 +696,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [refreshAuth]);
 
-  // Set up token expiry check in a separate effect
+  // Set up auth expiry event handler
   useEffect(() => {
-    // Set up token expiry check interval
-    const tokenCheckInterval = setInterval(() => {
-      // If token is expired, trigger a logout
-      if (user && tokenService.isTokenExpired()) {
-        logout();
-        toast({
-          title: "Session expired",
-          description: "Your session has expired. Please log in again.",
-          variant: "destructive",
-          duration: 5000,
-        });
-      }
-
-      // If token needs refresh, attempt to refresh it proactively
-      if (user && tokenService.needsRefresh()) {
-        refreshAuth();
-      }
-    }, 30000); // Check every 30 seconds (reduced from 60s)
 
     // Listen for custom auth expiry event from API client
     const handleAuthExpired = () => {
@@ -760,35 +742,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       handlePermissionDenied as EventListener,
     );
 
-    // Also refresh auth on visibility change (when user returns to the tab)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && user) {
-        // Only refresh if we were away for more than 2 minutes (reduced from 5)
-        const lastActiveTime = Number(
-          localStorage.getItem("last_active_time") || "0",
-        );
-        const now = Date.now();
-        const awayTime = now - lastActiveTime;
 
-        if (awayTime > 2 * 60 * 1000) {
-          // 2 minutes in milliseconds
-          refreshAuth();
-        }
 
-        // Update last active time
-        localStorage.setItem("last_active_time", now.toString());
-      }
-    };
-
-    // Set initial last active time
-    localStorage.setItem("last_active_time", Date.now().toString());
-
-    // Add event listener for visibility change
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Clean up intervals and event listeners
+    // Clean up event listeners
     return () => {
-      clearInterval(tokenCheckInterval);
       window.removeEventListener(
         "auth:expired",
         handleAuthExpired as EventListener,
@@ -797,7 +754,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         "permission:denied",
         handlePermissionDenied as EventListener,
       );
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [user, logout, toast, refreshAuth]);
 

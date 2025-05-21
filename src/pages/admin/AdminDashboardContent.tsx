@@ -9,24 +9,12 @@ export default function AdminDashboardContent() {
     const { refreshAuth, hasRole } = useAuth();
     const navigate = useNavigate();
 
-    // Ensure auth is refreshed when this page loads
+    // Check if user has admin role
     useEffect(() => {
-        // Check if this is a page refresh scenario
-        const pageLoadTime = Number(sessionStorage.getItem('page_load_time') || '0');
-        const timeSinceLoad = Date.now() - pageLoadTime;
-        const isRecentPageLoad = timeSinceLoad < 5000; // 5 seconds
-        const hasActiveSession = sessionStorage.getItem("has_active_session") === "true";
-
-        if (isRecentPageLoad && hasActiveSession) {
-            console.log("AdminDashboardContent: Detected page refresh, refreshing auth");
-            refreshAuth().then(() => {
-                // Check if user has admin role after refresh
-                if (!hasRole("admin")) {
-                    navigate("/unauthorized");
-                }
-            });
+        if (!hasRole("admin")) {
+            navigate("/unauthorized");
         }
-    }, [refreshAuth, hasRole, navigate]);
+    }, [hasRole, navigate]);
     return (
         <div className="space-y-8">
             <div className="space-y-2">

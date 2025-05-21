@@ -148,10 +148,7 @@ function App() {
         sessionStorage.removeItem("prevent_auth_redirect");
       }, 15000); // Increased to 15 seconds
 
-      // Refresh auth to ensure we have the latest user data
-      refreshAuth().catch(() => {
-        // Silent failure - will be handled by the auth system
-      });
+
     }
 
     if (isFirstLoad) {
@@ -167,25 +164,7 @@ function App() {
       }, 10000);
     }
 
-    // Listen for page visibility changes to detect tab switches
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Update page load time when tab becomes visible again
-        sessionStorage.setItem("page_load_time", Date.now().toString());
 
-        // If we have an active session, refresh auth when returning to the tab
-        if (sessionStorage.getItem("has_active_session") === "true") {
-          refreshAuth().catch((err) => {
-            console.warn("Failed to refresh auth on visibility change:", err);
-          });
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
   }, [isAuthenticated, refreshAuth]);
 
   // Listen for auth expired events
